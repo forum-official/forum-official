@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">포룸</string>
+    <string name="title_activity_main">포룸</string>
+    <string name="package_name">com.forumofficial.app</string>
+    <string name="custom_url_scheme">com.forumofficial.app</string>
+</resources>

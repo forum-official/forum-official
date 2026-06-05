@@ -20,6 +20,9 @@ export default defineConfig({
   server: {
     port: 5176,
     host: true,
+    watch: {
+      ignored: ['**/android/**']
+    }
   },
   plugins: [
     figmaAssetResolver(),
