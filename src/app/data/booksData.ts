@@ -22,7 +22,7 @@ export interface Book {
 export const popularBooksData: Book[] = [
   {
     "id": "sao-1",
-    "coverUrl": "https://image.aladin.co.kr/product/29080/48/cover500/k302836262_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/2098/6/cover500/8926332519_1.jpg",
     "title": "소드 아트 온라인 1 - 아인클라드",
     "author": "카와하라 레키",
     "publishers": [
@@ -43,7 +43,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "your-name-ln",
-    "coverUrl": "https://image.aladin.co.kr/product/9941/39/cover500/k252535039_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/9894/83/cover500/k862535655_2.jpg",
     "title": "너의 이름은. (소설)",
     "author": "신카이 마코토",
     "publishers": [
@@ -65,7 +65,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "re-zero-1",
-    "coverUrl": "https://image.aladin.co.kr/product/4090/58/cover500/k852431713_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/39148/21/cover500/k342138868_1.jpg",
     "title": "Re: 제로부터 시작하는 이세계 생활 1",
     "author": "나가츠키 텟페이",
     "publishers": [
@@ -86,7 +86,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "almond-teen",
-    "coverUrl": "https://image.aladin.co.kr/product/10531/15/cover500/8936434268_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/31893/32/cover500/k212833749_2.jpg",
     "title": "아몬드",
     "author": "손원평",
     "publishers": [
@@ -108,7 +108,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "time-seller",
-    "coverUrl": "https://image.aladin.co.kr/product/2000/62/cover500/8949161601_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/1616/63/cover500/8954427170_3.jpg",
     "title": "시간을 파는 상점",
     "author": "김선영",
     "publishers": [
@@ -130,7 +130,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "paint-teen",
-    "coverUrl": "https://image.aladin.co.kr/product/18970/17/cover500/8936456903_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/18958/95/cover500/893645689x_1.jpg",
     "title": "페인트",
     "author": "이희영",
     "publishers": [
@@ -152,7 +152,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "toeic-voca",
-    "coverUrl": "https://image.aladin.co.kr/product/31872/17/cover500/k162833440_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/17602/13/cover500/s632030676_2.jpg",
     "title": "해커스 토익 기출 보카",
     "author": "David Cho",
     "publishers": [
@@ -173,7 +173,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "toeic-ets",
-    "coverUrl": "https://image.aladin.co.kr/product/33069/54/cover500/8966264147_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/33010/92/cover500/8917239498_2.jpg",
     "title": "ETS 토익 정기시험 기출문제집 1000 Vol. 4 Listening",
     "author": "ETS",
     "publishers": [
@@ -215,7 +215,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "hundred-years",
-    "coverUrl": "https://image.aladin.co.kr/product/264/2/cover500/8937460726_2.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/21/76/cover500/s172933848_1.jpg",
     "title": "백년의 고독",
     "author": "가브리엘 가르시아 마르케스",
     "publishers": [
@@ -236,7 +236,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "never-let-me-go",
-    "coverUrl": "https://image.aladin.co.kr/product/493/61/cover500/8937460750_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/27004/52/cover500/8937444372_1.jpg",
     "title": "나를 보내지 마",
     "author": "가즈오 이시구로",
     "publishers": [
@@ -257,7 +257,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "remains-of-day",
-    "coverUrl": "https://image.aladin.co.kr/product/1021/43/cover500/8937460599_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/27743/91/cover500/8937463881_1.jpg",
     "title": "남아있는 나날",
     "author": "가즈오 이시구로",
     "publishers": [
@@ -278,7 +278,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "beloved",
-    "coverUrl": "https://image.aladin.co.kr/product/4/67/cover500/8937460343_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/3890/33/cover500/s8954624391_1.jpg",
     "title": "빌러비드",
     "author": "토니 모리슨",
     "publishers": [
@@ -299,7 +299,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "plague",
-    "coverUrl": "https://image.aladin.co.kr/product/18/28/cover500/8937460122_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/1126/73/cover500/s937462672_2.jpg",
     "title": "페스트",
     "author": "알베르 카뮈",
     "publishers": [
@@ -320,7 +320,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "wanderers",
-    "coverUrl": "https://image.aladin.co.kr/product/18618/32/cover500/k342531152_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/28970/39/cover500/k152836820_1.jpg",
     "title": "방랑자들",
     "author": "올가 토카르추크",
     "publishers": [
@@ -341,7 +341,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "simple-passion",
-    "coverUrl": "https://image.aladin.co.kr/product/27986/9/cover500/k712730432_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/2094/95/cover500/8954619584_2.jpg",
     "title": "단순한 열정",
     "author": "아니 에르노",
     "publishers": [
@@ -362,7 +362,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "tin-drum",
-    "coverUrl": "https://image.aladin.co.kr/product/4/67/cover500/8937460343_2.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/20/74/cover500/s432933848_1.jpg",
     "title": "양철북",
     "author": "귄터 그라스",
     "publishers": [
@@ -383,7 +383,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "my-name-is-red",
-    "coverUrl": "https://image.aladin.co.kr/product/6/12/cover500/896381026X_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/21424/16/cover500/8937479796_3.jpg",
     "title": "내 이름은 빨강",
     "author": "오르한 파무크",
     "publishers": [
@@ -404,7 +404,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "crime-punishment",
-    "coverUrl": "https://image.aladin.co.kr/product/1/0/cover500/8937460114_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/39078/80/cover500/k642137950_1.jpg",
     "title": "죄와 벌",
     "author": "표도르 도스토옙스키",
     "publishers": [
@@ -425,7 +425,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "brothers-karamazov",
-    "coverUrl": "https://image.aladin.co.kr/product/1/0/cover500/8937460432_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/2090/83/cover500/s162835947_1.jpg",
     "title": "카라마조프 가의 형제들",
     "author": "표도르 도스토옙스키",
     "publishers": [
@@ -446,7 +446,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "don-quixote",
-    "coverUrl": "https://image.aladin.co.kr/product/2/67/cover500/8937461056_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/4922/52/cover500/8932916802_1.jpg",
     "title": "돈키호테",
     "author": "미겔 데 세르반테스",
     "publishers": [
@@ -467,7 +467,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "les-miserables",
-    "coverUrl": "https://image.aladin.co.kr/product/2/42/cover500/8937460742_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/5529/84/cover500/8949141124_2.jpg",
     "title": "레 미제라블",
     "author": "빅토르 위고",
     "publishers": [
@@ -488,7 +488,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "great-gatsby",
-    "coverUrl": "https://image.aladin.co.kr/product/5/15/cover500/8937460823_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/41/79/cover500/s582934787_1.jpg",
     "title": "위대한 개츠비",
     "author": "F. 스콧 피츠제럴드",
     "publishers": [
@@ -509,7 +509,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "hamlet",
-    "coverUrl": "https://image.aladin.co.kr/product/5/56/cover500/893741079X_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/16/80/cover500/s962932230_1.jpg",
     "title": "햄릿",
     "author": "윌리엄 셰익스피어",
     "publishers": [
@@ -530,7 +530,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "little-prince",
-    "coverUrl": "https://image.aladin.co.kr/product/9/71/cover500/8932912165_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/6853/49/cover500/8932917248_2.jpg",
     "title": "어린 왕자",
     "author": "앙투안 드 생텍쥐페리",
     "publishers": [
@@ -551,7 +551,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "alchemist",
-    "coverUrl": "https://image.aladin.co.kr/product/1/11/cover500/8949170000_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/7162/36/cover500/8954638570_1.jpg",
     "title": "연금술사",
     "author": "파울로 코엘료",
     "publishers": [
@@ -572,7 +572,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "mans-search",
-    "coverUrl": "https://image.aladin.co.kr/product/1/66/cover500/8901182157_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/38224/38/cover500/8936812629_1.jpg",
     "title": "죽음의 수용소에서",
     "author": "빅터 프랭클",
     "publishers": [
@@ -593,7 +593,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "power-of-now",
-    "coverUrl": "https://image.aladin.co.kr/product/2/27/cover500/8984990396_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/36256/71/cover500/k962038622_1.jpg",
     "title": "지금 이 순간을 살아라",
     "author": "에크하르트 톨레",
     "publishers": [
@@ -614,7 +614,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "harry-potter",
-    "coverUrl": "https://image.aladin.co.kr/product/13/49/cover500/8983920769_2.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/25399/72/cover500/8983928204_2.jpg",
     "title": "해리 포터와 마법사의 돌",
     "author": "J. K. 롤링",
     "publishers": [
@@ -635,7 +635,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "three-body-problem",
-    "coverUrl": "https://image.aladin.co.kr/product/13/16/cover500/k532434534_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/36946/25/cover500/k222030516_2.jpg",
     "title": "삼체",
     "author": "류츠신",
     "publishers": [
@@ -656,7 +656,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "dune",
-    "coverUrl": "https://image.aladin.co.kr/product/2/27/cover500/8984990007_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/26297/19/cover500/k132738793_2.jpg",
     "title": "듄",
     "author": "프랭크 허버트",
     "publishers": [
@@ -677,7 +677,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "kite-runner",
-    "coverUrl": "https://image.aladin.co.kr/product/4/58/cover500/8952745574_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/30005/40/cover500/k592838350_1.jpg",
     "title": "연을 쫓는 아이",
     "author": "할레드 호세이니",
     "publishers": [
@@ -698,7 +698,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "monte-cristo",
-    "coverUrl": "https://image.aladin.co.kr/product/9/0/cover500/8989297702_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/34/13/cover500/8937403862_2.jpg",
     "title": "몽테크리스토 백작",
     "author": "알렉상드르 뒤마",
     "publishers": [
@@ -719,7 +719,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "sapiens",
-    "coverUrl": "https://image.aladin.co.kr/product/5/10/cover500/k602434484_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/31424/4/cover500/k482832219_1.jpg",
     "title": "사피엔스",
     "author": "유발 하라리",
     "publishers": [
@@ -740,7 +740,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "homo-deus",
-    "coverUrl": "https://image.aladin.co.kr/product/10/83/cover500/k682434484_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/10044/18/cover500/8934977841_3.jpg",
     "title": "호모 데우스",
     "author": "유발 하라리",
     "publishers": [
@@ -761,7 +761,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "guns-germs",
-    "coverUrl": "https://image.aladin.co.kr/product/1/28/cover500/8970129901_2.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/31629/43/cover500/8934942460_1.jpg",
     "title": "총, 균, 쇠",
     "author": "재레드 다이아몬드",
     "publishers": [
@@ -782,7 +782,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "thinking-fast-slow",
-    "coverUrl": "https://image.aladin.co.kr/product/8/8/cover500/k212530752_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/14013/55/cover500/8934981210_1.jpg",
     "title": "생각에 관한 생각",
     "author": "대니얼 카너먼",
     "publishers": [
@@ -803,7 +803,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "influence",
-    "coverUrl": "https://image.aladin.co.kr/product/9/16/cover500/k562430485_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/31520/75/cover500/8950950006_1.jpg",
     "title": "설득의 심리학",
     "author": "로버트 치알디니",
     "publishers": [
@@ -824,7 +824,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "zero-to-one",
-    "coverUrl": "https://image.aladin.co.kr/product/5/76/cover500/k562435081_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/36235/91/cover500/k102038607_1.jpg",
     "title": "제로 투 원",
     "author": "피터 틸",
     "publishers": [
@@ -845,7 +845,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "lean-startup",
-    "coverUrl": "https://image.aladin.co.kr/product/3/26/cover500/8996810363_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/2064/86/cover500/8966260578_1.jpg",
     "title": "린 스타트업",
     "author": "에릭 리스",
     "publishers": [
@@ -866,7 +866,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "7-habits",
-    "coverUrl": "https://image.aladin.co.kr/product/4/20/cover500/896109008X_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/31955/39/cover500/8934965959_1.jpg",
     "title": "성공하는 사람들의 7가지 습관",
     "author": "스티븐 코비",
     "publishers": [
@@ -887,7 +887,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "atomic-habits",
-    "coverUrl": "https://image.aladin.co.kr/product/22/88/cover500/k552636060_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/37944/74/cover500/k672033454_3.jpg",
     "title": "아주 작은 습관의 힘",
     "author": "제임스 클리어",
     "publishers": [
@@ -908,7 +908,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "how-to-win-friends",
-    "coverUrl": "https://image.aladin.co.kr/product/4/58/cover500/8983920814_1.jpg",
+    "coverUrl": "https://image.aladin.co.kr/product/20945/79/cover500/s652933016_2.jpg",
     "title": "인간관계론",
     "author": "데일 카네기",
     "publishers": [

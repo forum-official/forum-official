@@ -238,32 +238,37 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
     setIsFetching(false);
     setImageLoaded(false);
 
-    // 1. 유효한 URL이 있으면 즉시 표출 (Yes24 포함 — img onError가 자동으로 처리)
+    const cacheKey = `cover_${title}_${author}_${publisherName || ""}${!allowPublisherFallback ? "_nofallback" : ""}`;
+    const cached = localStorage.getItem(cacheKey);
+
+    // 1. 고정 매핑(translationCovers) 확인 → 있을 시 최우선 고화질 고정
+    let staticCover = "";
+    if (publisherName) {
+      const matchingTitle = getMatchingClassicTitle(title) || title;
+      staticCover = translationCovers[matchingTitle]?.[publisherName] || translationCovers[title]?.[publisherName] || "";
+    }
+
+    if (staticCover) {
+      setResolvedCover(staticCover);
+      return;
+    }
+
+    // 2. localStorage 캐시 확인 (NO_COVER_FOUND 또는 정상 캐시)
+    if (cached === "NO_COVER_FOUND") {
+      setResolvedCover("");
+      return;
+    }
+
+    if (cached && !cached.includes("openlibrary.org") && !cached.includes("unsplash.com")) {
+      setResolvedCover(cached);
+      return;
+    }
+
+    // 3. 유효한 URL이 있으면 우선 표출 (Yes24 포함 — img onError가 자동으로 처리)
     if (coverUrl && coverUrl.startsWith("http")) {
       setResolvedCover(coverUrl);
     } else {
       setResolvedCover("");
-    }
-
-    // 2. 고정 매핑(translationCovers) 확인 → 있을 시 최우선 고화질 고정
-    if (publisherName) {
-      const matchingTitle = getMatchingClassicTitle(title) || title;
-      const staticCover = translationCovers[matchingTitle]?.[publisherName] || translationCovers[title]?.[publisherName];
-      if (staticCover) {
-        setResolvedCover(staticCover);
-        return;
-      }
-    }
-
-    // 3. localStorage 캐시 확인
-    const cacheKey = `cover_${title}_${author}_${publisherName || ""}${!allowPublisherFallback ? "_nofallback" : ""}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached === "NO_COVER_FOUND") {
-      return;
-    }
-    if (cached && !cached.includes("openlibrary.org") && !cached.includes("unsplash.com")) {
-      setResolvedCover(cached);
-      return;
     }
 
     // 4. 언스플래시나 오픈라이브러리 같은 임시 표지이거나 표지가 아예 없는 경우 백그라운드에서 실시간 수집
@@ -281,10 +286,12 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
             setResolvedCover(fetchedCover);
           } else {
             localStorage.setItem(cacheKey, "NO_COVER_FOUND");
+            setResolvedCover("");
           }
         } catch (e) {
           console.error("Failed to dynamically fetch cover from Aladin:", e);
           localStorage.setItem(cacheKey, "NO_COVER_FOUND");
+          setResolvedCover("");
         } finally {
           setIsFetching(false);
         }
