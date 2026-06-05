@@ -3,94 +3,9 @@ import { X, BookOpen, CheckCircle2, Search, ArrowLeft, Loader2 } from "lucide-re
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { popularBooksData, Book } from "@/app/data/booksData";
-import { BookCover } from "@/app/components/BookCover";
+import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getGlobalBooks } from "@/app/utils/db";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
-
-
-// Helper to fetch HTML via CORS proxies with failover
-function promiseAny<T>(promises: Promise<T>[]): Promise<T> {
-  if (typeof Promise.any === "function") {
-    return Promise.any(promises);
-  }
-  return new Promise<T>((resolve, reject) => {
-    let rejectedCount = 0;
-    const errors: any[] = [];
-    if (promises.length === 0) {
-      reject(new Error("Empty promise list"));
-      return;
-    }
-    promises.forEach((p, index) => {
-      Promise.resolve(p).then(
-        (val) => resolve(val),
-        (err) => {
-          errors[index] = err;
-          rejectedCount++;
-          if (rejectedCount === promises.length) {
-            reject(new Error("All promises rejected: " + errors.join(", ")));
-          }
-        }
-      );
-    });
-  });
-}
-
-// Helper to fetch HTML via CORS proxies with failover
-async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
-  const controller = new AbortController();
-  
-  const fetchWithProxy1 = async () => {
-    try {
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      if (res.ok) {
-        const text = await res.text();
-        controller.abort();
-        return text;
-      }
-    } catch {}
-    throw new Error("corsproxy.io failed");
-  };
-
-  const fetchWithProxy2 = async () => {
-    try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.contents) {
-          controller.abort();
-          return data.contents;
-        }
-      }
-    } catch {}
-    throw new Error("allorigins failed");
-  };
-
-  const fetchWithProxy3 = async () => {
-    try {
-      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      if (res.ok) {
-        const text = await res.text();
-        controller.abort();
-        return text;
-      }
-    } catch {}
-    throw new Error("codetabs failed");
-  };
-
-  try {
-    return await promiseAny([
-      fetchWithProxy1(),
-      fetchWithProxy2(),
-      fetchWithProxy3()
-    ]);
-  } catch (err) {
-    console.error("All proxies failed in race:", err);
-    throw new Error("Failed to fetch HTML via CORS proxies");
-  }
-}
 
 interface AddBookModalProps {
   onClose: () => void;
@@ -123,7 +38,20 @@ export function AddBookModal({
       return;
     }
 
+    // 1. Show local matches immediately to prevent screen lock
+    const query = searchQuery.toLowerCase();
+    const localMatches = getGlobalBooks(popularBooksData).filter(
+      (book) =>
+        book.title.toLowerCase().includes(query) ||
+        book.author.toLowerCase().includes(query)
+    ).map(book => ({
+      ...book,
+      publisher: book.publishers[0]?.name || "민음사"
+    }));
+
+    setBooksList(localMatches);
     setIsLoading(true);
+
     const delayDebounce = setTimeout(async () => {
       let apiBooks: any[] = [];
       try {
@@ -247,17 +175,6 @@ export function AddBookModal({
         console.error("Failed to fetch from Aladin API, using local fallback:", error);
       }
 
-      // Local search matching
-      const query = searchQuery.toLowerCase();
-      const localMatches = getGlobalBooks(popularBooksData).filter(
-        (book) =>
-          book.title.toLowerCase().includes(query) ||
-          book.author.toLowerCase().includes(query)
-      ).map(book => ({
-        ...book,
-        publisher: book.publishers[0]?.name || "민음사"
-      }));
-
       // Merge local matches with API books, eliminating duplicates by title
       const mergedBooks = [...localMatches];
       apiBooks.forEach(apiBook => {
@@ -273,7 +190,7 @@ export function AddBookModal({
 
       setBooksList(mergedBooks);
       setIsLoading(false);
-    }, 300);
+    }, 400); // 400ms debounce to decrease redundant request overhead
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
@@ -514,7 +431,7 @@ export function AddBookModal({
             </div>
 
             <div className="space-y-2">
-              {isLoading ? (
+              {isLoading && filteredBooks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-purple-600 gap-2">
                   <Loader2 className="size-8 animate-spin" />
                   <p className="text-xs text-gray-500">실시간 책 검색 중...</p>
@@ -527,32 +444,40 @@ export function AddBookModal({
                   </p>
                 </div>
               ) : (
-                filteredBooks.map((book) => (
-                  <button
-                    key={book.id}
-                    onClick={() => handleBookSelect(book)}
-                    className="w-full p-3 hover:bg-purple-50 rounded-lg transition-colors border border-gray-200 hover:border-purple-300"
-                  >
-                    <div className="flex gap-3">
-                      <div className="w-12 h-18 flex-shrink-0">
-                        <BookCover
-                          title={book.title}
-                          author={book.author}
-                          publisherName={book.publishers?.[0]?.name}
-                          coverUrl={book.coverUrl}
-                          className="w-full h-full object-cover rounded"
-                        />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="font-bold text-sm mb-1">{book.title}</h3>
-                        <p className="text-xs text-gray-600 mb-1">{book.author}</p>
-                        <p className="text-xs text-purple-600">
-                          {book.publishers.length}개 출판사
-                        </p>
-                      </div>
+                <>
+                  {isLoading && (
+                    <div className="flex items-center justify-center py-2 text-purple-600 gap-1.5 border-b border-gray-100 pb-2 mb-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      <span className="text-[10px] text-gray-500">실시간 도서 검색 중...</span>
                     </div>
-                  </button>
-                ))
+                  )}
+                  {filteredBooks.map((book) => (
+                    <button
+                      key={book.id}
+                      onClick={() => handleBookSelect(book)}
+                      className="w-full p-3 hover:bg-purple-50 rounded-lg transition-colors border border-gray-200 hover:border-purple-300"
+                    >
+                      <div className="flex gap-3">
+                        <div className="w-12 h-18 flex-shrink-0">
+                          <BookCover
+                            title={book.title}
+                            author={book.author}
+                            publisherName={book.publishers?.[0]?.name}
+                            coverUrl={book.coverUrl}
+                            className="w-full h-full object-cover rounded"
+                          />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <h3 className="font-bold text-sm mb-1">{book.title}</h3>
+                          <p className="text-xs text-gray-600 mb-1">{book.author}</p>
+                          <p className="text-xs text-purple-600">
+                            {book.publishers.length}개 출판사
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </>
               )}
             </div>
           </div>

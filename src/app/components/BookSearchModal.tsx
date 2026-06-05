@@ -4,7 +4,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { useState, useEffect } from "react";
 import { popularBooksData } from "@/app/data/booksData";
 import type { Book as BookType } from "@/app/data/booksData";
-import { BookCover } from "@/app/components/BookCover";
+import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getBookRatingStatsWithQuick, getGlobalBooks } from "@/app/utils/db";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
@@ -27,88 +27,7 @@ export function hasTranslationInfo(book: any): boolean {
 }
 
 
-function promiseAny<T>(promises: Promise<T>[]): Promise<T> {
-  if (typeof Promise.any === "function") {
-    return Promise.any(promises);
-  }
-  return new Promise<T>((resolve, reject) => {
-    let rejectedCount = 0;
-    const errors: any[] = [];
-    if (promises.length === 0) {
-      reject(new Error("Empty promise list"));
-      return;
-    }
-    promises.forEach((p, index) => {
-      Promise.resolve(p).then(
-        (val) => resolve(val),
-        (err) => {
-          errors[index] = err;
-          rejectedCount++;
-          if (rejectedCount === promises.length) {
-            reject(new Error("All promises rejected: " + errors.join(", ")));
-          }
-        }
-      );
-    });
-  });
-}
 
-// Helper to fetch HTML via CORS proxies with failover
-async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
-  const controller = new AbortController();
-  
-  const fetchWithProxy1 = async () => {
-    try {
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      if (res.ok) {
-        const text = await res.text();
-        controller.abort();
-        return text;
-      }
-    } catch {}
-    throw new Error("corsproxy.io failed");
-  };
-
-  const fetchWithProxy2 = async () => {
-    try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.contents) {
-          controller.abort();
-          return data.contents;
-        }
-      }
-    } catch {}
-    throw new Error("allorigins failed");
-  };
-
-  const fetchWithProxy3 = async () => {
-    try {
-      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      if (res.ok) {
-        const text = await res.text();
-        controller.abort();
-        return text;
-      }
-    } catch {}
-    throw new Error("codetabs failed");
-  };
-
-  try {
-    return await promiseAny([
-      fetchWithProxy1(),
-      fetchWithProxy2(),
-      fetchWithProxy3()
-    ]);
-  } catch (err) {
-    console.error("All proxies failed in race:", err);
-    throw new Error("Failed to fetch HTML via CORS proxies");
-  }
-}
 
 interface Book {
   id: number;
@@ -159,7 +78,27 @@ export function BookSearchModal({
       return;
     }
 
+    // 1. Show local matches immediately to prevent screen lock
+    const query = searchQuery.toLowerCase();
+    let localMatches = getGlobalBooks(popularBooksData).filter(
+      (book) =>
+        book.title.toLowerCase().includes(query) ||
+        book.author.toLowerCase().includes(query)
+    ).map(book => ({
+      ...book,
+      publisher: book.publishers[0]?.name || "민음사"
+    }));
+
+    if (filterDebateBooksOnly) {
+      localMatches = localMatches.filter(b => hasDebateTopic(b.title));
+    }
+    if (filterTranslationBooksOnly) {
+      localMatches = localMatches.filter(b => hasTranslationInfo(b));
+    }
+
+    setBooksList(localMatches);
     setIsLoading(true);
+
     const delayDebounce = setTimeout(async () => {
       let apiBooks: any[] = [];
       const skipApiSearch = filterTranslationBooksOnly || filterDebateBooksOnly;
@@ -287,26 +226,7 @@ export function BookSearchModal({
         }
       }
 
-      // Local search matching
-      const query = searchQuery.toLowerCase();
-      let localMatches = getGlobalBooks(popularBooksData).filter(
-        (book) =>
-          book.title.toLowerCase().includes(query) ||
-          book.author.toLowerCase().includes(query)
-      ).map(book => ({
-        ...book,
-        publisher: book.publishers[0]?.name || "민음사"
-      }));
-
-      // Apply filters to local results
-      if (filterDebateBooksOnly) {
-        localMatches = localMatches.filter(b => hasDebateTopic(b.title));
-      }
-      if (filterTranslationBooksOnly) {
-        localMatches = localMatches.filter(b => hasTranslationInfo(b));
-      }
-
-      // Merge local matches with API books
+      // Merge local matches with API books, eliminating duplicates by title
       const mergedBooks = [...localMatches];
       apiBooks.forEach(apiBook => {
         if (filterDebateBooksOnly && !hasDebateTopic(apiBook.title)) {
@@ -328,7 +248,7 @@ export function BookSearchModal({
 
       setBooksList(mergedBooks);
       setIsLoading(false);
-    }, 300);
+    }, 400); // 400ms debounce to decrease redundant request overhead
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, filterDebateBooksOnly, filterTranslationBooksOnly]);
@@ -427,7 +347,7 @@ export function BookSearchModal({
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto p-4">
-          {isLoading ? (
+          {isLoading && filteredBooks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-purple-600 gap-2">
               <Loader2 className="size-8 animate-spin" />
               <p className="text-xs text-gray-500">실시간 책 검색 중...</p>
@@ -439,6 +359,12 @@ export function BookSearchModal({
             </div>
           ) : (
             <div className="space-y-3">
+              {isLoading && (
+                <div className="flex items-center justify-center py-2 text-purple-600 gap-1.5 border-b border-gray-100 pb-2 mb-2">
+                  <Loader2 className="size-4 animate-spin" />
+                  <span className="text-[10px] text-gray-500">실시간 도서 검색 중...</span>
+                </div>
+              )}
               {filteredBooks.map((book) => {
                 const added = isBookAdded(book.id);
                 
