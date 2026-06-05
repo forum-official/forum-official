@@ -26820,7 +26820,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_190279211",
-    "coverUrl": "https://image.yes24.com/goods/190279211/L",
+    "coverUrl": "https://image.aladin.co.kr/product/30169/96/cover500/k532839680_1.jpg",
     "title": "[대여] [세트] 위대한 고전 30권을 1권으로 읽는 책 (과학·동양·철학 편) (총3권)",
     "author": "김성근",
     "publishers": [
@@ -29802,7 +29802,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_124340784",
-    "coverUrl": "https://image.yes24.com/goods/124340784/L",
+    "coverUrl": "https://image.aladin.co.kr/product/35329/64/cover500/scm84821759489.jpg",
     "title": "용선생 교과서 세계사 1~2권 세트",
     "author": "송용운, 사회평론 역사연구소, 김보미, 김언진, 길병민 글 외 5명\n                                        \n                                            정보 더 보기",
     "publishers": [
@@ -33414,7 +33414,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189506669",
-    "coverUrl": "https://image.yes24.com/goods/189506669/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39164/96/cover500/k162138964_2.jpg",
     "title": "[단독] 심리학은 어떻게 삶의 무기가 되는가",
     "author": "한소원",
     "publishers": [
@@ -38454,7 +38454,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_145668933",
-    "coverUrl": "https://image.yes24.com/goods/145668933/L",
+    "coverUrl": "https://image.aladin.co.kr/product/1119/30/cover500/8965820022_1.jpg",
     "title": "[세트] 자기계발 거장 3종 세트",
     "author": "조셉 머피, 맥레이븐, 나폴레온 힐",
     "publishers": [
@@ -40386,7 +40386,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189820649",
-    "coverUrl": "https://image.yes24.com/goods/189820649/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39376/45/cover500/k122139771_1.jpg",
     "title": "처음 만나는 사회 + 과학 4학년 세트",
     "author": "배성호, 신봉석, 양은석, 권보라, 이민성 글 외 4명\n                                        \n                                            정보 더 보기",
     "publishers": [
