@@ -25287,7 +25287,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_122120495",
-    "coverUrl": "https://image.yes24.com/goods/122120495/L",
+    "coverUrl": "https://image.aladin.co.kr/product/37903/27/cover500/k182033839_2.jpg",
     "title": "마흔에 읽는 쇼펜하우어",
     "author": "강용수",
     "publishers": [
@@ -25329,7 +25329,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189182947",
-    "coverUrl": "https://image.yes24.com/goods/189182947/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39249/19/cover500/k452138206_1.jpg",
     "title": "초등 상위 1%를 만드는 위대한 고전 맛보기 : 세계 문학 + 과학,철학,종교 세트",
     "author": "양화당",
     "publishers": [
@@ -25623,7 +25623,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_191020941",
-    "coverUrl": "https://image.yes24.com/goods/191020941/L",
+    "coverUrl": "https://image.aladin.co.kr/product/37491/90/cover500/k312032619_1.jpg",
     "title": "런던 LONDON - 5. 도시와 철학",
     "author": "석종득",
     "publishers": [
@@ -25791,7 +25791,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_68749139",
-    "coverUrl": "https://image.yes24.com/goods/68749139/L",
+    "coverUrl": "https://image.aladin.co.kr/product/34853/43/cover500/k652933840_1.jpg",
     "title": "철학은 어떻게 삶의 무기가 되는가",
     "author": "야마구치 슈",
     "publishers": [
@@ -25833,7 +25833,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_126670771",
-    "coverUrl": "https://image.yes24.com/goods/126670771/L",
+    "coverUrl": "https://image.aladin.co.kr/product/33996/43/cover500/k412930758_3.jpg",
     "title": "내 언어의 한계는 내 세계의 한계이다",
     "author": "김종원",
     "publishers": [
@@ -25959,7 +25959,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189624623",
-    "coverUrl": "https://image.yes24.com/goods/189624623/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39350/3/cover500/k132138531_1.jpg",
     "title": "세계 고전 철학 필사 〈쇼펜하우어〉 필사 노트 (어른학습지 ⑮)",
     "author": "저자 미상",
     "publishers": [
@@ -26127,7 +26127,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_180969213",
-    "coverUrl": "https://image.yes24.com/goods/180969213/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38751/8/cover500/k792136041_1.jpg",
     "title": "비문학이 읽히는 최소한의 배경지식 + 아,이게 철학이구나! 세트",
     "author": "지하늘",
     "publishers": [
@@ -26253,7 +26253,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189624624",
-    "coverUrl": "https://image.yes24.com/goods/189624624/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39349/97/cover500/k932138531_1.jpg",
     "title": "세계 고전 철학 필사 〈니체〉 필사 노트 (어른학습지 ⑮)",
     "author": "저자 미상",
     "publishers": [
@@ -26421,7 +26421,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_183794332",
-    "coverUrl": "https://image.yes24.com/goods/183794332/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38889/97/cover500/k922137509_1.jpg",
     "title": "질문으로 답을 찾는 인공지능 윤리 수업 + 질문으로 답을 찾는 인공지능 시대 철학 수업 세트",
     "author": "박형빈, 박시몽",
     "publishers": [
@@ -27030,7 +27030,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_135444834",
-    "coverUrl": "https://image.yes24.com/goods/135444834/L",
+    "coverUrl": "https://image.aladin.co.kr/product/31458/92/cover500/s892033808_1.jpg",
     "title": "부자의 언어 (양장 리커버 골드씨드 에디션) + 부자의 언어 100개의 철학 세트",
     "author": "존 소포릭",
     "publishers": [
@@ -27345,7 +27345,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_169351853",
-    "coverUrl": "https://image.yes24.com/goods/169351853/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38205/85/cover500/k152034814_2.jpg",
     "title": "처음 읽는 삼국지 3",
     "author": "이문열",
     "publishers": [
@@ -27408,7 +27408,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_186638960",
-    "coverUrl": "https://image.yes24.com/goods/186638960/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38346/5/cover500/scm8482686714.jpg",
     "title": "처음 읽는 삼국지 1~4권 세트",
     "author": "이문열",
     "publishers": [
@@ -27639,7 +27639,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_191020977",
-    "coverUrl": "https://image.yes24.com/goods/191020977/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39164/91/cover500/k982138963_3.jpg",
     "title": "AI 인문학",
     "author": "강성호",
     "publishers": [
@@ -29151,7 +29151,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_154563424",
-    "coverUrl": "https://image.yes24.com/goods/154563424/L",
+    "coverUrl": "https://image.aladin.co.kr/product/37272/73/cover500/k992031321_1.jpg",
     "title": "인문학을 좋아하는 사람들을 위한 반야심경 + 과학을 좋아하는 사람들을 위한 반야심경 세트",
     "author": "야마나 테츠시, 사지 하루오",
     "publishers": [
@@ -29298,7 +29298,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_44270312",
-    "coverUrl": "https://image.yes24.com/goods/44270312/L",
+    "coverUrl": "https://image.aladin.co.kr/product/5913/18/cover500/6000846441_2.jpg",
     "title": "아트인문학",
     "author": "김태진",
     "publishers": [
@@ -30033,7 +30033,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_117972027",
-    "coverUrl": "https://image.yes24.com/goods/117972027/L",
+    "coverUrl": "https://image.aladin.co.kr/product/820/54/cover500/scm84828180243.jpg",
     "title": "용선생 15분 한국사 독해 1~4권 세트",
     "author": "사회평론 역사연구소, 이지혜, 김미성, 정지은",
     "publishers": [
@@ -30348,7 +30348,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_114848694",
-    "coverUrl": "https://image.yes24.com/goods/114848694/L",
+    "coverUrl": "https://image.aladin.co.kr/product/30328/61/cover500/k362839230_1.jpg",
     "title": "인생의 역사",
     "author": "신형철",
     "publishers": [
@@ -30558,7 +30558,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_191020951",
-    "coverUrl": "https://image.yes24.com/goods/191020951/L",
+    "coverUrl": "https://image.aladin.co.kr/product/37491/90/cover500/k312032619_1.jpg",
     "title": "런던 LONDON - 3. 도시와 역사",
     "author": "석종득",
     "publishers": [
@@ -32448,7 +32448,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_3508665",
-    "coverUrl": "https://image.yes24.com/goods/3508665/L",
+    "coverUrl": "https://image.aladin.co.kr/product/446/70/cover500/scm71881835038.jpg",
     "title": "빅뱅스쿨 시리즈(전9권)",
     "author": "홍승우",
     "publishers": [
@@ -32532,7 +32532,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_47374",
-    "coverUrl": "https://image.yes24.com/goods/47374/L",
+    "coverUrl": "https://image.aladin.co.kr/img/noimg_sum_b.gif",
     "title": "한국과학기술의 대중화 정책연구",
     "author": "김학수",
     "publishers": [
@@ -32742,7 +32742,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_196081",
-    "coverUrl": "https://image.yes24.com/goods/196081/L",
+    "coverUrl": "https://image.aladin.co.kr/product/298/38/cover500/8958201436_1.jpg",
     "title": "과학의 역사 1",
     "author": "J.D 버날",
     "publishers": [
@@ -32763,7 +32763,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_172683372",
-    "coverUrl": "https://image.yes24.com/goods/172683372/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38331/55/cover500/k222034444_1.jpg",
     "title": "돈의 방정식 + 돈의 심리학 (50만 부 기념 뉴 에디션) 세트",
     "author": "모건 하우절",
     "publishers": [
@@ -32826,7 +32826,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_172790045",
-    "coverUrl": "https://image.yes24.com/goods/172790045/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38331/55/cover500/k222034444_1.jpg",
     "title": "돈의 방정식 + 돈의 심리학 (50만 부 기념 뉴 에디션) + 불변의 법칙 세트",
     "author": "모건 하우절",
     "publishers": [
@@ -32847,7 +32847,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_172789450",
-    "coverUrl": "https://image.yes24.com/goods/172789450/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38331/50/cover500/k192034444_1.jpg",
     "title": "돈의 심리학 (50만 부 기념 뉴 에디션) + 불변의 법칙 세트",
     "author": "모건 하우절",
     "publishers": [
@@ -32931,7 +32931,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_183924041",
-    "coverUrl": "https://image.yes24.com/goods/183924041/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38931/80/cover500/k002137815_1.jpg",
     "title": "투자 불패의 법칙 + 돈의 심리학 (50만 부 기념 뉴 에디션) 세트",
     "author": "모건 하우절, 배리 리트홀츠",
     "publishers": [
@@ -32994,7 +32994,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_122428190",
-    "coverUrl": "https://image.yes24.com/goods/122428190/L",
+    "coverUrl": "https://image.aladin.co.kr/product/32444/93/cover500/k972935291_2.jpg",
     "title": "생각이 너무 많은 어른들을 위한 심리학",
     "author": "김혜남",
     "publishers": [
@@ -33519,7 +33519,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_128252698",
-    "coverUrl": "https://image.yes24.com/goods/128252698/L",
+    "coverUrl": "https://image.aladin.co.kr/product/34214/60/cover500/k482931035_1.jpg",
     "title": "나는 왜 남들보다 쉽게 지칠까",
     "author": "최재훈",
     "publishers": [
@@ -33561,7 +33561,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_143785507",
-    "coverUrl": "https://image.yes24.com/goods/143785507/L",
+    "coverUrl": "https://image.aladin.co.kr/product/33973/61/cover500/k102930444_1.jpg",
     "title": "어른의 기분 관리법 : 심리학편 + 어른의 기분 관리법 세트",
     "author": "손힘찬, 이영탁, 이주희, 이현정, 승PD 저 외 4명\n                                        \n                                            정보 더 보기",
     "publishers": [
@@ -33603,7 +33603,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_86221520",
-    "coverUrl": "https://image.yes24.com/goods/86221520/L",
+    "coverUrl": "https://image.aladin.co.kr/product/22769/29/cover500/k622636332_1.jpg",
     "title": "딸에게 보내는 심리학 편지 (10만 부 기념 스페셜 에디션)",
     "author": "한성희",
     "publishers": [
@@ -33729,7 +33729,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_94517165",
-    "coverUrl": "https://image.yes24.com/goods/94517165/L",
+    "coverUrl": "https://image.aladin.co.kr/product/29839/81/cover500/k362838825_1.jpg",
     "title": "홀로서기 심리학 (7만 부 기념 스페셜 에디션)",
     "author": "라라 E. 필딩",
     "publishers": [
@@ -35241,7 +35241,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_37173",
-    "coverUrl": "https://image.yes24.com/goods/37173/L",
+    "coverUrl": "https://image.aladin.co.kr/img/noimg_sum_b.gif",
     "title": "신경제경영학대사전",
     "author": "한국사전연구사",
     "publishers": [
@@ -37509,7 +37509,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_149869870",
-    "coverUrl": "https://image.yes24.com/goods/149869870/L",
+    "coverUrl": "https://image.aladin.co.kr/product/785/99/cover500/scm8482637176.jpg",
     "title": "만화로 읽는 초등 자기계발 시리즈 세트",
     "author": "한투",
     "publishers": [
@@ -38580,7 +38580,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_6170324",
-    "coverUrl": "https://image.yes24.com/goods/6170324/L",
+    "coverUrl": "https://image.aladin.co.kr/product/600/21/cover500/8950921529_1.jpg",
     "title": "자기계발 원서읽기5-탈무드",
     "author": "BaEsic Contents House",
     "publishers": [
@@ -38937,7 +38937,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_146962634",
-    "coverUrl": "https://image.yes24.com/goods/146962634/L",
+    "coverUrl": "https://image.aladin.co.kr/product/30349/68/cover500/scm244351676586.jpg",
     "title": "한끝 초등사회 + 오투 초등과학 4-2 (2025년)",
     "author": "저자 미상",
     "publishers": [
@@ -39000,7 +39000,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_141316806",
-    "coverUrl": "https://image.yes24.com/goods/141316806/L",
+    "coverUrl": "https://image.aladin.co.kr/product/30382/11/cover500/scm24435911659.jpg",
     "title": "EBS 중학 뉴런 1 세트 (2026년용)",
     "author": "EBS",
     "publishers": [
@@ -39147,7 +39147,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_118413014",
-    "coverUrl": "https://image.yes24.com/goods/118413014/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39170/3/cover500/k002138163_1.jpg",
     "title": "아홉 살에 시작하는 똑똑한 초등신문",
     "author": "신효원",
     "publishers": [
@@ -39210,7 +39210,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189187875",
-    "coverUrl": "https://image.yes24.com/goods/189187875/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39117/67/cover500/k982137353_1.jpg",
     "title": "해법 열공 기출문제집 1학기 기말고사 중2 (2026년)",
     "author": "저자 미상",
     "publishers": [
@@ -39231,7 +39231,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_146962563",
-    "coverUrl": "https://image.yes24.com/goods/146962563/L",
+    "coverUrl": "https://image.aladin.co.kr/product/29468/46/cover500/scm24435202690.jpg",
     "title": "한끝 초등사회 + 오투 초등과학 3-2 (2025년)",
     "author": "저자 미상",
     "publishers": [
@@ -39252,7 +39252,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_182533381",
-    "coverUrl": "https://image.yes24.com/goods/182533381/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38810/98/cover500/k482137080_1.jpg",
     "title": "초등 사회+과학 진짜 문해력 3-1 세트",
     "author": "배성호, 신봉석, 아꿈선 교육콘텐츠개발 연구회, 곽혜송, 김재윤 저 외 1명\n                                        \n                                            정보 더 보기",
     "publishers": [
@@ -39315,7 +39315,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_182533404",
-    "coverUrl": "https://image.yes24.com/goods/182533404/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38810/99/cover500/k402137080_1.jpg",
     "title": "초등 사회+과학 진짜 문해력 5-1 세트",
     "author": "배성호, 신봉석, 아꿈선 교육콘텐츠개발 연구회, 곽혜송, 이우철",
     "publishers": [
@@ -39336,7 +39336,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_182533421",
-    "coverUrl": "https://image.yes24.com/goods/182533421/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38811/2/cover500/k862137080_1.jpg",
     "title": "초등 사회+과학 진짜 문해력 6-1 세트",
     "author": "배성호, 신봉석, 아꿈선 교육콘텐츠개발 연구회, 곽혜송, 이우철",
     "publishers": [
@@ -39378,7 +39378,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_182533385",
-    "coverUrl": "https://image.yes24.com/goods/182533385/L",
+    "coverUrl": "https://image.aladin.co.kr/product/38811/12/cover500/k942137081_1.jpg",
     "title": "초등 사회+과학 진짜 문해력 4-1 세트",
     "author": "배성호, 신봉석, 아꿈선 교육콘텐츠개발 연구회, 곽혜송, 김재윤 저 외 1명\n                                        \n                                            정보 더 보기",
     "publishers": [
@@ -39504,7 +39504,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_189187847",
-    "coverUrl": "https://image.yes24.com/goods/189187847/L",
+    "coverUrl": "https://image.aladin.co.kr/product/36332/72/cover500/k562038655_2.jpg",
     "title": "해법 열공 기출문제집 1학기 기말고사 중1 (2026년)",
     "author": "저자 미상",
     "publishers": [
@@ -39525,7 +39525,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_163580096",
-    "coverUrl": "https://image.yes24.com/goods/163580096/L",
+    "coverUrl": "https://image.aladin.co.kr/product/35234/25/cover500/k812934747_1.jpg",
     "title": "EBS 고등예비과정 세트 (2026년용)",
     "author": "EBS",
     "publishers": [
@@ -39924,7 +39924,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_252006",
-    "coverUrl": "https://image.yes24.com/goods/252006/L",
+    "coverUrl": "https://image.aladin.co.kr/img/noimg_sum_b.gif",
     "title": "사회과학의 동향과 전망",
     "author": "성균관대학교 사회과학연구소",
     "publishers": [
@@ -41058,7 +41058,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_175205954",
-    "coverUrl": "https://image.yes24.com/goods/175205954/L",
+    "coverUrl": "https://image.aladin.co.kr/product/29646/60/cover500/scm24435264215.jpg",
     "title": "오투 중학 과학 2학년 세트 (2026년)",
     "author": "비상교육",
     "publishers": [
@@ -41100,7 +41100,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_175205417",
-    "coverUrl": "https://image.yes24.com/goods/175205417/L",
+    "coverUrl": "https://image.aladin.co.kr/product/30370/31/cover500/scm24435986457.jpg",
     "title": "오투 중학 과학 3학년 세트 (2026년)",
     "author": "비상교육",
     "publishers": [
@@ -41163,7 +41163,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_187573055",
-    "coverUrl": "https://image.yes24.com/goods/187573055/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39122/28/cover500/k882137459_1.jpg",
     "title": "고등 통합과학1 내신 1등급 세트 (완자+완자 기출픽)",
     "author": "김은경, 채규선, 조향숙 등",
     "publishers": [
@@ -41289,7 +41289,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_175206066",
-    "coverUrl": "https://image.yes24.com/goods/175206066/L",
+    "coverUrl": "https://image.aladin.co.kr/product/29646/63/cover500/scm24435986437.jpg",
     "title": "오투 중학 과학 1학년 세트 (2026년)",
     "author": "비상교육",
     "publishers": [
@@ -41478,7 +41478,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_188911931",
-    "coverUrl": "https://image.yes24.com/goods/188911931/L",
+    "coverUrl": "https://image.aladin.co.kr/product/39187/58/cover500/k802138677_1.jpg",
     "title": "다있소 과학 1~2권 세트",
     "author": "윤자영",
     "publishers": [
@@ -41646,7 +41646,7 @@ export const popularBooksData: Book[] = [
   },
   {
     "id": "yes24_91766653",
-    "coverUrl": "https://image.yes24.com/goods/91766653/L",
+    "coverUrl": "https://image.aladin.co.kr/product/24895/69/cover500/k882632470_2.jpg",
     "title": "천 개의 파랑",
     "author": "천선란",
     "publishers": [

@@ -35,7 +35,7 @@ export function cleanAladinAuthors(authorStr: string): string {
     let lastLength;
     do {
       lastLength = cleanName.length;
-      const suffixes = /\s*(지음|지은이|저자|저|글|그림|원작|편저|글·그림|글그림|글\/그림|글\.그림)$/;
+      const suffixes = /(?:\s+(저|글)|(?:\s*)(지음|지은이|저자|편저|그림|원작|글·그림|글그림|글\/그림|글\.그림))$/;
       cleanName = cleanName.replace(suffixes, "").trim();
     } while (cleanName.length < lastLength);
     

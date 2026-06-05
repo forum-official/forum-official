@@ -124,6 +124,7 @@ export function BooksScreen({
   const [isLoading, setIsLoading] = useState(false);
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [sortBy, setSortBy] = useState<"likes" | "rating">("likes");
+  const [displayCount, setDisplayCount] = useState(20);
 
   // Background Healing Effect to automatically fetch and resolve "저자 미상" and missing covers in the background
   useEffect(() => {
@@ -571,7 +572,24 @@ export function BooksScreen({
     return getSalesPoint(b) - getSalesPoint(a);
   });
 
+  // Reset display count when category, search query, or sorting changes
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [selectedCategory, searchQuery, sortBy]);
+
+  // Infinite scroll listener to load more books as the user scrolls down
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
+        setDisplayCount(prev => Math.min(prev + 20, sortedBooks.length));
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [sortedBooks.length]);
+
   const filteredBooks = sortedBooks;
+  const displayedBooks = filteredBooks.slice(0, displayCount);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-6">
@@ -653,7 +671,7 @@ export function BooksScreen({
           </div>
         ) : filteredBooks.length > 0 ? (
           <div className="space-y-3">
-            {filteredBooks.map((book, index) => (
+            {displayedBooks.map((book, index) => (
               <PopularBookCard
                 key={book.id}
                 {...book}
