@@ -774,133 +774,8 @@ export async function fetchUserLikesFromCloud(userId: string): Promise<void> {
 
 // 1. Reviews and Ratings
 export function getReviews(bookId: string): DbReview[] {
-  let data = localStorage.getItem("forum_reviews");
-  if (!data) {
-    const defaultReviews: DbReview[] = [
-      {
-        id: "seed_hp_1",
-        bookId: "harry-potter",
-        author: "해리덕후",
-        authorInitial: "해",
-        rating: 5,
-        content: "어릴 때 밤새가며 읽었던 기억이 새록새록 나네요. 호그와트라는 세계관을 처음 접했을 때의 충격과 설렘은 아직도 잊을 수 없습니다. 다시 읽어도 완벽한 이야기입니다.",
-        likes: 12,
-        date: "2026-06-01 14:30",
-        skinId: "default",
-        skinName: "기본 스킨"
-      },
-      {
-        id: "seed_hp_2",
-        bookId: "harry-potter",
-        author: "마법학교교장",
-        authorInitial: "마",
-        rating: 4,
-        content: "어른이 되어서 다시 읽으니 인물들의 입체적인 성격과 촘촘하게 얽힌 플롯들이 더 눈에 들어오네요. 세계관 설계와 가독성 측면에서 판타지의 정점이라 칭하고 싶습니다.",
-        likes: 8,
-        date: "2026-06-03 09:15",
-        skinId: "purple_glass",
-        skinName: "보랏빛 밤"
-      },
-      {
-        id: "seed_sap_1",
-        bookId: "sapiens",
-        author: "역사산책",
-        authorInitial: "역",
-        rating: 5,
-        content: "인류라는 종의 발전사를 이렇게 흥미진진하게 풀어내다니 경이롭습니다. 인지혁명, 농업혁명, 과학혁명이라는 3대 혁명을 중심으로 우리가 믿고 있는 가상의 질서(종교, 국가, 화폐)의 실체를 적나라하게 파헤쳐 줍니다.",
-        likes: 15,
-        date: "2026-06-02 11:22",
-        skinId: "default",
-        skinName: "기본 스킨"
-      },
-      {
-        id: "seed_sap_2",
-        bookId: "sapiens",
-        author: "지적호기심",
-        authorInitial: "지",
-        rating: 4,
-        content: "나약한 유인원에 불과했던 사피엔스가 어떻게 지구를 정복하고 스스로 신이 되려 하는지 설명하는 책. 두꺼운 두께에 비해 가독성이 매우 훌륭하며, 세상을 보는 프레임이 바뀝니다.",
-        likes: 9,
-        date: "2026-06-04 17:45",
-        skinId: "mint_fresh",
-        skinName: "민트 프레시"
-      },
-      {
-        id: "seed_hab_1",
-        bookId: "atomic-habits",
-        author: "매일성장",
-        authorInitial: "매",
-        rating: 5,
-        content: "정말 실천할 수 있는 습관 형성법을 구체적인 시스템으로 보여줍니다. 목표에 집중하기보다 시스템을 만들라는 조언이 인상 깊었어요. 매일 1%의 개선이 가져올 복리 효과를 기대하며 실천 중입니다.",
-        likes: 24,
-        date: "2026-05-30 08:00",
-        skinId: "gold_crown",
-        skinName: "황금 왕관"
-      },
-      {
-        id: "seed_hab_2",
-        bookId: "atomic-habits",
-        author: "작심삼일탈출",
-        authorInitial: "작",
-        rating: 4,
-        content: "습관 설계의 4가지 법칙(분명하게, 매력적이게, 쉽게, 만족스럽게)을 따라 하다 보니, 오랫동안 실패했던 미라클 모닝을 3주째 유지하고 있습니다. 실용성 끝판왕 자기계발서입니다.",
-        likes: 14,
-        date: "2026-06-02 20:10",
-        skinId: "default",
-        skinName: "기본 스킨"
-      },
-      {
-        id: "seed_three_1",
-        bookId: "three-body-problem",
-        author: "SF매니아",
-        authorInitial: "S",
-        rating: 5,
-        content: "동양적 정서와 극단적인 하드 SF 과학 이론이 환상적으로 융합된 최고의 우주 대서사시입니다. 차원 접기, 양자 통신 등 기발한 상상력과 거대한 우주적 공포가 온몸을 전율케 합니다.",
-        likes: 19,
-        date: "2026-06-03 15:35",
-        skinId: "default",
-        skinName: "기본 스킨"
-      },
-      {
-        id: "seed_three_2",
-        bookId: "three-body-problem",
-        author: "우주먼지",
-        authorInitial: "우",
-        rating: 5,
-        content: "삼체 게임을 풀어가는 초반 플롯부터 마지막 우주 방어 계획까지 한 치도 긴장의 끈을 놓을 수 없었습니다. 인류 문명 전체의 운명과 실존을 다룬 압도적인 SF 역작입니다.",
-        likes: 11,
-        date: "2026-06-05 22:05",
-        skinId: "aurora_dream",
-        skinName: "오로라 드림"
-      },
-      {
-        id: "seed_nor_1",
-        bookId: "norwegian-wood",
-        author: "청춘의기록",
-        authorInitial: "청",
-        rating: 5,
-        content: "청춘 시절 상실과 방황의 어둠을 서정적이고 아릿하게 그려낸 하루키의 최고 걸작. 와타나베, 나오코, 미도리 세 사람의 관계 속에서 삶과 죽음의 경계를 섬세하게 묘사합니다.",
-        likes: 21,
-        date: "2026-06-01 22:50",
-        skinId: "rose_petal",
-        skinName: "장미 꽃잎"
-      },
-      {
-        id: "seed_nor_2",
-        bookId: "norwegian-wood",
-        author: "하루키스트",
-        authorInitial: "하",
-        rating: 4,
-        content: "비 오는 날 어둑한 방에서 재즈를 들으며 다시 펼쳐보는 책. 상실의 아픔 속에서 살아남으려는 청춘들의 절박함과 고독이 문장 하나하나에 묻어납니다.",
-        likes: 16,
-        date: "2026-06-04 11:30",
-        skinId: "default",
-        skinName: "기본 스킨"
-      }
-    ];
-    localStorage.setItem("forum_reviews", JSON.stringify(defaultReviews));
-    data = JSON.stringify(defaultReviews);
-  }
+  const data = localStorage.getItem("forum_reviews");
+  if (!data) return [];
   try {
     const reviews: DbReview[] = JSON.parse(data);
     return reviews.filter(r => r.bookId === bookId);
@@ -1078,19 +953,8 @@ export function deleteComment(commentId: string): void {
 
 // 3. Publisher Votes
 export function getPublisherVotes(bookId: string, initialPublishers: { name: string; votes: number }[]): { name: string; votes: number }[] {
-  let data = localStorage.getItem("forum_publisher_votes");
+  const data = localStorage.getItem("forum_publisher_votes");
   let votesRecord: Record<string, Record<string, number>> = {};
-  if (!data) {
-    votesRecord = {
-      "harry-potter": { "문학수첩": 482 },
-      "sapiens": { "김영사": 354 },
-      "atomic-habits": { "비즈니스북스": 247 },
-      "three-body-problem": { "단숨": 189 },
-      "norwegian-wood": { "민음사": 834 }
-    };
-    localStorage.setItem("forum_publisher_votes", JSON.stringify(votesRecord));
-    data = JSON.stringify(votesRecord);
-  }
   if (data) {
     try {
       votesRecord = JSON.parse(data);
@@ -1102,7 +966,7 @@ export function getPublisherVotes(bookId: string, initialPublishers: { name: str
   const bookVotes = votesRecord[bookId] || {};
   return initialPublishers.map(pub => ({
     name: pub.name,
-    votes: bookVotes[pub.name] !== undefined ? bookVotes[pub.name] : 0,
+    votes: bookVotes[pub.name] !== undefined ? bookVotes[pub.name] : 0, // Reset default votes to 0!
   }));
 }
 
@@ -1539,19 +1403,8 @@ export function healLibraryBookAuthor(bookId: string, newAuthor: string): void {
 
 // 7. General Book bookmarks/likes
 export function getBookLikes(bookId: string): { likesCount: number; isLiked: boolean } {
-  let data = localStorage.getItem("forum_book_likes");
+  const data = localStorage.getItem("forum_book_likes");
   let likesRecord: Record<string, { count: number; users: string[] }> = {};
-  if (!data) {
-    likesRecord = {
-      "harry-potter": { count: 148, users: [] },
-      "sapiens": { count: 203, users: [] },
-      "atomic-habits": { count: 312, users: [] },
-      "three-body-problem": { count: 167, users: [] },
-      "norwegian-wood": { count: 289, users: [] }
-    };
-    localStorage.setItem("forum_book_likes", JSON.stringify(likesRecord));
-    data = JSON.stringify(likesRecord);
-  }
   if (data) {
     try {
       likesRecord = JSON.parse(data);

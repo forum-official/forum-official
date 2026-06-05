@@ -336,7 +336,7 @@ function AppContent() {
   const { isAuthenticated, user } = useAuth();
   // Clear old/polluted cover cache once to force Korean cover reload
   useEffect(() => {
-    const cacheVersion = "v6";
+    const cacheVersion = "v7";
     if (localStorage.getItem("cover_cache_version") !== cacheVersion) {
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith("cover_")) {
@@ -344,6 +344,69 @@ function AppContent() {
         }
       });
       localStorage.setItem("cover_cache_version", cacheVersion);
+    }
+  }, []);
+
+  // 1회성 가짜 데이터(씨드 리뷰, 씨드 좋아요, 씨드 출판사 투표) 정제 로직
+  useEffect(() => {
+    const dataCleanVersion = "v4";
+    if (localStorage.getItem("forum_seeded_data_clean_version") !== dataCleanVersion) {
+      // 1) 리뷰 데이터 정제: seed_로 시작하는 id를 가진 더미 리뷰 제거
+      const reviewsData = localStorage.getItem("forum_reviews");
+      if (reviewsData) {
+        try {
+          const reviews = JSON.parse(reviewsData);
+          const cleanedReviews = reviews.filter((r: any) => !r.id || !r.id.toString().startsWith("seed_"));
+          localStorage.setItem("forum_reviews", JSON.stringify(cleanedReviews));
+        } catch (e) {}
+      }
+
+      // 2) 좋아요 데이터 정제: seeded된 책들의 카운트를 0 또는 실제 사용자의 좋아요 수로 초기화
+      const likesData = localStorage.getItem("forum_book_likes");
+      if (likesData) {
+        try {
+          const likes = JSON.parse(likesData);
+          const seedIds = ["harry-potter", "sapiens", "atomic-habits", "three-body-problem", "norwegian-wood"];
+          let modified = false;
+          seedIds.forEach(id => {
+            if (likes[id]) {
+              const users = likes[id].users || [];
+              likes[id] = {
+                count: users.length,
+                users: users
+              };
+              modified = true;
+            }
+          });
+          if (modified) {
+            localStorage.setItem("forum_book_likes", JSON.stringify(likes));
+          }
+        } catch (e) {}
+      }
+
+      // 3) 출판사 투표 데이터 정제: seeded된 책들의 가짜 투표 레코드 제거
+      const votesData = localStorage.getItem("forum_publisher_votes");
+      if (votesData) {
+        try {
+          const votes = JSON.parse(votesData);
+          const seedIds = ["harry-potter", "sapiens", "atomic-habits", "three-body-problem", "norwegian-wood"];
+          let modified = false;
+          seedIds.forEach(id => {
+            if (votes[id]) {
+              delete votes[id];
+              modified = true;
+            }
+          });
+          if (modified) {
+            localStorage.setItem("forum_publisher_votes", JSON.stringify(votes));
+          }
+        } catch (e) {}
+      }
+
+      localStorage.setItem("forum_seeded_data_clean_version", dataCleanVersion);
+      
+      // 상태 강제 리프레시를 위해 최초 1회 화면 새로고침
+      window.location.reload();
     }
   }, []);
 
