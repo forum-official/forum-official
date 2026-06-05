@@ -79,14 +79,26 @@ async function decodeResponseSmart(res: Response): Promise<string> {
 
 // Helper to fetch HTML via multiple CORS proxies concurrently (Racing Technique for Maximum Speed)
 export async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
+  // 1. Try our dedicated Vercel API proxy first (extremely fast & reliable)
+  try {
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+    const res = await fetch(proxyUrl);
+    if (res.ok) {
+      return await decodeResponseSmart(res);
+    }
+  } catch (err) {
+    console.warn("Dedicated API proxy failed, falling back to public proxies:", err);
+  }
+
+  // 2. Fallback to public CORS proxies if dedicated proxy fails
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, 5000);
+  }, 8000); // 8 seconds timeout for fallback race
   
   const fetchWithProxy1 = async () => {
     try {
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+      const proxyUrl = `https://corsproxy.org/?url=${encodeURIComponent(targetUrl)}`;
       const res = await fetch(proxyUrl, { signal: controller.signal });
       if (res.ok) {
         const text = await decodeResponseSmart(res);
@@ -94,7 +106,7 @@ export async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
         return text;
       }
     } catch {}
-    throw new Error("corsproxy.io failed");
+    throw new Error("corsproxy.org failed");
   };
 
   const fetchWithProxy2 = async () => {
@@ -127,7 +139,7 @@ export async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
   };
 
   try {
-    // Race all 3 proxies and return the fastest one
+    // Race all 3 fallback proxies and return the fastest one
     const result = await promiseAny([
       fetchWithProxy1(),
       fetchWithProxy2(),
