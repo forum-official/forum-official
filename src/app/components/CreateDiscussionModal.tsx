@@ -4,6 +4,7 @@ import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { popularBooksData, type Book } from "@/app/data/booksData";
 import { getGlobalBooks } from "@/app/utils/db";
+import { getProxiedCoverUrl } from "@/app/components/BookCover";
 
 interface CreateDiscussionModalProps {
   onClose: () => void;
@@ -220,7 +221,7 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
                 <div className="w-10 h-14 bg-gray-100 rounded overflow-hidden shadow-sm shrink-0">
                   {relatedBook.coverUrl ? (
                     <img 
-                      src={relatedBook.coverUrl} 
+                      src={getProxiedCoverUrl(relatedBook.coverUrl)} 
                       alt={relatedBook.title} 
                       className="w-full h-full object-cover"
                     />
@@ -276,7 +277,7 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
                         >
                           <div className="w-7 h-10 bg-gray-100 rounded overflow-hidden shadow-xs shrink-0">
                             {book.coverUrl ? (
-                              <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
+                              <img src={getProxiedCoverUrl(book.coverUrl)} alt={book.title} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gray-200">
                                 <BookOpen className="size-3 text-gray-400" />

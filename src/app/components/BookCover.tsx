@@ -227,6 +227,20 @@ async function fetchAladinCoverUrl(title: string, author: string, publisherName?
   return fetchedCover;
 }
 
+export function getProxiedCoverUrl(url: string): string {
+  if (!url) return "";
+  // If the URL is already a proxy or local, return as is
+  if (url.includes("images.weserv.nl") || url.startsWith("data:") || url.startsWith("/") || url.startsWith("blob:")) {
+    return url;
+  }
+  // Proxy Aladin, Yes24, Kyobo cover URLs to bypass hotlinking protection and optimize loading
+  if (url.includes("aladin.co.kr") || url.includes("yes24.com") || url.includes("kyobobook.co.kr")) {
+    const cleanUrl = url.replace(/^https?:\/\//i, "");
+    return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+  }
+  return url;
+}
+
 export function BookCover({ title, author, publisherName, coverUrl, className = "w-full h-full object-cover", allowPublisherFallback = true }: BookCoverProps) {
   const [resolvedCover, setResolvedCover] = useState<string>("");
   const [imgError, setImgError] = useState(false);
@@ -361,7 +375,7 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
 
       {resolvedCover ? (
         <img
-          src={resolvedCover}
+          src={getProxiedCoverUrl(resolvedCover)}
           alt={title}
           className={`${className} transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
           referrerPolicy="no-referrer"
