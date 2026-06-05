@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+/dist/
+/.env
+/.env.local
+/.env.development.local
+/.env.test.local
+/.env.production.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary / Scratch Files in root
+/*.js
+/*.cjs
+/*.py
+/*.ps1
+/temp_*
+/yes24_replace_progress.json
+
+# Explicitly keep these root config files
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/vite.config.ts
+!/postcss.config.mjs
+!/pnpm-workspace.yaml
+!/index.html
+!/README.md
+!/ATTRIBUTIONS.md
+!/.gitignore

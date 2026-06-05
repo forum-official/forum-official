@@ -1,0 +1,509 @@
+import { X, Search, Plus, Check, Loader2 } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import { Badge } from "@/app/components/ui/badge";
+import { useState, useEffect } from "react";
+import { popularBooksData } from "@/app/data/booksData";
+import type { Book as BookType } from "@/app/data/booksData";
+import { BookCover } from "@/app/components/BookCover";
+import { saveGlobalBook, getBookRatingStatsWithQuick, getGlobalBooks } from "@/app/utils/db";
+import { cleanAladinAuthors } from "@/app/utils/authorUtils";
+import { debateTopics } from "@/app/data/debateTopics";
+import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+
+export function hasDebateTopic(title: string): boolean {
+  const clean = title.replace(/\s+/g, "").toLowerCase();
+  return Object.keys(debateTopics).some(key => {
+    const cleanKey = key.replace(/\s+/g, "").toLowerCase();
+    return clean.includes(cleanKey) || cleanKey.includes(clean);
+  });
+}
+
+export function hasTranslationInfo(book: any): boolean {
+  if (!book) return false;
+  const title = book.title || "";
+  if (getMatchingClassicTitle(title) !== null) return true;
+  if (book.publishers && book.publishers.length >= 2) return true;
+  return false;
+}
+
+
+function promiseAny<T>(promises: Promise<T>[]): Promise<T> {
+  if (typeof Promise.any === "function") {
+    return Promise.any(promises);
+  }
+  return new Promise<T>((resolve, reject) => {
+    let rejectedCount = 0;
+    const errors: any[] = [];
+    if (promises.length === 0) {
+      reject(new Error("Empty promise list"));
+      return;
+    }
+    promises.forEach((p, index) => {
+      Promise.resolve(p).then(
+        (val) => resolve(val),
+        (err) => {
+          errors[index] = err;
+          rejectedCount++;
+          if (rejectedCount === promises.length) {
+            reject(new Error("All promises rejected: " + errors.join(", ")));
+          }
+        }
+      );
+    });
+  });
+}
+
+// Helper to fetch HTML via CORS proxies with failover
+async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
+  const controller = new AbortController();
+  
+  const fetchWithProxy1 = async () => {
+    try {
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      if (res.ok) {
+        const text = await res.text();
+        controller.abort();
+        return text;
+      }
+    } catch {}
+    throw new Error("corsproxy.io failed");
+  };
+
+  const fetchWithProxy2 = async () => {
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.contents) {
+          controller.abort();
+          return data.contents;
+        }
+      }
+    } catch {}
+    throw new Error("allorigins failed");
+  };
+
+  const fetchWithProxy3 = async () => {
+    try {
+      const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      if (res.ok) {
+        const text = await res.text();
+        controller.abort();
+        return text;
+      }
+    } catch {}
+    throw new Error("codetabs failed");
+  };
+
+  try {
+    return await promiseAny([
+      fetchWithProxy1(),
+      fetchWithProxy2(),
+      fetchWithProxy3()
+    ]);
+  } catch (err) {
+    console.error("All proxies failed in race:", err);
+    throw new Error("Failed to fetch HTML via CORS proxies");
+  }
+}
+
+interface Book {
+  id: number;
+  coverUrl: string;
+  title: string;
+  author: string;
+  publisher: string;
+  rating: number;
+}
+
+interface BookSearchModalProps {
+  onClose: () => void;
+  onAddBook?: (book: Book, type: string) => void;
+  onSelect?: (book: Book) => void;
+  onSelectBook?: (book: any) => void;
+  existingBookIds?: number[];
+  filterDebateBooksOnly?: boolean;
+  filterTranslationBooksOnly?: boolean;
+}
+
+export function BookSearchModal({ 
+  onClose, 
+  onAddBook, 
+  onSelect, 
+  onSelectBook, 
+  existingBookIds = [],
+  filterDebateBooksOnly = false,
+  filterTranslationBooksOnly = false
+}: BookSearchModalProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("종이책");
+  const [addedBooks, setAddedBooks] = useState<number[]>([]);
+  const [booksList, setBooksList] = useState<any[]>(() => getGlobalBooks(popularBooksData));
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Hybrid Search with debate and translation filters
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      let initialList = getGlobalBooks(popularBooksData);
+      if (filterDebateBooksOnly) {
+        initialList = initialList.filter(b => hasDebateTopic(b.title));
+      }
+      if (filterTranslationBooksOnly) {
+        initialList = initialList.filter(b => hasTranslationInfo(b));
+      }
+      setBooksList(initialList);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const delayDebounce = setTimeout(async () => {
+      let apiBooks: any[] = [];
+      const skipApiSearch = filterTranslationBooksOnly || filterDebateBooksOnly;
+
+      if (!skipApiSearch) {
+        try {
+          const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}`;
+          const html = await fetchHtmlViaProxy(targetUrl);
+
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
+
+          apiBooks = Array.from(boxes).map((box, index) => {
+            try {
+              const itemId = box.getAttribute("itemId") || `aladin_${Date.now()}_${index}`;
+              
+              // Cover Image
+              const img = box.querySelector("img.front_cover") as HTMLImageElement | null;
+              let coverUrl = img?.src || "";
+              if (coverUrl.startsWith("//")) {
+                coverUrl = "https:" + coverUrl;
+              }
+              if (coverUrl.includes("cover200")) {
+                coverUrl = coverUrl.replace("cover200", "cover500");
+              } else if (coverUrl.includes("cover150")) {
+                coverUrl = coverUrl.replace("cover150", "cover500");
+              }
+
+              // Title
+              let title = "제목 없음";
+              const titleSpan = box.querySelector(".b_book_t");
+              const titleLink = box.querySelector("a.bo3");
+              if (titleSpan) {
+                title = titleSpan.textContent?.trim() || "제목 없음";
+                const parentLi = titleSpan.parentElement;
+                if (parentLi) {
+                  const subTitleSpan = parentLi.querySelector(".nm_book_title_a");
+                  if (subTitleSpan) {
+                    title += " " + subTitleSpan.textContent?.trim();
+                  }
+                }
+              } else if (titleLink) {
+                title = titleLink.textContent?.trim() || "제목 없음";
+              } else {
+                return null;
+              }
+
+              // Authors, Publisher, Year
+              let author = "저자 미상";
+              let publisher = "출판사 미상";
+              let year = 2024;
+              let salesPoint = 0;
+              let foundMetadata = false;
+
+              const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
+              for (let i = 0; i < listItems.length; i++) {
+                const text = listItems[i].textContent || "";
+                if (text.includes("세일즈포인트")) {
+                  const match = text.match(/세일즈포인트\s*:\s*([\d,]+)/);
+                  if (match) {
+                    salesPoint = parseInt(match[1].replace(/,/g, ""));
+                  }
+                }
+                if (!foundMetadata && text.includes("|")) {
+                  const parts = text.split("|").map(p => p.trim());
+                  const isShoppingOrPricing = 
+                    /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
+                    (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
+                    
+                  const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing &&
+                    (text.includes("지은이") || text.includes("옮긴이") || text.includes("저자") || text.includes("지음") || text.includes("옮김") || text.includes("역자") || text.includes("저") || text.includes("글") || text.includes("그림") || /\d{4}/.test(text));
+                  
+                  if (isMetadataLine) {
+                    author = cleanAladinAuthors(parts[0] || "");
+                    publisher = parts[1].replace(/\s*\([^)]+\)/g, "").trim();
+                    if (parts[2]) {
+                      const yearMatch = parts[2].match(/\d{4}/);
+                      if (yearMatch) year = parseInt(yearMatch[0]);
+                    } else {
+                      const yearMatch = parts[1].match(/\d{4}/);
+                      if (yearMatch) year = parseInt(yearMatch[0]);
+                    }
+                    foundMetadata = true;
+                  }
+                }
+              }
+
+              // Fallback
+              const isUnknownAuthor = !author || ["저자 미상", "작자 미상", "미상", "unknown", "anonymous", "저자미상", "작자미상"].includes(author.trim().toLowerCase());
+              if (isUnknownAuthor && publisher && publisher !== "출판사 미상") {
+                const orgSuffixes = /(부|처|청|실|연구원|센터|진흥원|협회|학회|기획단|위원회|공사|재단|본부|기획부|정부|기관|연구소|연합)$/;
+                if (orgSuffixes.test(publisher.trim())) {
+                  author = publisher.trim();
+                }
+              }
+
+              // Rating
+              const starSpan = box.querySelector(".star_score");
+              const rating = starSpan ? parseFloat(starSpan.textContent || "9.0") / 2 : 4.5;
+              const description = `${author} 저자의 '${title}' (${publisher}, ${year}년 출간) 도서입니다.`;
+
+              return {
+                id: itemId,
+                title,
+                author,
+                description,
+                coverUrl: coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=200",
+                rating,
+                likes: Math.floor(Math.random() * 500) + 50,
+                reviews: Math.floor(Math.random() * 100) + 10,
+                publisher,
+                publishers: [{ name: publisher, votes: 0 }],
+                year,
+                genre: ["도서"],
+                salesPoint,
+              };
+            } catch (e) {
+              console.error("Failed to parse box item:", e);
+              return null;
+            }
+          }).filter(Boolean);
+        } catch (error) {
+          console.error("Failed to fetch from Aladin API:", error);
+        }
+      }
+
+      // Local search matching
+      const query = searchQuery.toLowerCase();
+      let localMatches = getGlobalBooks(popularBooksData).filter(
+        (book) =>
+          book.title.toLowerCase().includes(query) ||
+          book.author.toLowerCase().includes(query)
+      ).map(book => ({
+        ...book,
+        publisher: book.publishers[0]?.name || "민음사"
+      }));
+
+      // Apply filters to local results
+      if (filterDebateBooksOnly) {
+        localMatches = localMatches.filter(b => hasDebateTopic(b.title));
+      }
+      if (filterTranslationBooksOnly) {
+        localMatches = localMatches.filter(b => hasTranslationInfo(b));
+      }
+
+      // Merge local matches with API books
+      const mergedBooks = [...localMatches];
+      apiBooks.forEach(apiBook => {
+        if (filterDebateBooksOnly && !hasDebateTopic(apiBook.title)) {
+          return;
+        }
+        if (filterTranslationBooksOnly && !hasTranslationInfo(apiBook)) {
+          return;
+        }
+
+        const isDuplicate = mergedBooks.some(
+          localBook => 
+            localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&
+            localBook.author.toLowerCase() === apiBook.author.toLowerCase()
+        );
+        if (!isDuplicate) {
+          mergedBooks.push(apiBook);
+        }
+      });
+
+      setBooksList(mergedBooks);
+      setIsLoading(false);
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery, filterDebateBooksOnly, filterTranslationBooksOnly]);
+
+  const filteredBooks = booksList;
+
+  const handleAddBook = (book: any) => {
+    // Convert to Book format if needed
+    const convertedBook = {
+      id: book.id.toString(),
+      coverUrl: book.coverUrl,
+      title: book.title,
+      author: book.author,
+      publisher: book.publisher || book.publishers?.[0]?.name || "민음사",
+      rating: book.rating,
+      publishers: book.publishers || [{ name: book.publisher || "민음사", votes: 0 }],
+    };
+
+    // Save to global books database
+    const globalBook: BookType = {
+      id: convertedBook.id,
+      coverUrl: convertedBook.coverUrl,
+      title: convertedBook.title,
+      author: convertedBook.author,
+      publishers: convertedBook.publishers,
+      rating: book.rating || 0.0,
+      likes: book.likes || 0,
+      reviews: book.reviews || 0,
+      description: book.description || "",
+      year: book.year || 2024,
+      genre: book.genre || [],
+    };
+    saveGlobalBook(globalBook);
+
+    if (onAddBook) {
+      onAddBook(convertedBook, selectedType);
+      const convertedId = parseInt(convertedBook.id) || 0;
+      if (convertedId) {
+        setAddedBooks([...addedBooks, convertedId]);
+      }
+    } else if (onSelect) {
+      onSelect(convertedBook);
+    } else if (onSelectBook) {
+      onSelectBook(book);
+    }
+  };
+
+  const isBookAdded = (bookId: string) => {
+    return existingBookIds.includes(parseInt(bookId)) || addedBooks.includes(parseInt(bookId));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
+      <div className="bg-white rounded-2xl max-w-[353px] w-full max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between rounded-t-2xl">
+          <h3 className="font-bold text-lg">책 검색</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="책 제목이나 저자를 검색하세요..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        </div>
+
+        {/* Book Type Selection */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <label className="block text-xs font-semibold mb-2 text-gray-600">추가할 형태</label>
+          <div className="flex gap-2">
+            {["종이책", "eBook", "오디오북"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                  selectedType === type
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-purple-600 gap-2">
+              <Loader2 className="size-8 animate-spin" />
+              <p className="text-xs text-gray-500">실시간 책 검색 중...</p>
+            </div>
+          ) : filteredBooks.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Search className="size-12 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">검색 결과가 없습니다</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredBooks.map((book) => {
+                const added = isBookAdded(book.id);
+                
+                return (
+                  <div
+                    key={book.id}
+                    className="flex gap-3 p-3 rounded-xl border border-gray-200 hover:border-purple-200 hover:shadow-sm transition-all"
+                  >
+                    <div className="w-16 flex-shrink-0">
+                      <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <BookCover
+                          title={book.title}
+                          author={book.author}
+                          publisherName={book.publisher || book.publishers?.[0]?.name}
+                          coverUrl={book.coverUrl}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm line-clamp-2 mb-0.5">{book.title}</h4>
+                      <p className="text-xs text-gray-600 mb-1">{book.author}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {book.publishers[0]?.name || "민음사"}
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          ★ {(() => {
+                            const stats = getBookRatingStatsWithQuick(book.id.toString());
+                            return (stats.reviewsCount + stats.quickCount) > 0 ? stats.rating.toFixed(1) : "0.0";
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 flex items-center">
+                      {added ? (
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <Check className="size-5 text-green-600" />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleAddBook(book)}
+                          className="w-10 h-10 rounded-full bg-purple-500 hover:bg-purple-600 flex items-center justify-center transition-colors"
+                        >
+                          <Plus className="size-5 text-white" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-4">
+          <Button
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+          >
+            완료
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
