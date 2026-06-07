@@ -582,18 +582,20 @@ function AppContent() {
 
   useEffect(() => {
     setBooksData(() => 
-      getGlobalBooks(popularBooksData).map(book => {
-        const stats = getBookRatingStatsWithQuick(book.id);
-        const isClassic = getMatchingClassicTitle(book.title) !== null;
+      getGlobalBooks(popularBooksData).filter(Boolean).map(book => {
+        const bookId = book.id || "";
+        const bookTitle = book.title || "";
+        const stats = getBookRatingStatsWithQuick(bookId);
+        const isClassic = getMatchingClassicTitle(bookTitle) !== null;
         const initialPubs = isClassic 
           ? [
               { name: "민음사", votes: 0 },
               { name: "문학동네", votes: 0 }
             ]
-          : book.publishers;
+          : (book.publishers && Array.isArray(book.publishers)) ? book.publishers : [{ name: "민음사", votes: 0 }];
           
-        const dbPublishers = getPublisherVotes(isClassic ? book.title : book.id, initialPubs);
-        const likesData = getBookLikes(book.id);
+        const dbPublishers = getPublisherVotes(isClassic ? bookTitle : bookId, initialPubs);
+        const likesData = getBookLikes(bookId);
         return {
           ...book,
           rating: (stats.reviewsCount + stats.quickCount) > 0 ? stats.rating : 0.0,
@@ -1060,6 +1062,10 @@ function AppContent() {
           author={selectedAuthorData}
           onBack={handleBack}
           onBookClick={(bookTitle, authorName) => {
+            if (!bookTitle || typeof bookTitle !== "string") {
+              toast.error("도서 정보를 찾을 수 없습니다.");
+              return;
+            }
             let book = booksData.find(
               (b) => b.title === bookTitle && b.author === authorName
             );

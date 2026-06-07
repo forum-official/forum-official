@@ -1,7 +1,11 @@
 import { translatorInfo } from "../data/translatorInfo";
 
 export function getMatchingClassicTitle(title: string): string | null {
-  const clean = (s: string) => s.replace(/\s+/g, "").replace(/\(.*?\)/g, "").replace(/\[.*?\]/g, "").split("-")[0].split(":")[0].replace(/[0-9]+$/g, "").toLowerCase();
+  if (!title || typeof title !== "string") return null;
+  const clean = (s: string) => {
+    if (!s || typeof s !== "string") return "";
+    return s.replace(/\s+/g, "").replace(/\(.*?\)/g, "").replace(/\[.*?\]/g, "").split("-")[0].split(":")[0].replace(/[0-9]+$/g, "").toLowerCase();
+  };
   const targetClean = clean(title);
   
   if (!targetClean) return null;

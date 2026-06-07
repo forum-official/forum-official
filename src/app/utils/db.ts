@@ -964,9 +964,10 @@ export function getPublisherVotes(bookId: string, initialPublishers: { name: str
   }
 
   const bookVotes = votesRecord[bookId] || {};
-  return initialPublishers.map(pub => ({
+  const pubs = (initialPublishers && Array.isArray(initialPublishers)) ? initialPublishers : [{ name: "민음사", votes: 0 }];
+  return pubs.filter(p => p && typeof p === 'object' && p.name).map(pub => ({
     name: pub.name,
-    votes: bookVotes[pub.name] !== undefined ? bookVotes[pub.name] : 0, // Reset default votes to 0!
+    votes: bookVotes[pub.name] !== undefined ? bookVotes[pub.name] : 0,
   }));
 }
 
