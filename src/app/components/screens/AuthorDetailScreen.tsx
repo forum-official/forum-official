@@ -276,19 +276,19 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
     if (!activeAuthor || activeAuthor.id === undefined) return;
     const dbOpinions = getAuthorOpinions(activeAuthor.id);
     const userId = user?.userId || "";
-    setOpinions(dbOpinions.map(o => {
-      const status = getAuthorOpinionLikeStatus(o.id, userId);
+    setOpinions((dbOpinions || []).filter(Boolean).map(o => {
+      const status = o.id ? getAuthorOpinionLikeStatus(o.id, userId) : { isLiked: false, isDisliked: false };
       return {
-        id: o.id,
-        author: o.author,
-        authorInitial: o.authorInitial,
-        content: o.content,
-        likes: o.likes,
-        dislikes: o.dislikes,
-        date: o.date,
+        id: o.id || "",
+        author: o.author || "익명",
+        authorInitial: o.authorInitial || "익",
+        content: o.content || "",
+        likes: o.likes || 0,
+        dislikes: o.dislikes || 0,
+        date: o.date || "",
         isLiked: status.isLiked,
         isDisliked: status.isDisliked,
-        skinId: o.skinId
+        skinId: o.skinId || "default"
       };
     }));
   }, [activeAuthor?.id, user?.userId]);
@@ -371,7 +371,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
   // 작품 목록 년도별 그룹화 및 정렬 (최신순)
   const groupedBooks = useMemo(() => {
     const groups: Record<number, typeof activeAuthor.books> = {};
-    const booksList = activeAuthor?.books || [];
+    const booksList = (activeAuthor?.books || []).filter(Boolean);
     booksList.forEach(book => {
       const year = book.year || 2024;
       if (!groups[year]) {
@@ -385,7 +385,11 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
       .map(([year, books]) => ({
         year: parseInt(year),
         // 책 이름 가나다순 정렬
-        books: books.sort((a, b) => a.title.localeCompare(b.title, 'ko'))
+        books: books.sort((a, b) => {
+          const titleA = a?.title || "";
+          const titleB = b?.title || "";
+          return titleA.localeCompare(titleB, 'ko');
+        })
       }))
       .sort((a, b) => b.year - a.year);
   }, [activeAuthor?.books]);
@@ -540,14 +544,16 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                       <div 
                         key={idx} 
                         className="p-3.5 bg-gray-50/60 hover:bg-purple-50/80 border border-gray-100 hover:border-purple-100 rounded-xl transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between group" 
-                        onClick={() => onBookClick(book.title, activeAuthor.name)}
+                        onClick={() => onBookClick(book.title, activeAuthor?.name || "")}
                       >
                         <div className="flex-1 min-w-0">
                           <h5 className="font-bold text-sm text-gray-900 group-hover:text-purple-700 transition-colors whitespace-normal break-words">
                             {book.title}
                           </h5>
                           <p className="text-xs text-gray-600 mt-1 whitespace-normal break-words">
-                            {((book.publishers && Array.isArray(book.publishers)) ? book.publishers.filter(Boolean) : []).join(", ") || "출판사 미상"}
+                            {((book.publishers && Array.isArray(book.publishers)) 
+                              ? book.publishers.map(p => typeof p === 'string' ? p : (p?.name || JSON.stringify(p))).filter(Boolean) 
+                              : []).join(", ") || "출판사 미상"}
                           </p>
                         </div>
                         <span className="text-xs text-purple-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity ml-2">
@@ -606,8 +612,8 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
             의견 작성하기
           </Button>
 
-          {sortedOpinions.map((opinion) => {
-            const skin = commentSkins.find((s) => s.id === opinion.skinId) || commentSkins[0];
+          {sortedOpinions.filter(Boolean).map((opinion) => {
+            const skin = (opinion.skinId && commentSkins.find((s) => s.id === opinion.skinId)) || commentSkins[0] || { bubbleClass: "", textClass: "", badgeEmoji: "" };
             
             return (
               <div key={opinion.id} className="space-y-2">

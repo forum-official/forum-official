@@ -1755,10 +1755,15 @@ export function getAuthorsList(books: Book[]): Author[] {
     const meta = AUTHOR_META[author.name];
     authorsMap.set(author.name, {
       ...author,
-      genre: [...author.genre],
-      representative: [...author.representative],
-      books: author.books.map(b => ({ ...b, publishers: [...b.publishers] })),
-      awards: [...author.awards],
+      genre: author.genre ? [...author.genre] : [],
+      representative: author.representative ? [...author.representative] : [],
+      books: (author.books && Array.isArray(author.books)) 
+        ? author.books.map(b => ({ 
+            ...b, 
+            publishers: (b.publishers && Array.isArray(b.publishers)) ? [...b.publishers] : [] 
+          })) 
+        : [],
+      awards: author.awards ? [...author.awards] : [],
       imageUrl: meta?.photoUrl || author.imageUrl
     });
   });
@@ -1825,7 +1830,9 @@ export function getAuthorsList(books: Book[]): Author[] {
         const formattedBooks = authorBooks.map(b => ({
           title: b.title,
           year: b.year || 2024,
-          publishers: b.publishers ? b.publishers.map(p => p.name) : ["민음사"]
+          publishers: (b.publishers && Array.isArray(b.publishers)) 
+            ? b.publishers.map(p => typeof p === 'string' ? p : (p?.name || "")).filter(Boolean) 
+            : ["민음사"]
         }));
         const genres = Array.from(new Set(authorBooks.flatMap(b => b.genre || [])));
         
@@ -1900,7 +1907,9 @@ export function getAuthorsList(books: Book[]): Author[] {
             author.books.push({
               title: book.title,
               year: book.year || 2024,
-              publishers: book.publishers ? book.publishers.map(p => p.name) : ["민음사"]
+              publishers: (book.publishers && Array.isArray(book.publishers)) 
+                ? book.publishers.map(p => typeof p === 'string' ? p : (p?.name || "")).filter(Boolean) 
+                : ["민음사"]
             });
             if (author.representative.length < 3 && !author.representative.includes(book.title)) {
               author.representative.push(book.title);

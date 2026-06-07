@@ -2192,6 +2192,11 @@ export function getGlobalBooks(initialBooks: Book[]): Book[] {
   }
   try {
     const storedBooks: Book[] = JSON.parse(data);
+    if (!storedBooks || !Array.isArray(storedBooks)) {
+      localStorage.setItem("forum_global_books", JSON.stringify(initialBooks));
+      cachedGlobalBooks = initialBooks;
+      return initialBooks;
+    }
     let hasCorrupted = false;
     
     // Clean and sanitize book authors and covers to heal localStorage data
@@ -2286,9 +2291,11 @@ export function saveGlobalBook(book: Book): void {
   
   if (idx !== -1) {
     const existing = books[idx];
-    const updatedPublishers = [...existing.publishers];
-    book.publishers.forEach(pub => {
-      const pubExists = updatedPublishers.some(p => p.name === pub.name);
+    const updatedPublishers = (existing.publishers && Array.isArray(existing.publishers)) ? [...existing.publishers] : [];
+    const newPublishers = (book.publishers && Array.isArray(book.publishers)) ? book.publishers : [];
+    newPublishers.forEach(pub => {
+      if (!pub || typeof pub !== 'object') return;
+      const pubExists = updatedPublishers.some(p => p && p.name === pub.name);
       if (!pubExists) {
         updatedPublishers.push(pub);
       }

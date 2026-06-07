@@ -428,7 +428,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
                         {author.nameEn} · {author.nationality}
                       </p>
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {author.genre.slice(0, 3).map((g) => (
+                        {(author.genre || []).slice(0, 3).map((g) => (
                           <Badge key={g} variant="secondary" className="text-xs">
                             {g}
                           </Badge>
