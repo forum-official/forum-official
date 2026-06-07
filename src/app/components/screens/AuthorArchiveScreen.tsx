@@ -33,6 +33,10 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [displayCount, setDisplayCount] = useState(20);
 
+  // useMemo: 맴 렌더마다 불필요한 재계산 방지 (쫙 클릭 시 무한증식 방지)
+  const allBooks = useMemo(() => getGlobalBooks(popularBooksData), []);
+  const authors = useMemo(() => getAuthorsList(allBooks), [allBooks]);
+
   // 필터 변경 시 sessionStorage 저장 및 displayCount 리셋
   useEffect(() => {
     sessionStorage.setItem('authorArchive_search', searchQuery);
@@ -251,10 +255,6 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, authors]);
-
-  // useMemo: 맴 렌더마다 불필요한 재계산 방지 (쫙 클릭 시 무한증식 방지)
-  const allBooks = useMemo(() => getGlobalBooks(popularBooksData), []);
-  const authors = useMemo(() => getAuthorsList(allBooks), [allBooks]);
 
   // 초기 선택된 작가가 있으면 자동으로 해당 작가 상세 정보 표시
   useEffect(() => {
