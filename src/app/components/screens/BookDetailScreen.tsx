@@ -809,7 +809,7 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                               imageUrl: undefined, // Let Wikipedia API fetch the real photo
                               description: `${authorName} 작가의 작품들`,
                               representative: [book.title],
-                              books: [{ title: book.title, year: book.year || 2024, publishers: book.publishers.map(p => p.name) }],
+                              books: [{ title: book.title, year: book.year || 2024, publishers: (book.publishers && Array.isArray(book.publishers)) ? book.publishers.map(p => p?.name || "").filter(Boolean) : ["민음사"] }],
                               awards: [],
                             };
                             onAuthorClick?.(authorData);

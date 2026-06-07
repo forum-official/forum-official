@@ -547,7 +547,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                             {book.title}
                           </h5>
                           <p className="text-xs text-gray-600 mt-1 whitespace-normal break-words">
-                            {book.publishers.join(", ")}
+                            {((book.publishers && Array.isArray(book.publishers)) ? book.publishers.filter(Boolean) : []).join(", ") || "출판사 미상"}
                           </p>
                         </div>
                         <span className="text-xs text-purple-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity ml-2">

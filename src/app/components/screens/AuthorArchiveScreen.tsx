@@ -31,14 +31,17 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
   );
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [displayCount, setDisplayCount] = useState(20);
 
-  // 필터 변경 시 sessionStorage 저장
+  // 필터 변경 시 sessionStorage 저장 및 displayCount 리셋
   useEffect(() => {
     sessionStorage.setItem('authorArchive_search', searchQuery);
+    setDisplayCount(20);
   }, [searchQuery]);
 
   useEffect(() => {
     sessionStorage.setItem('authorArchive_country', selectedCountry);
+    setDisplayCount(20);
   }, [selectedCountry]);
 
   // 스크롤 위치 복원
@@ -306,6 +309,8 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
   // 가나다순 정렬
   filteredAuthors = [...filteredAuthors].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 
+  const displayedAuthors = filteredAuthors.slice(0, displayCount);
+
   const handleBookClick = (bookTitle: string, authorName: string) => {
     // Find the book in popularBooksData
     const book = allBooks.find(
@@ -375,7 +380,13 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
       <div 
         className="flex-1 overflow-y-auto" 
         ref={scrollContainerRef} 
-        onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
+        onScroll={(e) => {
+          setScrollPosition(e.currentTarget.scrollTop);
+          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+          if (scrollTop + clientHeight >= scrollHeight - 150) {
+            setDisplayCount(prev => Math.min(prev + 15, filteredAuthors.length));
+          }
+        }}
       >
         <div className="max-w-md mx-auto px-4 py-4">
           {isSearchingApi && (
@@ -393,7 +404,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredAuthors.map((author) => (
+              {displayedAuthors.map((author) => (
                 <Card
                   key={author.id}
                   className="p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group bg-white border border-gray-100/60 rounded-2xl"
