@@ -73,11 +73,7 @@ export function AuthorImage({ wikiTitle, directPhotoUrl, nameEn, displayName, cl
       const domain = isKorean ? "ko" : "en";
       const apiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.trim().replace(/ /g, "_"))}`;
 
-      fetch(apiUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      })
+      fetch(apiUrl)
         .then((r) => {
           if (!r.ok) throw new Error("not ok");
           return r.json();

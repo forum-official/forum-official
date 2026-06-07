@@ -105,11 +105,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
         const domain = isKorean ? "ko" : "en";
         const wikiApiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.trim().replace(/ /g, "_"))}`;
         
-        const res = await fetch(wikiApiUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          }
-        });
+        const res = await fetch(wikiApiUrl);
         if (res.ok && isMounted) {
           const data = await res.json();
           const currentDesc = author?.description || "";

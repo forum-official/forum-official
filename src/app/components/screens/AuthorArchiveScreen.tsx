@@ -10,7 +10,7 @@ import { AuthorImage } from "@/app/components/AuthorImage";
 import { getGlobalBooks } from "@/app/utils/db";
 import { getAuthorsList } from "@/app/data/authorsData";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { cleanAladinAuthors } from "@/app/utils/authorUtils";
+import { cleanAladinAuthors, isOrganization } from "@/app/utils/authorUtils";
 
 interface AuthorArchiveScreenProps {
   onBack: () => void;
@@ -119,7 +119,9 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
             }
             
             if (author && author !== "저자 미상") {
-              const individualAuthors = author.split(',').map(a => a.trim()).filter(Boolean);
+              const individualAuthors = author.split(',')
+                .map(a => a.trim())
+                .filter(a => a && !isOrganization(a));
               
               individualAuthors.forEach(indAuthor => {
                 const lowerQuery = query.toLowerCase();
@@ -150,7 +152,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
           const existsLocally = authors.some(
             a => a.name.toLowerCase() === authorName.toLowerCase()
           );
-          if (!existsLocally) {
+          if (!existsLocally && !isOrganization(authorName)) {
             dynamicAuthorsToFetch.push(authorName);
           }
         });
@@ -172,11 +174,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
               const domain = isKorean ? "ko" : "en";
               const wikiApiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(authorName.trim().replace(/ /g, "_"))}`;
               
-              const res = await fetch(wikiApiUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                }
-              });
+              const res = await fetch(wikiApiUrl);
               
               if (res.ok) {
                 const data = await res.json();

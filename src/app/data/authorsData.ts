@@ -1,4 +1,5 @@
 import type { Book } from "./booksData";
+import { isOrganization } from "../utils/authorUtils";
 
 export interface Author {
   id: number;
@@ -1800,7 +1801,7 @@ export function getAuthorsList(books: Book[]): Author[] {
           /[{}[\]|]/.test(name) || // 특수문자 잔재
           /(세일즈포인트|판매량|정가|원\s*\(|출간|도서|무료|배송|적립|페이지|지은이|역자|옮긴이)/.test(name);
           
-        if (isCorrupted) return false;
+        if (isCorrupted || isOrganization(name)) return false;
         
         const lower = name.toLowerCase();
         return lower !== "저자 미상" && 
