@@ -507,26 +507,20 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                 return (
                   <div key={commentData.id} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
                     <div className="flex items-start gap-3">
-                      <button
-                        onClick={() => commentData.author !== "나" && onUserClick?.(commentData.author, commentData.author.charAt(0))}
-                        className={`w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1 ${
-                          commentData.author !== "나" ? "hover:from-purple-200 hover:to-purple-300 transition-colors" : ""
-                        }`}
+                      <div
+                        className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1"
                       >
                         {commentData.author[0]}
-                      </button>
+                      </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => commentData.author !== "나" && onUserClick?.(commentData.author, commentData.author.charAt(0))}
-                              className={`font-semibold text-sm ${
-                                commentData.author !== "나" ? "hover:text-purple-600 transition-colors" : ""
-                              }`}
+                            <span
+                              className="font-semibold text-sm text-gray-800"
                             >
                               {commentData.author}
-                            </button>
+                            </span>
                             {skin.badgeEmoji && skin.id !== "default" && (
                               <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
                             )}

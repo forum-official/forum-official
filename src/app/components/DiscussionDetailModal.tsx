@@ -383,26 +383,20 @@ export function DiscussionDetailModal({
                   return (
                     <div key={comment.id} className="flex flex-col gap-2">
                       <div className="flex items-start gap-2">
-                        <button
-                          onClick={() => comment.author !== "나" && onUserClick?.(comment.author, comment.author.charAt(0))}
-                          className={`w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            comment.author !== "나" ? "hover:bg-purple-300 transition-colors" : ""
-                          }`}
+                        <div
+                          className="w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0"
                         >
                           <span className="text-sm font-bold text-purple-700">
                             {comment.author.charAt(0)}
                           </span>
-                        </button>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <button
-                              onClick={() => comment.author !== "나" && onUserClick?.(comment.author, comment.author.charAt(0))}
-                              className={`text-sm font-medium text-gray-900 ${
-                                comment.author !== "나" ? "hover:text-purple-600 transition-colors" : ""
-                              }`}
+                            <span
+                              className="text-sm font-medium text-gray-900"
                             >
                               {comment.author}
-                            </button>
+                            </span>
                             {badgeEmoji && (
                               <span className="text-sm">{badgeEmoji}</span>
                             )}

@@ -107,9 +107,8 @@ export function MarketplaceDetailScreen({ item, onBack, onReport, onUserClick, o
 
         {/* Seller Info */}
         <div className="p-4 border-b border-gray-200">
-          <button
-            onClick={() => onUserClick?.(item.seller, item.seller.charAt(0))}
-            className="flex items-center gap-3 w-full hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
+          <div
+            className="flex items-center gap-3 w-full p-2 -m-2"
           >
             <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
               <span className="text-lg font-bold text-purple-600">{item.seller.charAt(0)}</span>
@@ -121,7 +120,7 @@ export function MarketplaceDetailScreen({ item, onBack, onReport, onUserClick, o
                 {item.location}
               </div>
             </div>
-          </button>
+          </div>
         </div>
 
         {/* Item Info */}

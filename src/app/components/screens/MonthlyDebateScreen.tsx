@@ -662,9 +662,8 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                       </div>
                     )}
                     <div className="flex items-start justify-between mb-2">
-                      <button 
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                        onClick={() => onUserClick?.(opinion.author, opinion.author[0])}
+                      <div 
+                        className="flex items-center gap-2"
                       >
                         <div className="relative">
                           <div className={`w-8 h-8 ${isBest ? 'ring-2 ring-yellow-400' : ''} bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-sm font-bold text-purple-700`}>
@@ -683,7 +682,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                           </div>
                           <p className="text-xs text-gray-400">{opinion.timeAgo}</p>
                         </div>
-                      </button>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Badge
                           className={

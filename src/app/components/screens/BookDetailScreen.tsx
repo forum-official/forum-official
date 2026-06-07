@@ -1190,9 +1190,8 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
               return (
               <div key={review.id} className="border-t border-gray-200 pt-3">
                 <div className="flex items-start justify-between mb-2">
-                  <button 
-                    onClick={() => onUserClick?.(review.author, review.authorInitial)}
-                    className="flex items-center gap-2 hover:bg-gray-50 rounded-lg p-1 -m-1 transition-colors"
+                  <div 
+                    className="flex items-center gap-2 p-1 -m-1"
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-sm font-bold text-purple-600">
                       {review.authorInitial}
@@ -1217,7 +1216,7 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                         ))}
                       </div>
                     </div>
-                  </button>
+                  </div>
                   <span className="text-xs text-gray-500">{review.date}</span>
                 </div>
                 

@@ -109,31 +109,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
           </div>
 
-          {/* Privacy Section */}
-          <div className="p-4 border-b border-gray-100">
-            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Eye className="size-4 text-purple-600" />
-              프라이버시
-            </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">비공개 프로필</p>
-                  <p className="text-xs text-gray-500">내 활동을 나만 볼 수 있습니다</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={privateProfile}
-                    onChange={(e) => handleTogglePrivate(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-              </div>
-            </div>
-          </div>
-
           {/* Account Section */}
           <div className="p-4 border-b border-gray-100">
             <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -159,13 +134,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   비밀번호 변경
                   {user?.isSocial && <span className="text-xs text-gray-400 ml-1.5">(소셜 계정)</span>}
                 </span>
-                <ChevronRight className="size-4 text-gray-400" />
-              </button>
-              <button
-                className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors"
-                onClick={() => setBlockListModalOpen(true)}
-              >
-                <span className="text-sm">차단 목록</span>
                 <ChevronRight className="size-4 text-gray-400" />
               </button>
             </div>

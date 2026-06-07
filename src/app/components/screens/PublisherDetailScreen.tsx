@@ -469,23 +469,17 @@ export function PublisherDetailScreen({ publisher, onBack, onUserClick, onBookCl
                 return (
                   <Card key={review.id} className="p-4">
                     <div className="flex items-start gap-2 mb-2">
-                      <button
-                        onClick={() => onUserClick?.(review.user)}
-                        className="shrink-0"
-                      >
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-80 transition-opacity cursor-pointer">
+                      <div className="shrink-0">
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                           {review.user[0]}
                         </div>
-                      </button>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => onUserClick?.(review.user)}
-                              className="font-semibold text-sm hover:text-purple-600 transition-colors"
-                            >
+                            <span className="font-semibold text-sm text-gray-800">
                               {review.user}
-                            </button>
+                            </span>
                             {reviewSkin.badgeEmoji && (
                               <span className="text-sm">{reviewSkin.badgeEmoji}</span>
                             )}

@@ -615,9 +615,8 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                 <div className={`relative px-4 py-3 rounded-2xl ${skin.bubbleClass}`}>
                   <div className={`relative z-10 ${skin.textClass}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <button 
-                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                        onClick={() => onUserClick?.(opinion.author, opinion.authorInitial)}
+                      <div 
+                        className="flex items-center gap-2"
                       >
                         <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-sm font-bold">
                           {opinion.authorInitial}
@@ -631,7 +630,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                           </div>
                           <p className="text-xs opacity-75">{opinion.date}</p>
                         </div>
-                      </button>
+                      </div>
                       <button
                         onClick={() => {
                           setReportingId(opinion.id);
