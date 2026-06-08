@@ -1,4 +1,4 @@
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, X } from "lucide-react";
 import { ReactNode } from "react";
 
 interface ScreenHeaderProps {
@@ -52,8 +52,20 @@ export function ScreenHeader({
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={onSearchChange}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              className="w-full pl-10 pr-10 py-2 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  const event = { target: { value: "" } } as React.ChangeEvent<HTMLInputElement>;
+                  onSearchChange(event);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            )}
           </div>
         )}
 

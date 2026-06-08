@@ -1229,6 +1229,8 @@ function AppContent() {
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
           <Header 
             onSearchClick={() => {
+              setSearchQuery("");
+              setSelectedCategory("전체");
               setActiveTab("books");
               setCurrentScreen(null);
               setBooksScreenShowSearch(true);
