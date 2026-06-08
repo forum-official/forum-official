@@ -1170,7 +1170,7 @@ export const initialAuthors: Author[] = [
     nationality: "일본",
     birth: "1935-2023",
     genre: ["소설", "에세이"],
-    wikiTitle: "Kenzabur%C5%8D_%C5%CE",
+    wikiTitle: "Kenzaburō_Ōe",
     description: "장애를 안고 태어난 아들과의 고통스러운 연대, 핵무기의 가혹함 등 전후 일본 지성이 가져야 할 도덕적 책임과 평화의 목소리를 강력하게 대변했습니다.",
     representative: ["개인적인 체험", "만연 원년의 풋볼"],
     books: [
@@ -1187,6 +1187,231 @@ export const AUTHOR_META: Record<string, {
   wikiTitle: string;
   photoUrl?: string;
 }> = {
+  "최인훈": {
+    nameEn: "Choi In-hun",
+    nationality: "한국",
+    wikiTitle: "Choi_In-hun"
+  },
+  "김유정": {
+    nameEn: "Kim Yu-jeong",
+    nationality: "한국",
+    wikiTitle: "Kim_Yu-jeong",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/%EA%B9%80%EC%9C%A0%EC%A0%95_%EA%B0%80%EC%A1%B1%EC%82%AC%EC%A7%84_%EC%96%BC%EA%B5%B4_%EB%B6%80%EB%B6%84.jpg"
+  },
+  "이상": {
+    nameEn: "Yi Sang",
+    nationality: "한국",
+    wikiTitle: "Yi_Sang",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/4/4f/Leesang.jpg"
+  },
+  "윤동주": {
+    nameEn: "Yun Dong-ju",
+    nationality: "한국",
+    wikiTitle: "Yun_Dong-ju",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Yoon_Dong-ju.jpg/330px-Yoon_Dong-ju.jpg"
+  },
+  "에드거 앨런 포": {
+    nameEn: "Edgar Allan Poe",
+    nationality: "미국",
+    wikiTitle: "Edgar_Allan_Poe",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Edgar_Allan_Poe%2C_circa_1849%2C_restored%2C_squared_off.jpg/330px-Edgar_Allan_Poe%2C_circa_1849%2C_restored%2C_squared_off.jpg"
+  },
+  "귀스타브 플로베르": {
+    nameEn: "Gustave Flaubert",
+    nationality: "프랑스",
+    wikiTitle: "Gustave_Flaubert",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Gustave_Flaubert.jpg/330px-Gustave_Flaubert.jpg"
+  },
+  "에밀 졸라": {
+    nameEn: "Émile Zola",
+    nationality: "프랑스",
+    wikiTitle: "Émile_Zola",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Nadar_%28atelier_de%29_-_Emile_Zola%2C_13-556535.jpg/330px-Nadar_%28atelier_de%29_-_Emile_Zola%2C_13-556535.jpg"
+  },
+  "토마스 만": {
+    nameEn: "Thomas Mann",
+    nationality: "독일",
+    wikiTitle: "Thomas_Mann",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Thomas_Mann_1929.jpg/330px-Thomas_Mann_1929.jpg"
+  },
+  "하인리히 뵐": {
+    nameEn: "Heinrich Böll",
+    nationality: "독일",
+    wikiTitle: "Heinrich_Böll",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Bundesarchiv_B_145_Bild-F062164-0004%2C_Bonn%2C_Heinrich_B%C3%B6ll.jpg/330px-Bundesarchiv_B_145_Bild-F062164-0004%2C_Bonn%2C_Heinrich_B%C3%B6ll.jpg"
+  },
+  "귄터 그라스": {
+    nameEn: "Günter Grass",
+    nationality: "독일",
+    wikiTitle: "Günter_Grass",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Europese_conferentie_van_schrijvers_Haagse_Treffen_in_Kurhaus_te_Scheveningen%2C_Bestanddeelnr_932-1798.jpg/330px-Europese_conferentie_van_schrijvers_Haagse_Treffen_in_Kurhaus_te_Scheveningen%2C_Bestanddeelnr_932-1798.jpg"
+  },
+  "파트리크 쥐스킨트": {
+    nameEn: "Patrick Süskind",
+    nationality: "독일",
+    wikiTitle: "Patrick_Süskind"
+  },
+  "에리히 마리아 레마르크": {
+    nameEn: "Erich Maria Remarque",
+    nationality: "독일",
+    wikiTitle: "Erich_Maria_Remarque",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Bundesarchiv_Bild_183-R04034%2C_Erich_Maria_Remarque_%28cropped%29.jpg/330px-Bundesarchiv_Bild_183-R04034%2C_Erich_Maria_Remarque_%28cropped%29.jpg"
+  },
+  "에른스트 호프만": {
+    nameEn: "E.T.A. Hoffmann",
+    nationality: "독일",
+    wikiTitle: "E._T._A._Hoffmann",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/E._T._A._Hoffmann%2C_autorretrato.jpg/330px-E._T._A._Hoffmann%2C_autorretrato.jpg"
+  },
+  "프리드리히 실러": {
+    nameEn: "Friedrich Schiller",
+    nationality: "독일",
+    wikiTitle: "Friedrich_Schiller",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Anton_Graff_-_Friedrich_Schiller.jpg/330px-Anton_Graff_-_Friedrich_Schiller.jpg"
+  },
+  "안톤 체호프": {
+    nameEn: "Anton Chekhov",
+    nationality: "러시아",
+    wikiTitle: "Anton_Chekhov",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Anton_Chekhov_1889.jpg/330px-Anton_Chekhov_1889.jpg"
+  },
+  "니콜라이 고골": {
+    nameEn: "Nikolai Gogol",
+    nationality: "러시아",
+    wikiTitle: "Nikolai_Gogol",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/3/31/NV_Gogol.png"
+  },
+  "미하일 불가코프": {
+    nameEn: "Mikhail Bulgakov",
+    nationality: "러시아",
+    wikiTitle: "Mikhail_Bulgakov",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/%D0%9C%D0%B8%D1%85%D0%B0%D0%B8%D0%BB-%D0%91%D1%83%D0%BB%D0%B3%D0%B0%D0%BA%D0%BE%D0%B2.jpg/330px-%D0%9C%D0%B8%D1%85%D0%B0%D0%B8%D0%BB-%D0%91%D1%83%D0%BB%D0%B3%D0%B0%D0%BA%D0%BE%D0%B2.jpg"
+  },
+  "보리스 파스테르나크": {
+    nameEn: "Boris Pasternak",
+    nationality: "러시아",
+    wikiTitle: "Boris_Pasternak",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Boris_Pasternak_1958_photo.jpg/330px-Boris_Pasternak_1958_photo.jpg"
+  },
+  "이반 투르게네프": {
+    nameEn: "Ivan Turgenev",
+    nationality: "러시아",
+    wikiTitle: "Ivan_Turgenev",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Turgenev_by_Repin.jpg/330px-Turgenev_by_Repin.jpg"
+  },
+  "막심 고리키": {
+    nameEn: "Maxim Gorky",
+    nationality: "러시아",
+    wikiTitle: "Maxim_Gorky",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Maxim_Gorky_LOC_Restored_edit1.jpg/330px-Maxim_Gorky_LOC_Restored_edit1.jpg"
+  },
+  "다자이 오사무": {
+    nameEn: "Osamu Dazai",
+    nationality: "일본",
+    wikiTitle: "Osamu_Dazai",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Osamu_Dazai.jpg/330px-Osamu_Dazai.jpg"
+  },
+  "나쓰메 소세키": {
+    nameEn: "Soseki Natsume",
+    nationality: "일본",
+    wikiTitle: "Natsume_Sōseki",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Natsume_Soseki_photo.jpg/330px-Natsume_Soseki_photo.jpg"
+  },
+  "아쿠타가와 류노스케": {
+    nameEn: "Ryunosuke Akutagawa",
+    nationality: "일본",
+    wikiTitle: "Ryūnosuke_Akutagawa",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Akutagawa_portrait_Akutagawa_Sakuhinshu_6.jpg/330px-Akutagawa_portrait_Akutagawa_Sakuhinshu_6.jpg"
+  },
+  "가와바타 야스나리": {
+    nameEn: "Yasunari Kawabata",
+    nationality: "일본",
+    wikiTitle: "Yasunari_Kawabata",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Yasunari_Kawabata_1938.jpg/330px-Yasunari_Kawabata_1938.jpg"
+  },
+  "히가시노 게이고": {
+    nameEn: "Keigo Higashino",
+    nationality: "일본",
+    wikiTitle: "Keigo_Higashino"
+  },
+  "무라카미 류": {
+    nameEn: "Ryu Murakami",
+    nationality: "일본",
+    wikiTitle: "Ryū_Murakami",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Ryu_Murakami.jpg/330px-Ryu_Murakami.jpg"
+  },
+  "오에 겐자부로": {
+    nameEn: "Kenzaburo Oe",
+    nationality: "일본",
+    wikiTitle: "Kenzaburō_Ōe",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Paris_-_Salon_du_livre_2012_-_Kenzabur%C5%8D_%C5%8Ce_-_003.jpg/330px-Paris_-_Salon_du_livre_2012_-_Kenzabur%C5%8D_%C5%8Ce_-_003.jpg"
+  },
+  "박경리": {
+    nameEn: "Park Kyong-ni",
+    nationality: "한국",
+    wikiTitle: "Park_Kyong-ni",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Park_Kyung-ni.jpg/330px-Park_Kyung-ni.jpg"
+  },
+  "김영하": {
+    nameEn: "Kim Young-ha",
+    nationality: "한국",
+    wikiTitle: "Kim_Young-ha",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/8/87/Kimyoungha.jpg"
+  },
+  "조정래": {
+    nameEn: "Jo Jung-rae",
+    nationality: "한국",
+    wikiTitle: "Cho_Jung-rae",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Cho_Congnae.jpg/330px-Cho_Congnae.jpg"
+  },
+  "이청준": {
+    nameEn: "Lee Cheong-jun",
+    nationality: "한국",
+    wikiTitle: "Lee_Cheong-jun",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Yi_Cheong-Jun.jpg/330px-Yi_Cheong-Jun.jpg"
+  },
+  "황석영": {
+    nameEn: "Hwang Sok-yong",
+    nationality: "한국",
+    wikiTitle: "Hwang_Sok-yong",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Hwangsokyoung2014.png/330px-Hwangsokyoung2014.png"
+  },
+  "마크 트웨인": {
+    nameEn: "Mark Twain",
+    nationality: "미국",
+    wikiTitle: "Mark_Twain",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Mark_Twain_by_AF_Bradley.jpg/330px-Mark_Twain_by_AF_Bradley.jpg"
+  },
+  "스탕달": {
+    nameEn: "Stendhal",
+    nationality: "프랑스",
+    wikiTitle: "Stendhal",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Stendhal.jpg/330px-Stendhal.jpg"
+  },
+  "볼테르": {
+    nameEn: "Voltaire",
+    nationality: "프랑스",
+    wikiTitle: "Voltaire",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Nicolas_de_Largilli%C3%A8re_-_Portrait_de_Voltaire_%281694-1778%29_en_1718_-_P208_-_mus%C3%A9e_Carnavalet_-_5_%28cropped%29.jpg/330px-Nicolas_de_Largilli%C3%A8re_-_Portrait_de_Voltaire_%281694-1778%29_en_1718_-_P208_-_mus%C3%A9e_Carnavalet_-_5_%28cropped%29.jpg"
+  },
+  "알렉산드르 푸시킨": {
+    nameEn: "Alexander Pushkin",
+    nationality: "러시아",
+    wikiTitle: "Alexander_Pushkin",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Orest_Kiprensky_-_%D0%9F%D0%BE%D1%80%D1%82%D1%80%D0%B5%D1%82_%D0%BF%D0%BE%D1%8D%D1%82%D0%B0_%D0%90.%D0%A1.%D0%9F%D1%83%D1%88%D0%B8%D0%BA%D0%B8%D0%BD%D0%B0_-_Google_Art_Project.jpg/330px-Orest_Kiprensky_-_%D0%9F%D0%BE%D1%80%D1%82%D1%80%D0%B5%D1%82_%D0%BF%D0%BE%D1%8D%D1%82%D0%B0_%D0%90.%D0%A1.%D0%9F%D1%83%D1%88%D0%B8%D0%BA%D0%B8%D0%BD%D0%B0_-_Google_Art_Project.jpg"
+  },
+  "미시마 유키오": {
+    nameEn: "Yukio Mishima",
+    nationality: "일본",
+    wikiTitle: "Yukio_Mishima",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Yukio_Mishima%2C_1955_%28cropped_850%C3%97950_px%29.jpg/330px-Yukio_Mishima%2C_1955_%28cropped_850%C3%97950_px%29.jpg"
+  },
+  "요시모토 바나나": {
+    nameEn: "Banana Yoshimoto",
+    nationality: "일본",
+    wikiTitle: "Banana_Yoshimoto",
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Banana_Yosimoto.jpg/330px-Banana_Yosimoto.jpg"
+  },
   "조지 오웰": {
     nameEn: "George Orwell",
     nationality: "영국",
@@ -1562,8 +1787,7 @@ export const AUTHOR_META: Record<string, {
   "한영우": {
     nameEn: "Han Young-woo",
     nationality: "한국",
-    wikiTitle: "Han_Young-woo",
-    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/7/77/Margaret_Mitchell_1930s.jpg"
+    wikiTitle: "Han_Young-woo"
   },
   "대니얼 카너먼": {
     nameEn: "Daniel Kahneman",
@@ -1599,7 +1823,7 @@ export const AUTHOR_META: Record<string, {
     nameEn: "James Clear",
     nationality: "미국",
     wikiTitle: "James_Clear",
-    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/8/8c/JD_Salinger.jpg"
+    photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/James_Clear_in_2010.jpg/330px-James_Clear_in_2010.jpg"
   },
   "데일 카네기": {
     nameEn: "Dale Carnegie",

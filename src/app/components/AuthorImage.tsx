@@ -69,9 +69,15 @@ export function AuthorImage({ wikiTitle, directPhotoUrl, nameEn, displayName, cl
       }
 
       setStatus("loading");
-      const isKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(title);
+      let decodedTitle = title;
+      try {
+        decodedTitle = decodeURIComponent(title);
+      } catch (e) {
+        decodedTitle = title;
+      }
+      const isKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(decodedTitle);
       const domain = isKorean ? "ko" : "en";
-      const apiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.trim().replace(/ /g, "_"))}`;
+      const apiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(decodedTitle.trim().replace(/ /g, "_"))}`;
 
       fetch(apiUrl)
         .then((r) => {

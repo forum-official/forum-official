@@ -725,6 +725,12 @@ function AppContent() {
     if (screen === "vote-detail") {
       setVoteDetailBook(null);
     }
+
+    // 작가 아카이브 탭에 새로 진입할 때 이전 검색/필터 상태 초기화
+    if (screen === "author-archive") {
+      sessionStorage.removeItem('authorArchive_search');
+      sessionStorage.removeItem('authorArchive_country');
+    }
     
     // 현재 화면을 히스토리에 추가
     if (currentScreen) {
@@ -851,9 +857,25 @@ function AppContent() {
     setDiscussionsList(cloudDiscussions);
   };
 
+  // Tab change handler that resets search states for a fresh experience
+  const handleTabChange = (tab: string) => {
+    // 책 탭으로 새로 진입할 때 검색어, 카테고리 초기화
+    if (tab === "books" && activeTab !== "books") {
+      setSearchQuery("");
+      setSelectedCategory("전체");
+      setBooksScreenShowSearch(false);
+    }
+    // 게시판 탭 진입 시 게시판 검색어 초기화
+    if (tab !== "discussions") {
+      setBoardSearchQuery("");
+    }
+    window.scrollTo(0, 0);
+    setActiveTab(tab);
+  };
+
   // Scroll to top when logo is clicked
   const handleLogoClick = () => {
-    // 홈 화면이 아니면 홈으로 이
+    // 홈 화면이 아니면 홈으로 이동
     if (activeTab !== "home") {
       setActiveTab("home");
     }
@@ -1174,9 +1196,9 @@ function AppContent() {
             hasUnreadNotifications={hasUnreadNotifications}
             isForcedMobile={isForcedMobile}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
           />
-          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} isForcedMobile={isForcedMobile} />
+          <BottomNav activeTab={activeTab} onTabChange={handleTabChange} isForcedMobile={isForcedMobile} />
         </>
       )}
 
@@ -1193,7 +1215,7 @@ function AppContent() {
             onLogoClick={handleLogoClick}
             hasUnreadNotifications={hasUnreadNotifications}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
             isForcedMobile={isForcedMobile}
           />
           
@@ -1545,7 +1567,7 @@ function AppContent() {
             )}
           </main>
 
-          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+          <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
       )}
 
