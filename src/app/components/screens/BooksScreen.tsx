@@ -45,10 +45,13 @@ export function BooksScreen({
 
 
 
-  // 검색 버튼 클릭 시 카테고리를 전체로 리셋
+  // 검색 버튼 클릭 시 검색창 토글 및 닫힐 때 검색어 초기화
   const handleSearchToggle = () => {
-    setShowSearch(!showSearch);
-    if (!showSearch) {
+    const nextShowSearch = !showSearch;
+    setShowSearch(nextShowSearch);
+    if (!nextShowSearch) {
+      setSearchQuery("");
+    } else {
       setSelectedCategory("전체");
     }
   };

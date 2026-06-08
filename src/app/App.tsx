@@ -874,12 +874,13 @@ function AppContent() {
 
   // Tab change handler that resets search states for a fresh experience
   const handleTabChange = (tab: string) => {
-    // 책 탭으로 새로 진입하거나 기존 탭에서 다시 누를 때 검색어, 카테고리 초기화
-    if (tab === "books") {
-      setSearchQuery("");
-      setSelectedCategory("전체");
-      setBooksScreenShowSearch(false);
-    }
+    // 탭 이동 시 항상 검색 상태 초기화
+    setSearchQuery("");
+    setSelectedCategory("전체");
+    setBooksScreenShowSearch(false);
+    sessionStorage.removeItem('authorArchive_search');
+    sessionStorage.removeItem('authorArchive_country');
+
     // 게시판 탭 진입 시 게시판 검색어 초기화
     if (tab !== "discussions") {
       setBoardSearchQuery("");
@@ -890,7 +891,13 @@ function AppContent() {
 
   // Scroll to top when logo is clicked
   const handleLogoClick = () => {
-    // 홈 화면이 아니면 홈으로 이동
+    // 로고 클릭 시 홈 화면으로 가며 검색 상태 초기화
+    setSearchQuery("");
+    setSelectedCategory("전체");
+    setBooksScreenShowSearch(false);
+    sessionStorage.removeItem('authorArchive_search');
+    sessionStorage.removeItem('authorArchive_country');
+
     if (activeTab !== "home") {
       setActiveTab("home");
     }
