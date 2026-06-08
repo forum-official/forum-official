@@ -69,10 +69,10 @@ export function HotVoteCard({
         <div className="flex items-center justify-between text-white mb-1">
           <div className="flex items-center gap-2">
             <TrendingUp className="size-5" />
-            <span className="text-xs font-semibold uppercase tracking-wide">오늘의 뜨거운 투표</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">오늘의 판본 토론</span>
           </div>
           <span className="text-[10px] text-purple-100 bg-purple-700/40 px-2 py-0.5 rounded flex items-center gap-1 font-medium select-none">
-            ⏰ 매일 자정 초기화
+            ⏰ 매일 자정 변경
           </span>
         </div>
         <h3 className="font-bold text-white text-base leading-tight mt-1">{title}</h3>

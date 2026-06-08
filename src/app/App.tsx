@@ -751,9 +751,24 @@ function AppContent() {
         setShowDiscussionDetail(true);
         setCurrentScreen(null);
       } else {
+        // 작가 아카이브로 돌아올 때 이전 검색/필터 상태 초기화 (깨끗한 화면)
+        if (previousScreen === "author-archive") {
+          sessionStorage.removeItem('authorArchive_search');
+          sessionStorage.removeItem('authorArchive_country');
+        }
         setCurrentScreen(previousScreen);
       }
     } else {
+      // 상세 화면 등에서 뒤로가기 시 책 탭 및 작가 아카이브의 상태도 초기화
+      if (currentScreen === "book-detail") {
+        setSearchQuery("");
+        setSelectedCategory("전체");
+        setBooksScreenShowSearch(false);
+      }
+      if (currentScreen === "author-archive" || currentScreen === "author-detail") {
+        sessionStorage.removeItem('authorArchive_search');
+        sessionStorage.removeItem('authorArchive_country');
+      }
       setCurrentScreen(null);
       setSelectedBook(null);
     }
@@ -859,8 +874,8 @@ function AppContent() {
 
   // Tab change handler that resets search states for a fresh experience
   const handleTabChange = (tab: string) => {
-    // 책 탭으로 새로 진입할 때 검색어, 카테고리 초기화
-    if (tab === "books" && activeTab !== "books") {
+    // 책 탭으로 새로 진입하거나 기존 탭에서 다시 누를 때 검색어, 카테고리 초기화
+    if (tab === "books") {
       setSearchQuery("");
       setSelectedCategory("전체");
       setBooksScreenShowSearch(false);
