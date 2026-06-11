@@ -13,6 +13,7 @@ import { commentSkins } from "@/app/data/commentSkins";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { toast } from "sonner";
 import { BookCover } from "@/app/components/BookCover";
 import { 
   getDebateVotes, 
@@ -605,16 +606,24 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
               </Button>
               
               <Button 
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md rounded-xl h-11 text-sm font-semibold text-white border-none" 
+                className={`w-full shadow-md rounded-xl h-11 text-sm font-semibold border-none text-white transition-all ${
+                  hasVoted 
+                    ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 cursor-pointer" 
+                    : "bg-gray-300 hover:bg-gray-300 cursor-not-allowed"
+                }`} 
                 onClick={() => {
                   if (!isAuthenticated) {
                     onLoginRequired?.();
                     return;
                   }
+                  if (!hasVoted) {
+                    toast.warning("의견을 작성하려면 먼저 찬반 투표에 참여해 주세요.");
+                    return;
+                  }
                   setShowOpinionModal(true);
                 }}
               >
-                내 의견 남기기
+                내 의견 남기기 {!hasVoted && "(투표 후 활성화)"}
               </Button>
             </Card>
           </div>
@@ -851,6 +860,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
           bookTitle={currentBook.title}
           onClose={() => setShowOpinionModal(false)}
           onCreate={handleCreateOpinion}
+          userStance={selectedStance}
         />
       )}
     </div>

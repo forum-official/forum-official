@@ -11,10 +11,11 @@ interface CreateOpinionModalProps {
   onClose: () => void;
   onCreate: (opinion: any) => void;
   onLoginRequired?: () => void;
+  userStance?: "agree" | "disagree" | null;
 }
 
-export function CreateOpinionModal({ bookTitle, onClose, onCreate, onLoginRequired }: CreateOpinionModalProps) {
-  const [stance, setStance] = useState<"agree" | "disagree" | "neutral">("neutral");
+export function CreateOpinionModal({ bookTitle, onClose, onCreate, onLoginRequired, userStance }: CreateOpinionModalProps) {
+  const [stance, setStance] = useState<"agree" | "disagree" | "neutral">(userStance || "neutral");
   const [content, setContent] = useState("");
   const [isSkinShopOpen, setIsSkinShopOpen] = useState(false);
   const selectedSkin = getSelectedSkin();
@@ -93,10 +94,11 @@ export function CreateOpinionModal({ bookTitle, onClose, onCreate, onLoginRequir
                 return (
                   <button
                     key={s.id}
+                    disabled={!!userStance}
                     onClick={() => setStance(s.id)}
                     className={`flex-1 py-3 rounded-xl border-2 transition-all font-medium ${
                       colorClasses[s.color]
-                    }`}
+                    } ${userStance && !isSelected ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <div className="text-2xl mb-1">{s.icon}</div>
                     <div className="text-sm">{s.label}</div>
@@ -104,6 +106,11 @@ export function CreateOpinionModal({ bookTitle, onClose, onCreate, onLoginRequir
                 );
               })}
             </div>
+            {userStance && (
+              <p className="text-[10px] text-gray-500 text-left mt-2 pl-0.5">
+                💡 투표하신 입장({userStance === "agree" ? "찬성" : "반대"})으로 고정됩니다.
+              </p>
+            )}
           </div>
 
           {/* Skin Selection */}
