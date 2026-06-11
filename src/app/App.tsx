@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { AuthProvider, useAuth } from "@/app/contexts/AuthContext";
 import { ProfileTab } from "@/app/components/ProfileTab";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
-import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, TrendingUp } from "lucide-react";
+import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, TrendingUp, Image as ImageIcon } from "lucide-react";
 import { popularBooksData } from "@/app/data/booksData";
 import type { Book } from "@/app/data/booksData";
 import { Toaster, toast } from "sonner";
@@ -1524,36 +1524,28 @@ function AppContent() {
                               )}
                             </div>
 
-                            {/* Main Text */}
+                            {/* Main Title & Presence Icons */}
                             <div className={isSpoilerHidden ? "filter blur-xs select-none" : ""}>
-                              <h3 className="font-bold text-sm text-gray-900 leading-snug mb-1 line-clamp-2 text-left">
-                                {discussion.title}
+                              <h3 className="font-bold text-sm text-gray-900 leading-snug text-left flex flex-wrap items-center gap-1.5">
+                                <span>{discussion.title}</span>
+                                {!isSpoilerHidden && discussion.imageUrl && (
+                                  <span className="inline-flex items-center text-purple-600 bg-purple-50 p-0.5 rounded border border-purple-100/30" title="사진 첨부됨">
+                                    <ImageIcon className="size-3" />
+                                  </span>
+                                )}
+                                {!isSpoilerHidden && discussion.options && discussion.options.length > 0 && (
+                                  <span className="inline-flex items-center text-blue-600 bg-blue-50 p-0.5 rounded border border-blue-100/30" title="투표 포함됨">
+                                    <TrendingUp className="size-3" />
+                                  </span>
+                                )}
                               </h3>
-                              <p className="text-xs text-gray-600 leading-relaxed line-clamp-2 text-left">
-                                {discussion.description}
-                              </p>
                             </div>
 
                             {/* Spoiler Overlay */}
                             {isSpoilerHidden && (
                               <div className="py-2.5 px-3 bg-orange-50/50 rounded-xl border border-orange-100 flex flex-col items-center justify-center gap-1">
                                 <span className="text-xs font-bold text-orange-700">⚠️ 스포일러가 포함된 글입니다</span>
-                                <span className="text-[10px] text-gray-500">이곳을 터치하여 스포일러 내용을 확인해보세요.</span>
-                              </div>
-                            )}
-
-                            {/* Image Attachment */}
-                            {!isSpoilerHidden && discussion.imageUrl && (
-                              <div className="relative rounded-xl overflow-hidden max-h-48 border border-gray-100 flex justify-center bg-gray-50">
-                                <img src={discussion.imageUrl} alt="attachment" className="object-cover max-h-48 w-full" />
-                              </div>
-                            )}
-
-                            {/* Poll Indicator */}
-                            {discussion.options && discussion.options.length > 0 && (
-                              <div className="flex items-center gap-2 text-[10px] font-semibold text-purple-600 bg-purple-50 px-2.5 py-1.5 rounded-lg w-max border border-purple-100/50">
-                                <TrendingUp className="size-3.5" />
-                                <span>의견 투표 진행 중 ({discussion.totalVotes || 0}명 참여)</span>
+                                <span className="text-[10px] text-gray-500">이곳을 터치하여 스포일러 제목을 확인해보세요.</span>
                               </div>
                             )}
 
@@ -1711,6 +1703,11 @@ function AppContent() {
               if (updatedDisc) {
                 setSelectedDiscussion(updatedDisc);
               }
+            }}
+            onDelete={(deletedId) => {
+              setDiscussionsList(prev => prev.filter(d => d.id !== deletedId));
+              setSelectedDiscussion(null);
+              setShowDiscussionDetail(false);
             }}
           />
         );

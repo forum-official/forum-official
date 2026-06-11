@@ -1362,6 +1362,39 @@ export function saveDiscussion(discussion: DbDiscussion): void {
   localStorage.setItem("forum_discussions", JSON.stringify(discussions));
 }
 
+export function deleteDiscussion(discussionId: string): void {
+  const data = localStorage.getItem("forum_discussions");
+  if (!data) return;
+  try {
+    const discussions: DbDiscussion[] = JSON.parse(data);
+    const updated = discussions.filter(d => d.id !== discussionId);
+    localStorage.setItem("forum_discussions", JSON.stringify(updated));
+  } catch {}
+}
+
+export async function deleteDiscussionFromCloud(discussionId: string): Promise<boolean> {
+  deleteDiscussion(discussionId); // 로컬 캐시 삭제
+  
+  if (!isCloudEnabled) {
+    return true;
+  }
+  
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/posts?id=eq.${encodeURIComponent(discussionId)}`, {
+      method: "DELETE",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.ok;
+  } catch (e) {
+    console.error("Failed to delete discussion from Supabase:", e);
+    return false;
+  }
+}
+
 export function voteDiscussion(discussionId: string, optionId: number, previousOptionId: number | null): DbDiscussion[] {
   const data = localStorage.getItem("forum_discussions");
   if (!data) return [];

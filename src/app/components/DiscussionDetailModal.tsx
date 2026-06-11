@@ -1,4 +1,4 @@
-import { X, Check, Send, Heart, ThumbsUp, TrendingUp, MessageCircle, Sparkles } from "lucide-react";
+import { X, Check, Send, Heart, ThumbsUp, TrendingUp, MessageCircle, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { commentSkins, getSelectedSkin, getUserOwnedSkins, setSelectedSkin } from "@/app/data/commentSkins";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { fetchCommentsFromCloud, saveCommentToCloud, deleteCommentFromCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, updateDiscussionCommentCount, toggleDiscussionLikeInCloud, isDiscussionLiked } from "@/app/utils/db";
+import { fetchCommentsFromCloud, saveCommentToCloud, deleteCommentFromCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, updateDiscussionCommentCount, toggleDiscussionLikeInCloud, isDiscussionLiked, deleteDiscussionFromCloud } from "@/app/utils/db";
 
 interface DiscussionDetailModalProps {
   id: string;
@@ -28,6 +28,7 @@ interface DiscussionDetailModalProps {
   likes?: number;
   hasSpoiler?: boolean;
   onLikeToggle?: (likesCount: number) => void;
+  onDelete?: (id: string) => void;
 }
 
 interface Comment {
@@ -60,6 +61,7 @@ export function DiscussionDetailModal({
   likes,
   hasSpoiler,
   onLikeToggle,
+  onDelete,
 }: DiscussionDetailModalProps) {
   const { isAuthenticated, user } = useAuth();
   
@@ -212,12 +214,32 @@ export function DiscussionDetailModal({
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
             <h2 className="font-bold text-base">토론 상세</h2>
-            <button
-              onClick={onClose}
-              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="size-4" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              {author === (user?.nickname || "익명") && (
+                <button
+                  onClick={async () => {
+                    if (confirm("정말로 이 게시글을 삭제하시겠습니까?")) {
+                      await deleteDiscussionFromCloud(id);
+                      toast.success("게시글이 삭제되었습니다");
+                      if (onDelete) {
+                        onDelete(id);
+                      }
+                      onClose();
+                    }
+                  }}
+                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                  title="게시글 삭제"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
           </div>
 
           {/* Content */}
