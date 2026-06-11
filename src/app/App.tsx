@@ -747,6 +747,9 @@ function AppContent() {
   };
 
   const handleBack = () => {
+    if (currentScreen === "monthly-debate") {
+      setSelectedDebate(null);
+    }
     // 히스토리가 있으면 이전 화면으로, 없으면 홈으로
     if (screenHistory.length > 0) {
       const previousScreen = screenHistory[screenHistory.length - 1];
@@ -1062,6 +1065,7 @@ function AppContent() {
 
       {currentScreen === "monthly-debate" && (
         <MonthlyDebateScreen 
+          key={selectedDebate ? `debate-${selectedDebate.title}` : "debate-list"}
           onBack={handleBack}
           initialBook={selectedDebate}
           onLoginRequired={handleLoginRequired}

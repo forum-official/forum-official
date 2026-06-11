@@ -108,6 +108,22 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
     }
     initScreen();
   }, []);
+
+  // Sync initialBook prop changes to state
+  useEffect(() => {
+    if (initialBook) {
+      setCurrentBook(initialBook);
+      setViewMode("detail");
+    } else {
+      setCurrentBook({
+        title: "",
+        author: "",
+        coverUrl: "",
+        debate: ""
+      });
+      setViewMode("list");
+    }
+  }, [initialBook]);
   
   // Load detail data when current book changes
   useEffect(() => {
