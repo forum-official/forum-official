@@ -57,6 +57,9 @@ export interface DbDiscussion {
   totalVotes: number;
   comments: number;
   timestamp: string; // YYYY-MM-DD HH:mm
+  imageUrl?: string;
+  likes: number;
+  hasSpoiler?: boolean;
 }
 
 export interface LibraryBook {
@@ -704,6 +707,128 @@ export async function toggleOpinionLikeInCloud(opinionId: string, userId: string
 }
 
 /**
+ * Supabase를 활용한 게시글(discussion) 좋아요 토글 API
+ */
+export async function toggleDiscussionLikeInCloud(discussionId: string, userId: string, currentLikes: number): Promise<{ likesCount: number; isLiked: boolean }> {
+  const localRes = toggleDiscussionLike(discussionId, userId);
+  
+  if (!isCloudEnabled) {
+    return localRes;
+  }
+  
+  try {
+    const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/likes?userId=eq.${userId}&targetId=eq.${discussionId}&targetType=eq.discussion&select=id`, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    
+    if (checkRes.ok) {
+      const likesList = await checkRes.json();
+      let newLikesCount = currentLikes;
+      let isLikedNow = false;
+      
+      if (likesList.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/likes?id=eq.${likesList[0].id}`, {
+          method: "DELETE",
+          headers: {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        newLikesCount = Math.max(0, currentLikes - 1);
+        isLikedNow = false;
+      } else {
+        await fetch(`${SUPABASE_URL}/rest/v1/likes`, {
+          method: "POST",
+          headers: {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ userId, targetId: discussionId, targetType: "discussion" })
+        });
+        newLikesCount = currentLikes + 1;
+        isLikedNow = true;
+      }
+      
+      await fetch(`${SUPABASE_URL}/rest/v1/posts?id=eq.${discussionId}`, {
+        method: "PATCH",
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ likes: newLikesCount })
+      });
+      
+      return { likesCount: newLikesCount, isLiked: isLikedNow };
+    }
+  } catch (e) {
+    console.error("Failed to toggle discussion like in cloud:", e);
+  }
+  
+  return localRes;
+}
+
+export function toggleDiscussionLike(discussionId: string, userId: string): { likesCount: number; isLiked: boolean } {
+  const userLikesKey = `myDiscussionLikes_${userId}`;
+  const userLikesData = localStorage.getItem(userLikesKey);
+  let userLikes: string[] = [];
+  if (userLikesData) {
+    try {
+      userLikes = JSON.parse(userLikesData);
+    } catch {}
+  }
+
+  const discussionsData = localStorage.getItem("forum_discussions");
+  if (!discussionsData) return { likesCount: 0, isLiked: false };
+
+  try {
+    let discussions: DbDiscussion[] = JSON.parse(discussionsData);
+    const discIdx = discussions.findIndex(d => d.id === discussionId);
+    if (discIdx === -1) return { likesCount: 0, isLiked: false };
+
+    const disc = discussions[discIdx];
+    if (disc.likes === undefined) disc.likes = 0;
+    
+    const userLikeIdx = userLikes.indexOf(discussionId);
+    let isLiked = false;
+
+    if (userLikeIdx !== -1) {
+      userLikes.splice(userLikeIdx, 1);
+      disc.likes = Math.max(0, disc.likes - 1);
+      isLiked = false;
+    } else {
+      userLikes.push(discussionId);
+      disc.likes += 1;
+      isLiked = true;
+    }
+
+    localStorage.setItem(userLikesKey, JSON.stringify(userLikes));
+    localStorage.setItem("forum_discussions", JSON.stringify(discussions));
+
+    return { likesCount: disc.likes, isLiked };
+  } catch {
+    return { likesCount: 0, isLiked: false };
+  }
+}
+
+export function isDiscussionLiked(discussionId: string, userId: string): boolean {
+  if (!userId) return false;
+  const userLikesKey = `myDiscussionLikes_${userId}`;
+  const userLikesData = localStorage.getItem(userLikesKey);
+  if (!userLikesData) return false;
+  try {
+    const userLikes: string[] = JSON.parse(userLikesData);
+    return userLikes.includes(discussionId);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 로그인 성공 시 사용자의 전체 좋아요 목록을 불러와 로컬스토리지를 동기화
  */
 export async function fetchUserLikesFromCloud(userId: string): Promise<void> {
@@ -722,12 +847,14 @@ export async function fetchUserLikesFromCloud(userId: string): Promise<void> {
       const reviewLikes: string[] = [];
       const commentLikes: string[] = [];
       const opinionLikes: string[] = [];
+      const discussionLikes: string[] = [];
       
       likes.forEach(like => {
         if (like.targetType === 'book') bookLikes.push(like.targetId);
         else if (like.targetType === 'review') reviewLikes.push(like.targetId);
         else if (like.targetType === 'comment') commentLikes.push(like.targetId);
         else if (like.targetType === 'opinion') opinionLikes.push(like.targetId);
+        else if (like.targetType === 'discussion') discussionLikes.push(like.targetId);
       });
       
       // 1. Book likes sync (forum_book_likes)
@@ -765,6 +892,9 @@ export async function fetchUserLikesFromCloud(userId: string): Promise<void> {
       
       // 4. Opinion likes sync
       localStorage.setItem(`myOpinionLikes_${userId}`, JSON.stringify(opinionLikes));
+
+      // 5. Discussion likes sync
+      localStorage.setItem(`myDiscussionLikes_${userId}`, JSON.stringify(discussionLikes));
     }
   } catch (e) {
     console.error("Failed to sync user likes from cloud:", e);

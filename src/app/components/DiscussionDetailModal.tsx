@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { commentSkins, getSelectedSkin, getUserOwnedSkins, setSelectedSkin } from "@/app/data/commentSkins";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { fetchCommentsFromCloud, saveCommentToCloud, deleteCommentFromCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, updateDiscussionCommentCount } from "@/app/utils/db";
+import { fetchCommentsFromCloud, saveCommentToCloud, deleteCommentFromCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, updateDiscussionCommentCount, toggleDiscussionLikeInCloud, isDiscussionLiked } from "@/app/utils/db";
 
 interface DiscussionDetailModalProps {
   id: string;
@@ -24,6 +24,10 @@ interface DiscussionDetailModalProps {
   onUserClick?: (username: string, userInitial: string) => void;
   onLoginRequired?: () => void;
   onCommentChange?: (updatedDiscussions: any[]) => void;
+  imageUrl?: string;
+  likes?: number;
+  hasSpoiler?: boolean;
+  onLikeToggle?: (likesCount: number) => void;
 }
 
 interface Comment {
@@ -52,11 +56,16 @@ export function DiscussionDetailModal({
   onUserClick,
   onLoginRequired,
   onCommentChange,
+  imageUrl,
+  likes,
+  hasSpoiler,
+  onLikeToggle,
 }: DiscussionDetailModalProps) {
   const { isAuthenticated, user } = useAuth();
   
   const [commentsList, setCommentsList] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [revealSpoiler, setRevealSpoiler] = useState(false);
 
   useEffect(() => {
     async function loadComments() {
@@ -214,12 +223,58 @@ export function DiscussionDetailModal({
           {/* Content */}
           <div className="flex-1 overflow-y-auto">
             {/* Discussion Info */}
-            <div className="p-4 border-b">
-              <h3 className="font-bold text-base mb-2 leading-tight">{title}</h3>
-              <p className="text-xs text-gray-600 mb-2">
-                {author} · {timestamp}
-              </p>
-              <p className="text-sm text-gray-600 mb-3">{description}</p>
+            <div className="p-4 border-b space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 text-left">
+                  <h3 className="font-bold text-base leading-tight text-gray-900">{title}</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {author} · {timestamp}
+                  </p>
+                </div>
+                {/* Post Like Button */}
+                <button
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      onLoginRequired?.();
+                      return;
+                    }
+                    const result = await toggleDiscussionLikeInCloud(id, user?.userId || "", likes || 0);
+                    if (onLikeToggle) {
+                      onLikeToggle(result.likesCount);
+                    }
+                  }}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-semibold shrink-0 transition-colors ${
+                    isDiscussionLiked(id, user?.userId || "")
+                      ? "bg-red-50 border-red-100 text-red-500"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <Heart className={`size-3.5 ${isDiscussionLiked(id, user?.userId || "") ? "fill-red-500 text-red-500" : ""}`} />
+                  <span>{likes || 0}</span>
+                </button>
+              </div>
+
+              {/* Spoiler Handling */}
+              {hasSpoiler && !revealSpoiler ? (
+                <div 
+                  onClick={() => setRevealSpoiler(true)}
+                  className="py-3 px-4 bg-orange-50/60 rounded-xl border border-orange-100/70 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-orange-50 transition-colors"
+                >
+                  <span className="text-xs font-bold text-orange-700 flex items-center gap-1">⚠️ 스포일러 주의</span>
+                  <span className="text-[10px] text-gray-500">이 게시물에는 책의 스포일러가 포함되어 있습니다. 터치하여 확인하세요.</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap text-left">{description}</p>
+                  
+                  {/* Photo attachment display */}
+                  {imageUrl && (
+                    <div className="relative rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex justify-center max-h-60">
+                      <img src={imageUrl} alt="attached media" className="object-contain max-h-60 w-full" />
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Tags */}
               <div className="flex gap-1.5 flex-wrap mb-3">

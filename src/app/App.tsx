@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { AuthProvider, useAuth } from "@/app/contexts/AuthContext";
 import { ProfileTab } from "@/app/components/ProfileTab";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
-import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen } from "lucide-react";
+import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, TrendingUp } from "lucide-react";
 import { popularBooksData } from "@/app/data/booksData";
 import type { Book } from "@/app/data/booksData";
 import { Toaster, toast } from "sonner";
@@ -38,7 +38,7 @@ import { CreateReviewModal } from "@/app/components/CreateReviewModal";
 import { ReportModal } from "@/app/components/ReportModal";
 import { DiscussionDetailModal } from "@/app/components/DiscussionDetailModal";
 import { OtherUserProfileScreen } from "@/app/components/screens/OtherUserProfileScreen";
-import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache } from "@/app/utils/db";
+import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked } from "@/app/utils/db";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 // 작가 데이터는 src/app/data/authorsData.ts에서 관리 및 동적 생성됩니다.
@@ -472,6 +472,7 @@ function AppContent() {
   const [discussionsList, setDiscussionsList] = useState(() => getDiscussions(discussions));
   const [recommendedBooksOffset, setRecommendedBooksOffset] = useState(Math.floor(Math.random() * popularBooksData.length));
   const [booksScreenShowSearch, setBooksScreenShowSearch] = useState(false);
+  const [revealedSpoilers, setRevealedSpoilers] = useState<Record<string, boolean>>({});
   
   // 책 데이터를 state로 관리 (투표 및 신규 등록 동기화를 위해)
   const [booksData, setBooksData] = useState<Book[]>(() => {
@@ -1459,96 +1460,131 @@ function AppContent() {
                   </div>
 
                   {/* 게시글 목록 */}
-                  <div className="bg-white divide-y divide-gray-100 mt-2">
+                  <div className="bg-gray-50/50 mt-2 pb-6">
                     {filteredDiscussions.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                      <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white">
                         <svg className="size-12 mb-3 opacity-30" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
                         <p className="text-sm font-medium">게시글이 없습니다</p>
                         {boardSearchQuery && <p className="text-xs mt-1 text-gray-400">다른 검색어를 시도해보세요</p>}
                       </div>
                     ) : filteredDiscussions.flatMap((discussion, index) => {
                       const commentCount = (() => {
-                        try { return (JSON.parse(localStorage.getItem("forum_comments") || "[]") as any[]).filter((c: any) => c.discussionId === discussion.id).length; } catch { return 0; }
+                        try { return (JSON.parse(localStorage.getItem("forum_comments") || "[]") as any[]).filter((c: any) => c.targetId === discussion.id).length; } catch { return 0; }
                       })();
+                      const isLiked = isDiscussionLiked(discussion.id, user?.userId || "");
+                      const hasSpoiler = discussion.hasSpoiler;
+                      const isSpoilerHidden = hasSpoiler && !revealedSpoilers[discussion.id];
+
+                      const handleLikeClick = async (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        if (!isAuthenticated) {
+                          handleLoginRequired();
+                          return;
+                        }
+                        const result = await toggleDiscussionLikeInCloud(discussion.id, user?.userId || "", discussion.likes || 0);
+                        const updatedList = discussionsList.map(d => {
+                          if (d.id === discussion.id) {
+                            return { ...d, likes: result.likesCount };
+                          }
+                          return d;
+                        });
+                        setDiscussionsList(updatedList);
+                      };
+
+                      const handleCardClick = () => {
+                        if (isSpoilerHidden) {
+                          setRevealedSpoilers(prev => ({ ...prev, [discussion.id]: true }));
+                          return;
+                        }
+                        setSelectedDiscussion(discussion);
+                        setShowDiscussionDetail(true);
+                      };
+
                       const card = (
-                        <button
+                        <div
                           key={discussion.id}
-                          className="w-full text-left px-4 py-3.5 hover:bg-purple-50/40 active:bg-gray-100 transition-colors"
-                          onClick={() => {
-                            setSelectedDiscussion(discussion);
-                            setShowDiscussionDetail(true);
-                          }}
+                          className="mx-4 my-3 bg-white border border-gray-100 rounded-2xl shadow-xs hover:shadow-md hover:border-purple-100 transition-all duration-300 overflow-hidden cursor-pointer"
+                          onClick={handleCardClick}
                         >
-                          <div className="flex items-start gap-3">
-                            {/* 투표수 혹은 일반글 아이콘 */}
-                            {discussion.options && discussion.options.length > 0 ? (
-                              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-purple-50 flex flex-col items-center justify-center mt-0.5">
-                                <span className="text-xs font-bold text-purple-700 leading-none">{discussion.totalVotes || 0}</span>
-                                <span className="text-[9px] text-purple-400 mt-0.5">참여</span>
-                              </div>
-                            ) : (
-                              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center mt-0.5 text-gray-500 border border-gray-100">
-                                <svg className="size-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                                </svg>
-                              </div>
-                            )}
-                            {/* 내용 */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 mb-1">{discussion.title}</h3>
-                              <p className="text-xs text-gray-500 line-clamp-1 mb-1.5">{discussion.description}</p>
-                              {discussion.relatedBookTitle && (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const allBooks = getGlobalBooks(popularBooksData);
-                                      const matchingBook = allBooks.find(b => b.id === discussion.relatedBookId || b.title === discussion.relatedBookTitle);
-                                      if (matchingBook) {
-                                        setSelectedBook(matchingBook);
-                                        handleNavigate("book-detail");
-                                      } else {
-                                        const fallbackBook = {
-                                          id: discussion.relatedBookId || `fallback_${Date.now()}`,
-                                          title: discussion.relatedBookTitle,
-                                          author: discussion.relatedBookAuthor || "저자 미상",
-                                          description: `${discussion.relatedBookAuthor || "저자 미상"} 작가의 작품 '${discussion.relatedBookTitle}'입니다.`,
-                                          coverUrl: discussion.relatedBookCover || "",
-                                          rating: 0.0,
-                                          likes: 0,
-                                          reviews: 0,
-                                          publishers: [{ name: "민음사", votes: 0 }],
-                                          year: 2024,
-                                          genre: ["문학"],
-                                        };
-                                        setSelectedBook(fallbackBook);
-                                        handleNavigate("book-detail");
-                                      }
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[10px] rounded font-medium border border-purple-100/50 transition-colors cursor-pointer"
-                                  >
-                                    <BookOpen className="size-3 text-purple-500 shrink-0" />
-                                    <span className="truncate max-w-[150px]">{discussion.relatedBookTitle}</span>
-                                  </button>
+                          <div className="p-4 space-y-3">
+                            {/* Top Info */}
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-[10px]">
+                                  {discussion.author ? discussion.author.charAt(0) : "익"}
                                 </div>
+                                <span className="font-semibold text-gray-700 text-xs">{discussion.author}</span>
+                                <span>·</span>
+                                <span className="text-[10px]">{discussion.timestamp}</span>
+                              </div>
+                              {hasSpoiler && (
+                                <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded text-[9px] font-bold border border-orange-100">
+                                  스포일러 주의
+                                </span>
                               )}
                             </div>
-                            {/* 메타 */}
-                            <div className="flex-shrink-0 flex flex-col items-end gap-1 text-gray-400 pt-0.5">
-                              <span className="flex items-center gap-0.5 text-xs">
-                                <svg className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>
-                                {commentCount}
-                              </span>
-                              <span className="text-[10px]">{discussion.author}</span>
-                              <span className="text-[10px]">{discussion.timestamp}</span>
+
+                            {/* Main Text */}
+                            <div className={isSpoilerHidden ? "filter blur-xs select-none" : ""}>
+                              <h3 className="font-bold text-sm text-gray-900 leading-snug mb-1 line-clamp-2 text-left">
+                                {discussion.title}
+                              </h3>
+                              <p className="text-xs text-gray-600 leading-relaxed line-clamp-2 text-left">
+                                {discussion.description}
+                              </p>
+                            </div>
+
+                            {/* Spoiler Overlay */}
+                            {isSpoilerHidden && (
+                              <div className="py-2.5 px-3 bg-orange-50/50 rounded-xl border border-orange-100 flex flex-col items-center justify-center gap-1">
+                                <span className="text-xs font-bold text-orange-700">⚠️ 스포일러가 포함된 글입니다</span>
+                                <span className="text-[10px] text-gray-500">이곳을 터치하여 스포일러 내용을 확인해보세요.</span>
+                              </div>
+                            )}
+
+                            {/* Image Attachment */}
+                            {!isSpoilerHidden && discussion.imageUrl && (
+                              <div className="relative rounded-xl overflow-hidden max-h-48 border border-gray-100 flex justify-center bg-gray-50">
+                                <img src={discussion.imageUrl} alt="attachment" className="object-cover max-h-48 w-full" />
+                              </div>
+                            )}
+
+                            {/* Poll Indicator */}
+                            {discussion.options && discussion.options.length > 0 && (
+                              <div className="flex items-center gap-2 text-[10px] font-semibold text-purple-600 bg-purple-50 px-2.5 py-1.5 rounded-lg w-max border border-purple-100/50">
+                                <TrendingUp className="size-3.5" />
+                                <span>의견 투표 진행 중 ({discussion.totalVotes || 0}명 참여)</span>
+                              </div>
+                            )}
+
+                            {/* Footer actions */}
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-50 text-gray-500">
+                              <div className="flex items-center gap-4">
+                                <button
+                                  onClick={handleLikeClick}
+                                  className={`flex items-center gap-1.5 text-xs font-medium py-1 px-2.5 rounded-lg transition-colors ${
+                                    isLiked 
+                                      ? "bg-red-50 text-red-500" 
+                                      : "hover:bg-gray-50 text-gray-500"
+                                  }`}
+                                >
+                                  <Heart className={`size-3.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                                  <span>{discussion.likes || 0}</span>
+                                </button>
+                                
+                                <div className="flex items-center gap-1.5 text-xs font-medium py-1 px-2.5">
+                                  <MessageCircle className="size-3.5" />
+                                  <span>{commentCount}</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </button>
+                        </div>
                       );
+
                       if (index === 3) {
                         return [
-                          <div key="inline-ad-discussions" className="px-4 py-3 bg-gray-50 border-b border-gray-100 dark:bg-gray-900/30">
+                          <div key="inline-ad-discussions" className="px-4 py-1.5">
                             <div className="bg-gray-100 dark:bg-gray-900/60 rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[70px] relative select-none">
                               <div className="absolute top-1 right-2 flex items-center gap-1">
                                 <span className="text-[7px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded border border-gray-300/30">AD</span>
@@ -1662,6 +1698,14 @@ function AppContent() {
             }}
             onLoginRequired={handleLoginRequired}
             onCommentChange={(updatedDiscussions) => {
+              setDiscussionsList(updatedDiscussions);
+              const updatedDisc = updatedDiscussions.find(d => d.id === selectedDiscussion.id);
+              if (updatedDisc) {
+                setSelectedDiscussion(updatedDisc);
+              }
+            }}
+            onLikeToggle={(likesCount) => {
+              const updatedDiscussions = discussionsList.map(d => d.id === selectedDiscussion.id ? { ...d, likes: likesCount } : d);
               setDiscussionsList(updatedDiscussions);
               const updatedDisc = updatedDiscussions.find(d => d.id === selectedDiscussion.id);
               if (updatedDisc) {

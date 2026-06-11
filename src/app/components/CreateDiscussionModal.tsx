@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Plus, Minus, Search, BookOpen, Trash2 } from "lucide-react";
+import { X, Plus, Minus, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { popularBooksData, type Book } from "@/app/data/booksData";
-import { getGlobalBooks } from "@/app/utils/db";
-import { getProxiedCoverUrl } from "@/app/components/BookCover";
 
 interface CreateDiscussionModalProps {
   onClose: () => void;
@@ -17,41 +14,10 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [hasPoll, setHasPoll] = useState(false);
-  const [relatedBook, setRelatedBook] = useState<Book | null>(null);
-  const [bookSearchQuery, setBookSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Book[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [hasSpoiler, setHasSpoiler] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-
-  // Search books locally whenever query changes
-  useEffect(() => {
-    if (!bookSearchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    const query = bookSearchQuery.toLowerCase();
-    const allBooks = getGlobalBooks(popularBooksData);
-    
-    const filtered = allBooks.filter(book => 
-      book.title.toLowerCase().includes(query) || 
-      book.author.toLowerCase().includes(query)
-    ).slice(0, 5); // limit to 5 results for compactness
-    
-    setSearchResults(filtered);
-  }, [bookSearchQuery]);
-
-  // Click outside listener for book search dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // 모달이 열릴 때 로그인 체크
   useEffect(() => {
@@ -81,6 +47,21 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
     setOptions(newOptions);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        alert("이미지 크기는 최대 3MB까지 허용됩니다.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -103,13 +84,16 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
       description,
       author: user?.nickname || "익명",
       options: dbOptions,
-      relatedBookId: relatedBook?.id || null,
-      relatedBookTitle: relatedBook?.title || null,
-      relatedBookAuthor: relatedBook?.author || null,
-      relatedBookCover: relatedBook?.coverUrl || null,
+      relatedBookId: null,
+      relatedBookTitle: null,
+      relatedBookAuthor: null,
+      relatedBookCover: null,
       totalVotes: 0,
       comments: 0,
       timestamp: "방금 전",
+      imageUrl: imageUrl || undefined,
+      likes: 0,
+      hasSpoiler,
     };
     onCreate(newDiscussion);
     onClose();
@@ -119,7 +103,7 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-5">
       <div className="bg-white rounded-2xl w-full max-w-[353px] max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="font-bold text-lg">게시물 작성</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
             <X className="size-5" />
@@ -129,7 +113,7 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-semibold mb-2">제목</label>
+            <label className="block text-sm font-semibold mb-2 text-left">제목</label>
             <input
               type="text"
               value={title}
@@ -142,7 +126,7 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-semibold mb-2">내용</label>
+            <label className="block text-sm font-semibold mb-2 text-left">내용</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -151,6 +135,54 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               required
             />
+          </div>
+
+          {/* Spoiler Toggle */}
+          <div className="flex items-center justify-between bg-orange-50/50 px-3.5 py-2.5 rounded-xl border border-orange-100 mb-2">
+            <div className="text-left">
+              <label htmlFor="hasSpoilerToggle" className="block text-xs font-bold text-orange-800 cursor-pointer">스포일러 포함</label>
+              <span className="text-[10px] text-gray-500">책의 핵심 결말이나 반전이 포함되어 있습니다</span>
+            </div>
+            <input
+              type="checkbox"
+              id="hasSpoilerToggle"
+              checked={hasSpoiler}
+              onChange={(e) => setHasSpoiler(e.target.checked)}
+              className="w-4 h-4 text-orange-600 border-orange-300 rounded focus:ring-orange-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Photo Upload */}
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-left">사진 첨부 (선택)</label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              accept="image/*"
+              className="hidden"
+            />
+            {imageUrl ? (
+              <div className="relative rounded-xl overflow-hidden border border-gray-200 max-h-48 flex justify-center bg-gray-50">
+                <img src={imageUrl} alt="Uploaded attachment" className="object-contain max-h-48 w-full" />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl("")}
+                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full transition-colors"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-4 border-2 border-dashed border-gray-300 hover:border-purple-400 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:text-purple-600 transition-colors gap-1.5 bg-gray-50/50"
+              >
+                <ImageIcon className="size-6" />
+                <span className="text-xs font-medium">사진 추가하기 (최대 3MB)</span>
+              </button>
+            )}
           </div>
 
           {/* Has Poll Toggle */}
@@ -210,96 +242,6 @@ export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: Cr
               </div>
             </div>
           )}
-
-          {/* Related Book Search */}
-          <div ref={dropdownRef} className="relative">
-            <label className="block text-sm font-semibold mb-2">관련 도서 연결 (선택)</label>
-            
-            {relatedBook ? (
-              // Selected Book Display Card
-              <div className="flex items-center gap-3 p-3 bg-purple-50/50 border border-purple-100 rounded-xl">
-                <div className="w-10 h-14 bg-gray-100 rounded overflow-hidden shadow-sm shrink-0">
-                  {relatedBook.coverUrl ? (
-                    <img 
-                      src={getProxiedCoverUrl(relatedBook.coverUrl)} 
-                      alt={relatedBook.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                      <BookOpen className="size-5 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <h4 className="text-xs font-bold text-gray-900 truncate">{relatedBook.title}</h4>
-                  <p className="text-[10px] text-gray-500 truncate">{relatedBook.author}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRelatedBook(null)}
-                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="연결 해제"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-            ) : (
-              // Book Search Input
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="도서명 또는 저자명 검색..."
-                  value={bookSearchQuery}
-                  onChange={(e) => {
-                    setBookSearchQuery(e.target.value);
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => setShowDropdown(true)}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                
-                {/* Search Results Dropdown */}
-                {showDropdown && bookSearchQuery && (
-                  <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto divide-y divide-gray-100">
-                    {searchResults.length > 0 ? (
-                      searchResults.map((book) => (
-                        <button
-                          key={book.id}
-                          type="button"
-                          onClick={() => {
-                            setRelatedBook(book);
-                            setBookSearchQuery("");
-                            setShowDropdown(false);
-                          }}
-                          className="w-full flex items-center gap-3 p-2.5 hover:bg-purple-50/50 transition-colors text-left"
-                        >
-                          <div className="w-7 h-10 bg-gray-100 rounded overflow-hidden shadow-xs shrink-0">
-                            {book.coverUrl ? (
-                              <img src={getProxiedCoverUrl(book.coverUrl)} alt={book.title} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                                <BookOpen className="size-3 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-bold text-gray-900 truncate">{book.title}</h4>
-                            <p className="text-[10px] text-gray-500 truncate">{book.author}</p>
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="p-3 text-center text-xs text-gray-400">
-                        검색 결과가 없습니다
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* Submit */}
           <div className="flex gap-2 pt-2">
