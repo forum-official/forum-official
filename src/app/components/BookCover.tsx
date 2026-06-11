@@ -9,6 +9,7 @@ interface BookCoverProps {
   coverUrl?: string;
   className?: string;
   allowPublisherFallback?: boolean;
+  allowDynamicFetch?: boolean;
 }
 
 // Helper: Promise.any fallback for older browsers, races promises
@@ -253,7 +254,7 @@ export function getProxiedCoverUrl(url: string): string {
   return url;
 }
 
-export function BookCover({ title, author, publisherName, coverUrl, className = "w-full h-full object-cover", allowPublisherFallback = true }: BookCoverProps) {
+export function BookCover({ title, author, publisherName, coverUrl, className = "w-full h-full object-cover", allowPublisherFallback = true, allowDynamicFetch = false }: BookCoverProps) {
   const [resolvedCover, setResolvedCover] = useState<string>("");
   const [imgError, setImgError] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -300,7 +301,7 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
     // 4. 언스플래시나 오픈라이브러리 같은 임시 표지이거나 표지가 아예 없는 경우 백그라운드에서 실시간 수집
     const isTempPlaceholder = !coverUrl || coverUrl.includes("unsplash.com") || coverUrl.includes("openlibrary.org");
     
-    if (isTempPlaceholder) {
+    if (isTempPlaceholder && allowDynamicFetch) {
       const fetchCover = async () => {
         if (!coverUrl) {
           setIsFetching(true);

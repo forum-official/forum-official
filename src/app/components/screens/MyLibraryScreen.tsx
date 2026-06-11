@@ -1,13 +1,12 @@
 import { ArrowLeft, Book, BookOpen, Bookmark, Plus, Edit2 } from "lucide-react";
 import { BookCover } from "@/app/components/BookCover";
 import { Badge } from "@/app/components/ui/badge";
-import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { ScreenHeader } from "@/app/components/ScreenHeader";
 import { AddBookModal } from "@/app/components/AddBookModal";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { getUserLibrary, saveUserLibrary } from "@/app/utils/db";
+import { toast } from "sonner";
 
 interface MyLibraryScreenProps {
   onBack: () => void;
@@ -65,6 +64,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
     }
 
     setShowAddBookModal(false);
+    toast.success("책이 서재에 등록되었습니다");
   };
 
   const handleEditBook = (category: "reading" | "finished" | "wishlist", book: any) => {
@@ -98,6 +98,30 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
     }
 
     setEditingBook(null);
+    toast.success("책 정보가 수정되었습니다");
+  };
+
+  const handleDeleteBook = (book: any) => {
+    if (confirm(`'${book.title}' 책을 서재에서 삭제하시겠습니까?`)) {
+      const updatedReading = readingBooks.filter(b => b.id !== book.id);
+      const updatedFinished = finishedBooks.filter(b => b.id !== book.id);
+      const updatedWishlist = wishlistBooks.filter(b => b.id !== book.id);
+
+      setReadingBooks(updatedReading);
+      setFinishedBooks(updatedFinished);
+      setWishlistBooks(updatedWishlist);
+
+      if (isAuthenticated && userId) {
+        saveUserLibrary({
+          userId,
+          readingBooks: updatedReading,
+          finishedBooks: updatedFinished,
+          wishlistBooks: updatedWishlist
+        });
+      }
+      setEditingBook(null);
+      toast.success("책이 서재에서 삭제되었습니다");
+    }
   };
 
   const getCurrentBooks = () => {
@@ -112,11 +136,9 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
     { id: "wishlist" as const, label: "읽고 싶음", icon: Bookmark, count: wishlistBooks.length },
   ];
 
-  // Show login prompt if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-6">
-        {/* Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="max-w-md mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
@@ -128,7 +150,6 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
           </div>
         </div>
 
-        {/* Login Prompt */}
         <div className="max-w-md mx-auto px-4">
           <div className="text-center py-24">
             <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full mx-auto mb-6 flex items-center justify-center">
@@ -146,7 +167,6 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
               로그인 / 회원가입
             </Button>
 
-            {/* Feature Preview */}
             <div className="mt-12 grid grid-cols-3 gap-4 px-4">
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-50 rounded-full mx-auto mb-2 flex items-center justify-center">
@@ -220,7 +240,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
           책 추가
         </Button>
 
-        {/* Books Grid */}
+        {/* Books Shelf (책꽂이 UI) */}
         {getCurrentBooks().length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center">
@@ -234,49 +254,72 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
               첫 책 추가하기
             </Button>
           </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-3">
-            {getCurrentBooks().map((book) => (
-              <div key={book.id} className="relative group">
-                <button
-                  onClick={() => {
-                    setEditingBook(book);
-                  }}
-                  className="w-full"
-                >
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                      <BookCover
-                        title={book.title}
-                        author={book.author}
-                        publisherName={book.publisher}
-                        coverUrl={book.coverUrl}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-2">
-                      <h4 className="text-sm font-bold line-clamp-2 mb-0.5 min-h-[2.5rem]">{book.title}</h4>
-                      <p className="text-xs text-gray-600 line-clamp-1">{book.author}</p>
-                      {book.publisher && (
-                        <p className="text-[9px] text-purple-600 font-medium mt-0.5">
-                          {book.publisher}
-                          {book.volumes && ` (전${book.volumes}권)`}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </button>
-                {/* Edit button overlay */}
-                <button
-                  onClick={() => setEditingBook(book)}
-                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Edit2 className="size-3 text-purple-600" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          const currentBooks = getCurrentBooks();
+          const chunkedBooks: any[][] = [];
+          for (let i = 0; i < currentBooks.length; i += 3) {
+            chunkedBooks.push(currentBooks.slice(i, i + 3));
+          }
+
+          return (
+            <div className="space-y-6">
+              {chunkedBooks.map((shelf, shelfIndex) => (
+                <div key={shelfIndex} className="relative pt-4 px-2.5 bg-gradient-to-b from-transparent to-black/5 rounded-xl">
+                  {/* 도서 진열 공간 */}
+                  <div className="grid grid-cols-3 gap-5 pb-1 relative z-10 justify-items-center">
+                    {Array.from({ length: 3 }).map((_, index) => {
+                      const book = shelf[index];
+                      if (!book) {
+                        return <div key={`empty-${index}`} className="w-[85px] aspect-[2/3] invisible" />;
+                      }
+
+                      return (
+                        <div key={book.id} className="relative group flex flex-col items-center">
+                          <button
+                            onClick={() => setEditingBook(book)}
+                            className="w-[85px] flex flex-col items-center transition-all duration-300 hover:-translate-y-2.5 hover:scale-105 active:scale-95 text-left"
+                          >
+                            {/* 입체적인 책 커버 */}
+                            <div className="w-full aspect-[2/3] rounded-sm overflow-hidden relative shadow-[4px_8px_14px_rgba(0,0,0,0.4)] border-r border-b border-black/15 bg-gradient-to-br from-gray-100 to-gray-200">
+                              <BookCover
+                                title={book.title}
+                                author={book.author}
+                                publisherName={book.publisher}
+                                coverUrl={book.coverUrl}
+                                allowDynamicFetch={false}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-y-0 left-0 w-[5px] bg-gradient-to-r from-white/20 via-black/10 to-transparent pointer-events-none" />
+                            </div>
+                            
+                            {/* 책 요약 텍스트 */}
+                            <div className="mt-2 text-center w-full px-0.5">
+                              <h4 className="text-[10px] font-bold text-gray-800 line-clamp-1 leading-tight">{book.title}</h4>
+                              <p className="text-[8px] text-gray-500 truncate mt-0.5">{book.author}</p>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => setEditingBook(book)}
+                            className="absolute top-1 right-1 p-1 bg-white hover:bg-purple-50 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                            title="정보 수정"
+                          >
+                            <Edit2 className="size-2.5 text-purple-600" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 입체 선반 */}
+                  <div className="h-4 w-full bg-gradient-to-r from-[#5c3a21] via-[#8c5835] to-[#452b19] rounded-b-lg border-t-2 border-[#b0784e]/30 shadow-md relative mt-1">
+                    <div className="absolute -top-3 left-0 right-0 h-3 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Add Book Modal */}
@@ -293,6 +336,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
         <AddBookModal
           onClose={() => setEditingBook(null)}
           onConfirm={handleEditBook}
+          onDelete={handleDeleteBook}
           editMode={true}
           initialCategory={activeTab}
           initialBook={editingBook}

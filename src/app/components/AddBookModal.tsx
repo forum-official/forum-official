@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, BookOpen, CheckCircle2, Search, ArrowLeft, Loader2 } from "lucide-react";
+import { X, BookOpen, CheckCircle2, Search, ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { popularBooksData, Book } from "@/app/data/booksData";
@@ -13,6 +13,7 @@ interface AddBookModalProps {
   editMode?: boolean;
   initialCategory?: "reading" | "finished" | "wishlist";
   initialBook?: any;
+  onDelete?: (book: any) => void;
 }
 
 export function AddBookModal({ 
@@ -20,7 +21,8 @@ export function AddBookModal({
   onConfirm, 
   editMode = false, 
   initialCategory = "wishlist",
-  initialBook 
+  initialBook,
+  onDelete
 }: AddBookModalProps) {
   const [step, setStep] = useState<"search" | "publisher" | "category">(editMode ? "category" : "search");
   const [selectedCategory, setSelectedCategory] = useState<"reading" | "finished" | "wishlist">(initialCategory);
@@ -358,22 +360,37 @@ export function AddBookModal({
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
-                취소
-              </Button>
-              <Button
-                onClick={() => {
-                  const book = {
-                    ...initialBook,
-                    id: initialBook.id,
-                  };
-                  onConfirm(selectedCategory, book);
-                }}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-              >
-                수정
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-3">
+                <Button variant="outline" type="button" onClick={onClose} className="flex-1">
+                  취소
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const book = {
+                      ...initialBook,
+                      id: initialBook.id,
+                    };
+                    onConfirm(selectedCategory, book);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                >
+                  수정
+                </Button>
+              </div>
+              {onDelete && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    onDelete(initialBook);
+                  }}
+                  className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 flex items-center justify-center gap-1.5 h-10 text-xs font-semibold rounded-lg"
+                >
+                  <Trash2 className="size-3.5" />
+                  서재에서 책 삭제
+                </Button>
+              )}
             </div>
           </div>
         </div>
