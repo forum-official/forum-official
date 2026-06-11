@@ -8,8 +8,9 @@ export default async function handler(req, res) {
   const targetUrl = decodeURIComponent(url);
   
   // Security restriction: limit proxying to target hosts we need
+  let parsedUrl;
   try {
-    const parsedUrl = new URL(targetUrl);
+    parsedUrl = new URL(targetUrl);
     const allowedHosts = [
       "www.aladin.co.kr", 
       "search.kyobobook.co.kr", 
@@ -28,11 +29,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(targetUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      }
-    });
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    };
+
+    if (parsedUrl.host.includes("aladin.co.kr")) {
+      headers["Referer"] = "https://www.aladin.co.kr/";
+    } else if (parsedUrl.host.includes("kyobobook.co.kr")) {
+      headers["Referer"] = "https://www.kyobobook.co.kr/";
+    } else if (parsedUrl.host.includes("yes24.com")) {
+      headers["Referer"] = "https://www.yes24.com/";
+    }
+
+    const response = await fetch(targetUrl, { headers });
 
     const contentType = response.headers.get("content-type") || "text/html; charset=utf-8";
     const buffer = await response.arrayBuffer();

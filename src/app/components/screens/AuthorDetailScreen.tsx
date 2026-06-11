@@ -166,83 +166,85 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
       }
 
       // ── B. 알라딘 검색 결과를 통한 실시간 작품 목록 수집 ──
-      try {
-        const query = author?.name || "";
-        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
-        const html = await fetchHtmlViaProxy(targetUrl);
-        if (isMounted) {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
-          const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
-          
-          boxes.forEach((box) => {
-            try {
-              const titleSpan = box.querySelector(".b_book_t");
-              const titleLink = box.querySelector("a.bo3");
-              const title = (titleSpan?.textContent || titleLink?.textContent || "").trim();
-              if (!title) return;
-              
-               const infoDiv = box.querySelector(".ss_book_list");
-              let publishers: string[] = [];
-              let year = 2024;
-              let isAuthorMatched = false;
-              let cleanAuthorsStr = author?.name || "";
-              if (infoDiv) {
-                const text = infoDiv.textContent || "";
+      if (author?.id === 0) {
+        try {
+          const query = author?.name || "";
+          const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
+          const html = await fetchHtmlViaProxy(targetUrl);
+          if (isMounted) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
+            
+            boxes.forEach((box) => {
+              try {
+                const titleSpan = box.querySelector(".b_book_t");
+                const titleLink = box.querySelector("a.bo3");
+                const title = (titleSpan?.textContent || titleLink?.textContent || "").trim();
+                if (!title) return;
                 
-                // 저자명 일치 여부 확인 (예: "박경리 지음", "박경리 소설" 등)
-                if (author?.name && text.includes(author.name)) {
-                  isAuthorMatched = true;
+                const infoDiv = box.querySelector(".ss_book_list");
+                let publishers: string[] = [];
+                let year = 2024;
+                let isAuthorMatched = false;
+                let cleanAuthorsStr = author?.name || "";
+                if (infoDiv) {
+                  const text = infoDiv.textContent || "";
+                  
+                  // 저자명 일치 여부 확인 (예: "박경리 지음", "박경리 소설" 등)
+                  if (author?.name && text.includes(author.name)) {
+                    isAuthorMatched = true;
+                  }
+                  
+                  const parts = text.split("|").map(p => p.trim());
+                  if (parts.length >= 2) {
+                    publishers = [parts[1]];
+                    cleanAuthorsStr = cleanAladinAuthors(parts[0]);
+                  }
+                  const yearMatch = text.match(/(\d{4})년/);
+                  if (yearMatch) {
+                    year = parseInt(yearMatch[1]);
+                  }
                 }
                 
-                const parts = text.split("|").map(p => p.trim());
-                if (parts.length >= 2) {
-                  publishers = [parts[1]];
-                  cleanAuthorsStr = cleanAladinAuthors(parts[0]);
-                }
-                const yearMatch = text.match(/(\d{4})년/);
-                if (yearMatch) {
-                  year = parseInt(yearMatch[1]);
-                }
-              }
-              
-              // 현재 작품 목록에 없는 서적이자 저자명이 확인된 서적인 경우 추가
-              if (title && isAuthorMatched && !updatedBooks.some(b => b.title === title)) {
-                updatedBooks.push({
-                  title,
-                  year,
-                  publishers: publishers.length > 0 ? publishers : ["민음사"]
-                });
-                hasUpdates = true;
+                // 현재 작품 목록에 없는 서적이자 저자명이 확인된 서적인 경우 추가
+                if (title && isAuthorMatched && !updatedBooks.some(b => b.title === title)) {
+                  updatedBooks.push({
+                    title,
+                    year,
+                    publishers: publishers.length > 0 ? publishers : ["민음사"]
+                  });
+                  hasUpdates = true;
 
-                // 글로벌 북스 DB에도 추가하여 도서 상세 열람 동기화
-                const img = box.querySelector("img.front_cover") as HTMLImageElement | null;
-                let coverUrl = img?.src || "";
-                if (coverUrl.startsWith("//")) {
-                  coverUrl = "https:" + coverUrl;
+                  // 글로벌 북스 DB에도 추가하여 도서 상세 열람 동기화
+                  const img = box.querySelector("img.front_cover") as HTMLImageElement | null;
+                  let coverUrl = img?.src || "";
+                  if (coverUrl.startsWith("//")) {
+                    coverUrl = "https:" + coverUrl;
+                  }
+                  
+                  saveGlobalBook({
+                    id: `aladin_dyn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    title,
+                    author: cleanAuthorsStr,
+                    coverUrl: coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400",
+                    publishers: publishers.map(p => ({ name: p, votes: 0 })),
+                    rating: 0.0,
+                    likes: 0,
+                    reviews: 0,
+                    description: `${cleanAuthorsStr} 작가의 작품 ${title}입니다.`,
+                    genre: author?.genre || ["소설"],
+                    year
+                  });
                 }
-                
-                saveGlobalBook({
-                  id: `aladin_dyn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                  title,
-                  author: cleanAuthorsStr,
-                  coverUrl: coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400",
-                  publishers: publishers.map(p => ({ name: p, votes: 0 })),
-                  rating: 0.0,
-                  likes: 0,
-                  reviews: 0,
-                  description: `${cleanAuthorsStr} 작가의 작품 ${title}입니다.`,
-                  genre: author?.genre || ["소설"],
-                  year
-                });
+              } catch (e) {
+                // ignore
               }
-            } catch (e) {
-              // ignore
-            }
-          });
+            });
+          }
+        } catch (e) {
+          console.error("Aladin books load failed:", e);
         }
-      } catch (e) {
-        console.error("Aladin books load failed:", e);
       }
 
       if (isMounted) {

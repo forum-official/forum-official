@@ -1190,7 +1190,8 @@ export const AUTHOR_META: Record<string, {
   "최인훈": {
     nameEn: "Choi In-hun",
     nationality: "한국",
-    wikiTitle: "Choi_In-hun"
+    wikiTitle: "Choe_Inhun",
+    photoUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400"
   },
   "김유정": {
     nameEn: "Kim Yu-jeong",
@@ -1249,7 +1250,8 @@ export const AUTHOR_META: Record<string, {
   "파트리크 쥐스킨트": {
     nameEn: "Patrick Süskind",
     nationality: "독일",
-    wikiTitle: "Patrick_Süskind"
+    wikiTitle: "Patrick_Süskind",
+    photoUrl: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=400"
   },
   "에리히 마리아 레마르크": {
     nameEn: "Erich Maria Remarque",
@@ -1332,7 +1334,8 @@ export const AUTHOR_META: Record<string, {
   "히가시노 게이고": {
     nameEn: "Keigo Higashino",
     nationality: "일본",
-    wikiTitle: "Keigo_Higashino"
+    wikiTitle: "Keigo_Higashino",
+    photoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400"
   },
   "무라카미 류": {
     nameEn: "Ryu Murakami",
@@ -1787,7 +1790,8 @@ export const AUTHOR_META: Record<string, {
   "한영우": {
     nameEn: "Han Young-woo",
     nationality: "한국",
-    wikiTitle: "Han_Young-woo"
+    wikiTitle: "Han_Young-woo",
+    photoUrl: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400"
   },
   "대니얼 카너먼": {
     nameEn: "Daniel Kahneman",
@@ -1993,157 +1997,12 @@ export function getAuthorsList(books: Book[]): Author[] {
     });
   });
 
-  // 2. Deduplicate books by ID first (localStorage 중복 방지)
-  const seenBookIds = new Set<string>();
-  const uniqueBooks = books.filter(b => {
-    if (!b.id || seenBookIds.has(b.id)) return false;
-    seenBookIds.add(b.id);
-    return true;
-  });
-
   // Normalize author name: trim + collapse multiple spaces + spelling correction
   const normName = (name: string) => {
     let n = name.trim().replace(/\s+/g, ' ');
     if (n === "도스토앱스키") return "도스토옙스키";
     return n;
   };
-
-  // 3. Scan books for missing or additional books for existing authors
-  uniqueBooks.forEach(book => {
-    if (!book.author) return;
-    
-    // Split book.author by comma and process each individual author separately
-    const authorNames = book.author.split(',')
-      .map(name => normName(name))
-      .filter(name => {
-        if (!name) return false;
-        
-        // 추가적인 오염 패턴 검사 (데이터 레이어 단에서 오염 필터링)
-        const isCorrupted = 
-          name.length > 35 ||
-          /<[^>]+>/.test(name) || // HTML 태그 포함
-          /[{}[\]|]/.test(name) || // 특수문자 잔재
-          /(세일즈포인트|판매량|정가|원\s*\(|출간|도서|무료|배송|적립|페이지|지은이|역자|옮긴이)/.test(name);
-          
-        if (isCorrupted || isOrganization(name)) return false;
-        
-        const lower = name.toLowerCase();
-        return lower !== "저자 미상" && 
-               lower !== "작자 미상" && 
-               lower !== "저자미상" && 
-               lower !== "작자미상" && 
-               lower !== "미상" && 
-               lower !== "unknown" && 
-               lower !== "anonymous" &&
-               lower !== "기타"; // '기타' 제외
-      });
-    
-    authorNames.forEach(authorName => {
-      if (!authorsMap.has(authorName)) {
-        // Only dynamically register authors that are defined in AUTHOR_META (famous authors)
-        // to avoid cluttering the author archive with random co-authors, textbook writers, or clean errors.
-        const meta = AUTHOR_META[authorName];
-        if (!meta) return;
-
-        // Find all books by this author (using normalized name)
-        const authorBooks = uniqueBooks.filter(b => {
-          if (!b.author) return false;
-          const names = b.author.split(',').map(n => normName(n)).filter(Boolean);
-          return names.includes(authorName);
-        });
-        const representatives = Array.from(new Set(authorBooks.map(b => b.title))).slice(0, 3);
-        const formattedBooks = authorBooks.map(b => ({
-          title: b.title,
-          year: b.year || 2024,
-          publishers: (b.publishers && Array.isArray(b.publishers)) 
-            ? b.publishers.map(p => typeof p === 'string' ? p : (p?.name || "")).filter(Boolean) 
-            : ["민음사"]
-        }));
-        const genres = Array.from(new Set(authorBooks.flatMap(b => b.genre || [])));
-        
-        // Generate consistent unique ID based on name hash
-        let hash = 0;
-        for (let i = 0; i < authorName.length; i++) {
-          hash = authorName.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        const id = 1000 + Math.abs(hash % 90000);
-        
-        // Determine nationality by book genres
-        let nationality = "기타";
-        const genreStr = authorBooks.flatMap(b => b.genre || []).join(" ");
-        if (genreStr.includes("한국문학") || genreStr.includes("한국소설") || genreStr.includes("한국시")) {
-          nationality = "한국";
-        } else if (genreStr.includes("일본문학") || genreStr.includes("일본소설")) {
-          nationality = "일본";
-        } else if (genreStr.includes("미국문학") || genreStr.includes("비트문학")) {
-          nationality = "미국";
-        } else if (genreStr.includes("영국문학") || genreStr.includes("아일랜드문학")) {
-          nationality = "영국";
-        } else if (genreStr.includes("프랑스문학")) {
-          nationality = "프랑스";
-        } else if (genreStr.includes("러시아문학")) {
-          nationality = "러시아";
-        } else if (genreStr.includes("독일문학")) {
-          nationality = "독일";
-        } else if (genreStr.includes("체코문학")) {
-          nationality = "체코";
-        } else if (genreStr.includes("중국문학")) {
-          nationality = "중국";
-        } else if (genreStr.includes("라틴문학") || genreStr.includes("라틴아메리카") || genreStr.includes("콜롬비아")) {
-          nationality = "콜롬비아";
-        } else if (genreStr.includes("이탈리아문학")) {
-          nationality = "이탈리아";
-        } else if (genreStr.includes("아일랜드문학")) {
-          nationality = "아일랜드";
-        } else if (genreStr.includes("스페인문학")) {
-          nationality = "스페인";
-        } else if (genreStr.includes("인도문학")) {
-          nationality = "인도";
-        } else if (genreStr.includes("아랍문학") || genreStr.includes("아프가니스탄")) {
-          nationality = "중동";
-        }
-        
-        // AUTHOR_META에서 영어명·국적·wikiTitle·photoUrl 조회
-        const nameEn = meta?.nameEn || authorName;
-        const finalNationality = meta?.nationality || nationality;
-        const wikiTitle = meta?.wikiTitle || nameEn.replace(/ /g, '_');
-        const imageUrl = meta?.photoUrl || "";
-        
-        authorsMap.set(authorName, {
-          id,
-          name: authorName,
-          nameEn,
-          nationality: finalNationality,
-          birth: "미상",
-          genre: genres.length > 0 ? genres : ["소설"],
-          description: `${authorName} 작가에 대한 정보입니다. 대표 작품들을 감상해보세요.`,
-          representative: representatives,
-          books: formattedBooks,
-          awards: [],
-          imageUrl,
-          wikiTitle,
-        });
-      } else {
-        // Update existing author's books list with dynamic/scraped books if not present
-        const author = authorsMap.get(authorName);
-        if (author) {
-          const hasBook = author.books.some(b => b.title === book.title);
-          if (!hasBook) {
-            author.books.push({
-              title: book.title,
-              year: book.year || 2024,
-              publishers: (book.publishers && Array.isArray(book.publishers)) 
-                ? book.publishers.map(p => typeof p === 'string' ? p : (p?.name || "")).filter(Boolean) 
-                : ["민음사"]
-            });
-            if (author.representative.length < 3 && !author.representative.includes(book.title)) {
-              author.representative.push(book.title);
-            }
-          }
-        }
-      }
-    });
-  });
 
   // 4. 최종 중복 제거 (안전장치: 동일 이름 2개 이상일 경우)
   const seenNames = new Set<string>();

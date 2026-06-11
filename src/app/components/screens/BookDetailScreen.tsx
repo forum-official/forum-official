@@ -237,280 +237,272 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
       book.description.trim().endsWith("…") ||
       book.description.trim().endsWith("..");
 
-    // 기본 고전 도서이고 정상 설명이 있다면 (그리고 더미 설명이 아니라면) 크롤링을 원천 차단합니다.
-    if (isStaticBook && book.description && !book.description.trim().endsWith("...") && !book.description.trim().endsWith("…") && !isDummyDesc) {
-      clearTimeout(safetyTimeoutId);
-      return;
-    }
-
-    if (!isDefaultDesc && !isUnknownAuthor) {
-      clearTimeout(safetyTimeoutId);
-      return;
-    }
-
-    // Check cache in localStorage for description if author is already known
-    const cacheKey = `desc_${book.title}_${book.author}`;
-    if (!isUnknownAuthor) {
-      const cached = localStorage.getItem(cacheKey);
-      const isTemplateDesc = cached && (
-        cached.includes("오랜 연구와 깊은 통찰이 집약되어") ||
-        cached.includes("급변하는 IT 트렌드 속에서") ||
-        cached.includes("급변하는 현대 경제 흐름") ||
-        cached.includes("독자들의 감수성을 자극하고") ||
-        cached.includes("삶에 대한 성찰과 긍정적인 변화를 갈망하는")
-      );
-      if (cached && isDefaultDesc && !isTemplateDesc && !isGarbageDescription(cached) && cached.length >= 50) {
-        setBookDesc(cached);
-        if (!book.description || book.description !== cached) {
-          const updatedBook = { ...book, description: cached };
-          saveGlobalBook(updatedBook);
-        }
-        clearTimeout(safetyTimeoutId);
-        return;
-      }
-      // 템플릿 설명이 캐시되어 있으면 제거 후 재크롤링
-      if (isTemplateDesc) localStorage.removeItem(cacheKey);
-    }
-
     const fetchBookInfo = async () => {
       let descriptionFound = false;
+      let scrapedAuthor = "";
+      let description = "";
+
+      const fetchAladinDescription = async (itemId: string): Promise<string> => {
+        if (!itemId) return "";
+        try {
+          const introUrl = `https://www.aladin.co.kr/shop/product/getContents.aspx?ISBN=${itemId}&name=Introduce&type=0`;
+          const introHtml = await fetchHtmlViaProxy(introUrl);
+          
+          const pubUrl = `https://www.aladin.co.kr/shop/product/getContents.aspx?ISBN=${itemId}&name=PublisherDesc&type=0`;
+          const pubHtml = await fetchHtmlViaProxy(pubUrl);
+          
+          const parser = new DOMParser();
+          const cleanText = (txt: string) => {
+            if (!txt) return "";
+            return txt.replace(/\s+/g, " ").trim();
+          };
+          
+          let pubText = "";
+          if (pubHtml && pubHtml.length > 10) {
+            const doc = parser.parseFromString(pubHtml, "text/html");
+            const allElem = doc.querySelector("#div_PublisherDesc_All");
+            const shortElem = doc.querySelector("#div_PublisherDesc_Short");
+            pubText = cleanText(allElem?.textContent || shortElem?.textContent || "");
+          }
+          
+          let introText = "";
+          if (introHtml && introHtml.length > 10) {
+            const doc = parser.parseFromString(introHtml, "text/html");
+            const allElem = doc.querySelector("#div_Introduce_All");
+            const shortElem = doc.querySelector("#div_Introduce_Short");
+            introText = cleanText(allElem?.textContent || shortElem?.textContent || "");
+          }
+          
+          const isTOCOnly = (txt: string) => {
+            const lower = txt.toLowerCase();
+            return lower.includes("목차") && !lower.includes("소설") && !lower.includes("작품") && !lower.includes("이야기") && !lower.includes("그는");
+          };
+          
+          if (pubText && pubText.length > 60 && !isGarbageDescription(pubText)) {
+            return pubText;
+          }
+          if (introText && introText.length > 60 && !isGarbageDescription(introText) && !isTOCOnly(introText)) {
+            return introText;
+          }
+        } catch (e) {
+          console.error("Failed to fetch Aladin getContents description for", itemId, e);
+        }
+        return "";
+      };
+
       try {
-        // If author is unknown, search ONLY by title to avoid pollution
-        const query = isUnknownAuthor ? book.title : `${book.title} ${bookAuthor}`;
-        const searchUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
-        const searchHtml = await fetchHtmlViaProxy(searchUrl);
+        // 1. TTB API Search first
+        const cleanTitle = book.title.split('(')[0].split('-')[0].split(':')[0].trim();
+        const cleanAuth = (bookAuthor || '')
+          .replace(/저자\s*미상/gi, '')
+          .replace(/미상/gi, '')
+          .replace(/unknown/gi, '')
+          .replace(/anonymous/gi, '')
+          .replace(/지음|지은이|저자|역자|옮김|옮긴이/g, '')
+          .trim();
+        
+        const ttbQuery = `${cleanTitle} ${cleanAuth}`.trim();
+        const ttbUrl = `https://www.aladin.co.kr/ttb/api/ItemSearch.aspx?ttbkey=ttbforum.official.dev0549001&Query=${encodeURIComponent(ttbQuery)}&QueryType=Keyword&MaxResults=3&start=1&SearchTarget=Book&output=js&Version=20131101`;
+        
+        const proxyTtbUrl = `/api/proxy?url=${encodeURIComponent(ttbUrl)}`;
+        const ttbRes = await fetch(proxyTtbUrl);
         if (!isMounted) return;
 
-        const parser = new DOMParser();
-        const searchDoc = parser.parseFromString(searchHtml, "text/html");
-        
-        const firstBox = searchDoc.querySelector(".ss_book_box, .browse_list_box");
-        let scrapedAuthor = "";
-        let detailUrl = "";
-        
-        if (firstBox) {
-          const aLink = firstBox.querySelector("a.bo3") as HTMLAnchorElement | null;
-          detailUrl = aLink?.getAttribute("href") || "";
-          
-          // Parse author directly from the box to avoid another network request if possible
-          const listItems = firstBox.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
-          for (let i = 0; i < listItems.length; i++) {
-            const text = listItems[i].textContent || "";
-            if (text.includes("|")) {
-              const parts = text.split("|").map(p => p.trim());
-              const isShoppingOrPricing = 
-                /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
-                (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
-                
-              const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing &&
-                (text.includes("지은이") || text.includes("저자") || text.includes("지음") || text.includes("옮김") || text.includes("역자") || text.includes("저") || text.includes("글") || text.includes("그림") || /\d{4}/.test(text));
+        if (ttbRes.ok) {
+          const ttbData = await ttbRes.json();
+          if (ttbData && ttbData.item && ttbData.item.length > 0) {
+            // Check top 3 items for a good description or itemId
+            for (const item of ttbData.item) {
+              if (item.author && !scrapedAuthor) {
+                scrapedAuthor = cleanAladinAuthors(item.author);
+              }
               
-              if (isMetadataLine) {
-                scrapedAuthor = cleanAladinAuthors(parts[0] || "");
+              const ttbDesc = item.description ? item.description.trim() : "";
+              const isDummy = ttbDesc.includes("도서입니다. 독자 평점") || ttbDesc.includes("기록하고 있는 인기 도서입니다.");
+              const isTruncated = ttbDesc.endsWith("...") || ttbDesc.endsWith("…") || ttbDesc.endsWith("..");
+              
+              if (ttbDesc && ttbDesc.length > 80 && !isDummy && !isTruncated && !isGarbageDescription(ttbDesc)) {
+                description = ttbDesc;
+                descriptionFound = true;
                 break;
               }
+              
+              if (item.itemId) {
+                const desc = await fetchAladinDescription(String(item.itemId));
+                if (desc && desc.length > 60) {
+                  description = desc;
+                  descriptionFound = true;
+                  break;
+                }
+              }
             }
           }
-        } else {
-          const aLink = searchDoc.querySelector("a.bo3") as HTMLAnchorElement | null;
-          detailUrl = aLink?.getAttribute("href") || "";
         }
 
-        if (detailUrl) {
-          if (!detailUrl.startsWith("http")) {
-            detailUrl = "https://www.aladin.co.kr" + (detailUrl.startsWith("/") ? "" : "/") + detailUrl;
-          }
-
-          const detailHtml = await fetchHtmlViaProxy(detailUrl);
+        // 2. Aladin Scraper (Fallback if TTB API failed or didn't find description)
+        if (!descriptionFound) {
+          const query = isUnknownAuthor ? book.title : `${book.title} ${bookAuthor}`;
+          const searchUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
+          const searchHtml = await fetchHtmlViaProxy(searchUrl);
           if (!isMounted) return;
-          const detailDoc = parser.parseFromString(detailHtml, "text/html");
+
+          const parser = new DOMParser();
+          const searchDoc = parser.parseFromString(searchHtml, "text/html");
           
-          // If we couldn't parse the author from the search box, try parsing it from the detail page meta tags
-          if (!scrapedAuthor || ["저자 미상", "작자 미상", "미상", "unknown", "anonymous", "저자미상", "작자미상"].includes(scrapedAuthor.trim())) {
-            const authorMeta = detailDoc.querySelector('meta[name="author"]') || detailDoc.querySelector('meta[property="og:author"]');
-            if (authorMeta) {
-              scrapedAuthor = cleanAladinAuthors(authorMeta.getAttribute("content") || "");
-            }
-            if (!scrapedAuthor) {
-              const contentBox = detailDoc.querySelector(".Litemall_book_pro_info, .p_authorInfo, .conts_info_list");
-              if (contentBox) {
-                const text = contentBox.textContent || "";
-                if (text.includes("지은이") || text.includes("저자") || text.includes("지음")) {
-                  const match = text.match(/([가-힣a-zA-Z\\s,]+)\\s*\\((지은이|저자|지음)\\)/);
-                  if (match) {
-                    scrapedAuthor = cleanAladinAuthors(match[1]);
+          const boxes = Array.from(searchDoc.querySelectorAll(".ss_book_box, .browse_list_box"));
+          for (const box of boxes.slice(0, 3)) {
+            const aLink = box.querySelector("a.bo3") as HTMLAnchorElement | null;
+            const detailUrl = aLink?.getAttribute("href") || "";
+            if (detailUrl) {
+              const itemIdMatch = detailUrl.match(/[?&]ItemId=(\d+)/i);
+              const itemId = itemIdMatch ? itemIdMatch[1] : "";
+              if (itemId) {
+                const desc = await fetchAladinDescription(itemId);
+                if (desc && desc.length > 60) {
+                  description = desc;
+                  descriptionFound = true;
+                  
+                  if (!scrapedAuthor) {
+                    const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
+                    for (let i = 0; i < listItems.length; i++) {
+                      const text = listItems[i].textContent || "";
+                      if (text.includes("|")) {
+                        const parts = text.split("|").map(p => p.trim());
+                        const isShoppingOrPricing = 
+                          /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
+                          (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
+                          
+                        const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing &&
+                          (text.includes("지은이") || text.includes("저자") || text.includes("지음") || text.includes("옮김") || text.includes("역자") || text.includes("저") || text.includes("글") || text.includes("그림") || /\d{4}/.test(text));
+                        
+                        if (isMetadataLine) {
+                          scrapedAuthor = cleanAladinAuthors(parts[0] || "");
+                          break;
+                        }
+                      }
+                    }
                   }
+                  break;
                 }
               }
             }
           }
+        }
 
-          let description = "";
-          // 1. ItemId를 추출하여 알라딘 책 소개 전용 페이지에서 풀텍스트 스크래핑 시도 (잘림 100% 방지)
-          const itemIdMatch = detailUrl.match(/[?&]ItemId=(\\d+)/i);
-          const itemId = itemIdMatch ? itemIdMatch[1] : "";
-          if (itemId) {
-            try {
-              const introUrl = `https://www.aladin.co.kr/shop/wproduct_introduce.aspx?ItemId=${itemId}`;
-              const introHtml = await fetchHtmlViaProxy(introUrl);
-              if (isMounted) {
-                const introDoc = parser.parseFromString(introHtml, "text/html");
-                
-                const contentContainer = introDoc.querySelector(".Ere_prod_introduce, #desc_paper, #desc_Paper");
-                if (contentContainer) {
-                  const scripts = contentContainer.querySelectorAll("script, style");
-                  scripts.forEach(s => s.remove());
-                  const rawText = contentContainer.textContent?.trim() || "";
-                  if (!isGarbageDescription(rawText) && rawText.length > 80) {
-                    description = rawText.replace(/\s+/g, " ");
-                  }
-                }
-              }
-            } catch (introErr) {
-              console.error("Failed to fetch full introduce snippet via ItemId:", introErr);
-            }
-          }
-
-          // 2. 알라딘 상세 페이지 본문 태그 파싱 (Fallback)
-          if (!description || description.length < 100 || description.endsWith("...") || description.endsWith("…") || description.endsWith("..") || isGarbageDescription(description)) {
-            const introElem = detailDoc.querySelector(".IntroduceBook p, .IntroduceBook, #IntroduceBookNode, #desc_paper, #desc_Paper, .ss_book_intro");
-            if (introElem) {
-              const rawText = introElem.textContent?.trim() || "";
-              if (!isGarbageDescription(rawText) && rawText.length > 80) {
-                description = rawText;
-              }
-            }
-          }
-
-          // 3. 알라딘 메타 태그 (Fallback)
-          if (!description || description.length < 80 || description.endsWith("...") || description.endsWith("…") || description.endsWith("..") || isGarbageDescription(description)) {
-            const descMeta = detailDoc.querySelector('meta[name="description"]');
-            const rawText = descMeta?.getAttribute("content") || "";
-            if (!isGarbageDescription(rawText) && rawText.length > 60 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
-              description = rawText;
-            }
-          }
-
-          if (!description || isGarbageDescription(description) || description.endsWith("...") || description.endsWith("…") || description.endsWith("..")) {
-            const ogDescMeta = detailDoc.querySelector('meta[property="og:description"]');
-            const rawText = ogDescMeta?.getAttribute("content") || "";
-            if (!isGarbageDescription(rawText) && rawText.length > 60 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
-              description = rawText;
-            }
-          }
-
-          // 4. 교보문고에서 설명 시도 (알라딘 실패 시)
-          if (!description || isGarbageDescription(description) || description.endsWith("...") || description.endsWith("…") || description.length < 60) {
-            try {
-              const kyoboQuery = encodeURIComponent(`${book.title} ${scrapedAuthor || bookAuthor}`);
-              const kyoboUrl = `https://search.kyobobook.co.kr/search?keyword=${kyoboQuery}`;
-              const kyoboHtml = await fetchHtmlViaProxy(kyoboUrl);
-              if (isMounted) {
-                const kyoboDoc = parser.parseFromString(kyoboHtml, "text/html");
-                
-                // 교보문고 검색 결과에서 첫 번째 책의 링크 추출
-                const kyoboLink = kyoboDoc.querySelector("a.prod_info, .prod_item a[href*='product.kyobobook.co.kr']") as HTMLAnchorElement | null;
-                const kyoboDetailUrl = kyoboLink?.href || "";
-                
-                if (kyoboDetailUrl) {
-                  const kyoboDetailHtml = await fetchHtmlViaProxy(kyoboDetailUrl);
-                  if (isMounted) {
-                    const kyoboDetailDoc = parser.parseFromString(kyoboDetailHtml, "text/html");
-                    
-                    // 교보문고 상세 - 책 소개 섹션
-                    const kyoboIntro = kyoboDetailDoc.querySelector(".intro_bottom .book_intro, .intro_bottom, .intro_book_info_inner, .book_intro_desc");
-                    if (kyoboIntro) {
-                      const rawText = kyoboIntro.textContent?.trim().replace(/\s+/g, " ") || "";
-                      if (!isGarbageDescription(rawText) && rawText.length > 80 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
-                        description = rawText;
-                      }
+        // 3. 교보문고에서 설명 시도 (알라딘 실패 시)
+        if (!descriptionFound || isGarbageDescription(description) || description.length < 60) {
+          try {
+            const kyoboQuery = encodeURIComponent(`${book.title} ${scrapedAuthor || bookAuthor}`);
+            const kyoboUrl = `https://search.kyobobook.co.kr/search?keyword=${kyoboQuery}`;
+            const kyoboHtml = await fetchHtmlViaProxy(kyoboUrl);
+            if (isMounted) {
+              const parser = new DOMParser();
+              const kyoboDoc = parser.parseFromString(kyoboHtml, "text/html");
+              
+              const kyoboLink = kyoboDoc.querySelector("a.prod_info, .prod_item a[href*='product.kyobobook.co.kr']") as HTMLAnchorElement | null;
+              const kyoboDetailUrl = kyoboLink?.href || "";
+              
+              if (kyoboDetailUrl) {
+                const kyoboDetailHtml = await fetchHtmlViaProxy(kyoboDetailUrl);
+                if (isMounted) {
+                  const kyoboDetailDoc = parser.parseFromString(kyoboDetailHtml, "text/html");
+                  
+                  const kyoboIntro = kyoboDetailDoc.querySelector(".intro_bottom .book_intro, .intro_bottom, .intro_book_info_inner, .book_intro_desc");
+                  if (kyoboIntro) {
+                    const rawText = kyoboIntro.textContent?.trim().replace(/\s+/g, " ") || "";
+                    if (!isGarbageDescription(rawText) && rawText.length > 80 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
+                      description = rawText;
+                      descriptionFound = true;
                     }
-                    
-                    // 교보문고 메타 태그 fallback
-                    if (!description || isGarbageDescription(description)) {
-                      const kyoboMeta = kyoboDetailDoc.querySelector('meta[name="description"], meta[property="og:description"]');
-                      const rawText = kyoboMeta?.getAttribute("content") || "";
-                      if (!isGarbageDescription(rawText) && rawText.length > 60 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
-                        description = rawText;
-                      }
+                  }
+                  
+                  if (!descriptionFound || isGarbageDescription(description)) {
+                    const kyoboMeta = kyoboDetailDoc.querySelector('meta[name="description"], meta[property="og:description"]');
+                    const rawText = kyoboMeta?.getAttribute("content") || "";
+                    if (!isGarbageDescription(rawText) && rawText.length > 60 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
+                      description = rawText;
+                      descriptionFound = true;
                     }
                   }
                 }
               }
-            } catch (kyoboErr) {
-              console.error("Failed to fetch description from Kyobo:", kyoboErr);
             }
+          } catch (kyoboErr) {
+            console.error("Failed to fetch description from Kyobo:", kyoboErr);
           }
+        }
 
-          // 5. YES24에서 설명 시도 (알라딘 + 교보문고 모두 실패 시)
-          if (!description || isGarbageDescription(description) || description.endsWith("...") || description.endsWith("…") || description.length < 60) {
-            try {
-              const yes24Query = encodeURIComponent(`${book.title}`);
-              const yes24SearchUrl = `https://www.yes24.com/Product/Search?domain=BOOK&query=${yes24Query}`;
-              const yes24Html = await fetchHtmlViaProxy(yes24SearchUrl);
-              if (isMounted) {
-                const yes24Doc = parser.parseFromString(yes24Html, "text/html");
-                
-                const yes24Link = yes24Doc.querySelector(".goods_name a, .itemTitle a") as HTMLAnchorElement | null;
-                const yes24DetailHref = yes24Link?.getAttribute("href") || "";
-                const yes24DetailUrl = yes24DetailHref.startsWith("http") ? yes24DetailHref : (yes24DetailHref ? `https://www.yes24.com${yes24DetailHref}` : "");
-                
-                if (yes24DetailUrl) {
-                  const yes24DetailHtml = await fetchHtmlViaProxy(yes24DetailUrl);
-                  if (isMounted) {
-                    const yes24DetailDoc = parser.parseFromString(yes24DetailHtml, "text/html");
-                    
-                    const yes24Intro = yes24DetailDoc.querySelector("#infoset_introduce .infoSetCont_wrap, .infoSet_intro p, #bookIntroContent");
-                    if (yes24Intro) {
-                      const rawText = yes24Intro.textContent?.trim().replace(/\s+/g, " ") || "";
-                      if (!isGarbageDescription(rawText) && rawText.length > 80 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
-                        description = rawText;
-                      }
+        // 4. YES24에서 설명 시도 (알라딘 + 교보문고 모두 실패 시)
+        if (!descriptionFound || isGarbageDescription(description) || description.length < 60) {
+          try {
+            const yes24Query = encodeURIComponent(`${book.title}`);
+            const yes24SearchUrl = `https://www.yes24.com/Product/Search?domain=BOOK&query=${yes24Query}`;
+            const yes24Html = await fetchHtmlViaProxy(yes24SearchUrl);
+            if (isMounted) {
+              const parser = new DOMParser();
+              const yes24Doc = parser.parseFromString(yes24Html, "text/html");
+              
+              const yes24Link = yes24Doc.querySelector(".goods_name a, .itemTitle a") as HTMLAnchorElement | null;
+              const yes24DetailHref = yes24Link?.getAttribute("href") || "";
+              const yes24DetailUrl = yes24DetailHref.startsWith("http") ? yes24DetailHref : (yes24DetailHref ? `https://www.yes24.com${yes24DetailHref}` : "");
+              
+              if (yes24DetailUrl) {
+                const yes24DetailHtml = await fetchHtmlViaProxy(yes24DetailUrl);
+                if (isMounted) {
+                  const yes24DetailDoc = parser.parseFromString(yes24DetailHtml, "text/html");
+                  
+                  const yes24Intro = yes24DetailDoc.querySelector("#infoset_introduce .infoSetCont_wrap, .infoSet_intro p, #bookIntroContent");
+                  if (yes24Intro) {
+                    const rawText = yes24Intro.textContent?.trim().replace(/\s+/g, " ") || "";
+                    if (!isGarbageDescription(rawText) && rawText.length > 80 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
+                      description = rawText;
+                      descriptionFound = true;
                     }
-                    
-                    if (!description || isGarbageDescription(description)) {
-                      const yes24Meta = yes24DetailDoc.querySelector('meta[name="description"], meta[property="og:description"]');
-                      const rawText = yes24Meta?.getAttribute("content") || "";
-                      if (!isGarbageDescription(rawText) && rawText.length > 60 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
-                        description = rawText;
-                      }
+                  }
+                  
+                  if (!descriptionFound || isGarbageDescription(description)) {
+                    const yes24Meta = yes24DetailDoc.querySelector('meta[name="description"], meta[property="og:description"]');
+                    const rawText = yes24Meta?.getAttribute("content") || "";
+                    if (!isGarbageDescription(rawText) && rawText.length > 60 && !rawText.endsWith("...") && !rawText.endsWith("…")) {
+                      description = rawText;
+                      descriptionFound = true;
                     }
                   }
                 }
               }
-            } catch (yes24Err) {
-              console.error("Failed to fetch description from YES24:", yes24Err);
             }
+          } catch (yes24Err) {
+            console.error("Failed to fetch description from YES24:", yes24Err);
           }
+        }
 
-          if (!isMounted) return;
+        if (!isMounted) return;
 
-          // 설명이 유효하면 저장, 없으면 빈 문자열 유지 (템플릿 사용 안 함)
-          const finalDesc = (description || "").trim();
-          const isFinalTruncated = finalDesc.endsWith("...") || finalDesc.endsWith("…") || finalDesc.endsWith("..");
-          const isValidDescription = finalDesc && !isGarbageDescription(finalDesc) && !isFinalTruncated && finalDesc.length >= 50;
+        const finalDesc = description.trim();
+        const isFinalTruncated = finalDesc.endsWith("...") || finalDesc.endsWith("…") || finalDesc.endsWith("..");
+        const isValidDescription = finalDesc && !isGarbageDescription(finalDesc) && !isFinalTruncated && finalDesc.length >= 50;
 
-          let hasUpdated = false;
-          const updatedBook = { ...book };
+        let hasUpdated = false;
+        const updatedBook = { ...book };
 
-          if (isValidDescription && (isDefaultDesc || isGarbageDescription(book.description || "") || !book.description)) {
-            localStorage.setItem(cacheKey, finalDesc);
-            setBookDesc(finalDesc);
-            updatedBook.description = finalDesc;
-            hasUpdated = true;
-            descriptionFound = true;
-          }
+        if (isValidDescription && (isDefaultDesc || isGarbageDescription(book.description || "") || !book.description)) {
+          const cacheKey = `desc_${book.title}_${book.author}`;
+          localStorage.setItem(cacheKey, finalDesc);
+          setBookDesc(finalDesc);
+          updatedBook.description = finalDesc;
+          hasUpdated = true;
+          descriptionFound = true;
+        }
 
-          if (scrapedAuthor && !["저자 미상", "작자 미상", "미상", "unknown", "anonymous", "저자미상", "작자미상"].includes(scrapedAuthor.trim())) {
-            updatedBook.author = scrapedAuthor;
-            setBookAuthor(scrapedAuthor);
-            hasUpdated = true;
-            healLibraryBookAuthor(book.id, scrapedAuthor);
-          }
+        if (scrapedAuthor && !["저자 미상", "작자 미상", "미상", "unknown", "anonymous", "저자미상", "작자미상"].includes(scrapedAuthor.trim())) {
+          updatedBook.author = scrapedAuthor;
+          setBookAuthor(scrapedAuthor);
+          hasUpdated = true;
+          healLibraryBookAuthor(book.id, scrapedAuthor);
+        }
 
-          if (hasUpdated) {
-            saveGlobalBook(updatedBook);
-          }
+        if (hasUpdated) {
+          saveGlobalBook(updatedBook);
         }
       } catch (e) {
         console.error("Failed to dynamically fetch book description or author from Aladin:", e);
