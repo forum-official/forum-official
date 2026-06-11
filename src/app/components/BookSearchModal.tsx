@@ -345,24 +345,26 @@ export function BookSearchModal({
         </div>
 
         {/* Book Type Selection */}
-        <div className="px-4 py-3 border-b border-gray-200">
-          <label className="block text-xs font-semibold mb-2 text-gray-600">추가할 형태</label>
-          <div className="flex gap-2">
-            {["종이책", "eBook", "오디오북"].map((type) => (
-              <button
-                key={type}
-                onClick={() => setSelectedType(type)}
-                className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  selectedType === type
-                    ? "border-purple-500 bg-purple-50 text-purple-700"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                {type}
-              </button>
-            ))}
+        {!onSelect && (
+          <div className="px-4 py-3 border-b border-gray-200">
+            <label className="block text-xs font-semibold mb-2 text-gray-600">추가할 형태</label>
+            <div className="flex gap-2">
+              {["종이책", "eBook", "오디오북"].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setSelectedType(type)}
+                  className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                    selectedType === type
+                      ? "border-purple-500 bg-purple-50 text-purple-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto p-4">
@@ -445,7 +447,7 @@ export function BookSearchModal({
             onClick={onClose}
             className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
           >
-            완료
+            {onSelect ? "취소" : "완료"}
           </Button>
         </div>
       </div>
