@@ -29,13 +29,24 @@ export function AddBookModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedPublisher, setSelectedPublisher] = useState<{ name: string; volumes?: number } | null>(null);
-  const [booksList, setBooksList] = useState<any[]>(() => getGlobalBooks(popularBooksData));
+  const [booksList, setBooksList] = useState<any[]>(() => {
+    return [...getGlobalBooks(popularBooksData)].sort((a, b) => {
+      const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+      const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+      return scoreB - scoreA;
+    });
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Hybrid Search: Aladin scraping via CORS proxy + Local Fallback
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setBooksList(getGlobalBooks(popularBooksData));
+      const defaultBooks = [...getGlobalBooks(popularBooksData)].sort((a, b) => {
+        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+        return scoreB - scoreA;
+      });
+      setBooksList(defaultBooks);
       setIsLoading(false);
       return;
     }
@@ -49,7 +60,11 @@ export function AddBookModal({
     ).map(book => ({
       ...book,
       publisher: book.publishers[0]?.name || "민음사"
-    }));
+    })).sort((a, b) => {
+      const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+      const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+      return scoreB - scoreA;
+    });
 
     setBooksList(localMatches);
     setIsLoading(true);
@@ -190,14 +205,19 @@ export function AddBookModal({
         }
       });
 
-      setBooksList(mergedBooks);
+      const sortedBooks = mergedBooks.sort((a, b) => {
+        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+        return scoreB - scoreA;
+      });
+      setBooksList(sortedBooks);
       setIsLoading(false);
     }, 400); // 400ms debounce to decrease redundant request overhead
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
-  const filteredBooks = booksList;
+  const filteredBooks = booksList.slice(0, 15);
 
   const categories = [
     {
