@@ -727,6 +727,11 @@ function AppContent() {
       setVoteDetailBook(null);
     }
 
+    // 카테고리에서 찬반 토론 직접 진입 시 기존 책 초기화
+    if (screen === "monthly-debate") {
+      setSelectedDebate(null);
+    }
+
     // 작가 아카이브 탭에 새로 진입할 때 이전 검색/필터 상태 초기화
     if (screen === "author-archive") {
       sessionStorage.removeItem('authorArchive_search');

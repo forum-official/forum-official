@@ -72,6 +72,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
   const [showOpinionModal, setShowOpinionModal] = useState(false);
   const [reportingId, setReportingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
+  const [topicSortBy, setTopicSortBy] = useState<"recent" | "popular">("recent");
   
   const [currentBook, setCurrentBook] = useState(() => {
     if (initialBook) {
@@ -277,6 +278,22 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
            t.bookAuthor.toLowerCase().includes(q) ||
            t.topic.toLowerCase().includes(q);
   });
+
+  const sortedTopics = [...filteredTopics].sort((a, b) => {
+    if (topicSortBy === "popular") {
+      const votesA = getDebateVotes(a.bookTitle);
+      const opinionsA = getDebateOpinions(a.bookTitle);
+      const scoreA = (votesA.agreeCount + votesA.disagreeCount) + opinionsA.length * 3;
+
+      const votesB = getDebateVotes(b.bookTitle);
+      const opinionsB = getDebateOpinions(b.bookTitle);
+      const scoreB = (votesB.agreeCount + votesB.disagreeCount) + opinionsB.length * 3;
+
+      return scoreB - scoreA;
+    }
+    // Default recent
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
   
   const sortedOpinions = [...opinionsList].sort((a, b) => {
     if (sortBy === "popular") {
@@ -332,6 +349,35 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                 논점 설정
               </Button>
             </div>
+
+            {/* Sorting Tabs */}
+            {filteredTopics.length > 0 && (
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-bold text-gray-500">정렬 기준</span>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setTopicSortBy("recent")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      topicSortBy === "recent"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    최신순
+                  </button>
+                  <button
+                    onClick={() => setTopicSortBy("popular")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      topicSortBy === "popular"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    인기순
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Debate Topics List */}
             <div className="space-y-3.5 pb-20">
@@ -342,7 +388,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                   <p className="text-xs text-gray-400 mt-1">첫 번째로 새로운 논점을 등록해보세요!</p>
                 </div>
               ) : (
-                filteredTopics.flatMap((topic, index) => {
+                sortedTopics.flatMap((topic, index) => {
                   const stats = (() => {
                     const votes = getDebateVotes(topic.bookTitle);
                     const opinions = getDebateOpinions(topic.bookTitle);
