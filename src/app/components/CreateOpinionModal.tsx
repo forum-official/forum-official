@@ -23,7 +23,6 @@ export function CreateOpinionModal({ bookTitle, onClose, onCreate, onLoginRequir
 
   const stances = [
     { id: "agree" as const, label: "찬성", icon: "👍", color: "green" },
-    { id: "neutral" as const, label: "중립", icon: "🤔", color: "gray" },
     { id: "disagree" as const, label: "반대", icon: "👎", color: "red" },
   ];
 

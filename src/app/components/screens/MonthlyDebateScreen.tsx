@@ -1,4 +1,4 @@
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Flag, BookOpen, Search, Plus, MessageSquare, Clock, User } from "lucide-react";
+import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Flag, BookOpen, Search, Plus, MessageSquare, Clock, User, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -26,7 +26,8 @@ import {
   getGlobalBooks,
   getDebateTopics,
   saveDebateTopicToCloud,
-  DbDebateTopic
+  DbDebateTopic,
+  deleteDebateOpinionFromCloud
 } from "@/app/utils/db";
 
 interface MonthlyDebateScreenProps {
@@ -176,6 +177,14 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
   const handleCreateOpinion = async (newOpinion: any) => {
     await saveDebateOpinionToCloud(newOpinion);
     setOpinionsList([newOpinion, ...opinionsList]);
+  };
+
+  const handleDeleteOpinion = async (opinionId: string) => {
+    if (confirm("정말로 이 의견을 삭제하시겠습니까?")) {
+      await deleteDebateOpinionFromCloud(opinionId);
+      setOpinionsList(prev => prev.filter(o => o.id !== opinionId));
+      toast.success("의견이 삭제되었습니다");
+    }
   };
   
   const handleLikeOpinion = async (opinionId: string) => {
@@ -704,6 +713,15 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                         >
                           {opinion.stance === "agree" ? "👍 찬성" : opinion.stance === "disagree" ? "👎 반대" : "🤔 중립"}
                         </Badge>
+                        {opinion.author === (user?.nickname || "익명") && (
+                          <button
+                            onClick={() => handleDeleteOpinion(opinion.id)}
+                            className="p-1 hover:bg-red-50 rounded-full text-red-500 transition-colors"
+                            title="의견 삭제"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setReportingId(opinion.id);

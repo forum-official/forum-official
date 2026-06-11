@@ -1182,6 +1182,39 @@ export function saveDebateOpinion(opinion: DbDebateOpinion): void {
   localStorage.setItem("forum_debate_opinions", JSON.stringify(opinions));
 }
 
+export function deleteDebateOpinion(opinionId: string): void {
+  const data = localStorage.getItem("forum_debate_opinions");
+  if (!data) return;
+  try {
+    const opinions: DbDebateOpinion[] = JSON.parse(data);
+    const updated = opinions.filter(o => o.id !== opinionId);
+    localStorage.setItem("forum_debate_opinions", JSON.stringify(updated));
+  } catch {}
+}
+
+export async function deleteDebateOpinionFromCloud(opinionId: string): Promise<boolean> {
+  deleteDebateOpinion(opinionId); // 로컬 캐시 삭제
+  
+  if (!isCloudEnabled) {
+    return true;
+  }
+  
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/debate_opinions?id=eq.${encodeURIComponent(opinionId)}`, {
+      method: "DELETE",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.ok;
+  } catch (e) {
+    console.error("Failed to delete debate opinion from Supabase:", e);
+    return false;
+  }
+}
+
 export interface DbDebateTopic {
   id: string; // bookTitle
   bookTitle: string;

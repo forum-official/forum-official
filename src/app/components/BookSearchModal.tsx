@@ -60,13 +60,23 @@ export function BookSearchModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("종이책");
   const [addedBooks, setAddedBooks] = useState<number[]>([]);
-  const [booksList, setBooksList] = useState<any[]>(() => getGlobalBooks(popularBooksData));
+  const [booksList, setBooksList] = useState<any[]>(() => {
+    return [...getGlobalBooks(popularBooksData)].sort((a, b) => {
+      const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+      const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+      return scoreB - scoreA;
+    });
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Hybrid Search with debate and translation filters
   useEffect(() => {
     if (!searchQuery.trim()) {
-      let initialList = getGlobalBooks(popularBooksData);
+      let initialList = [...getGlobalBooks(popularBooksData)].sort((a, b) => {
+        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+        return scoreB - scoreA;
+      });
       if (filterDebateBooksOnly) {
         initialList = initialList.filter(b => hasDebateTopic(b.title));
       }
@@ -87,7 +97,11 @@ export function BookSearchModal({
     ).map(book => ({
       ...book,
       publisher: book.publishers[0]?.name || "민음사"
-    }));
+    })).sort((a, b) => {
+      const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+      const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+      return scoreB - scoreA;
+    });
 
     if (filterDebateBooksOnly) {
       localMatches = localMatches.filter(b => hasDebateTopic(b.title));
@@ -246,14 +260,19 @@ export function BookSearchModal({
         }
       });
 
-      setBooksList(mergedBooks);
+      const sortedBooks = mergedBooks.sort((a, b) => {
+        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
+        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
+        return scoreB - scoreA;
+      });
+      setBooksList(sortedBooks);
       setIsLoading(false);
     }, 400); // 400ms debounce to decrease redundant request overhead
 
     return () => clearTimeout(delayDebounce);
   }, [searchQuery, filterDebateBooksOnly, filterTranslationBooksOnly]);
 
-  const filteredBooks = booksList;
+  const filteredBooks = booksList.slice(0, 15);
 
   const handleAddBook = (book: any) => {
     // Convert to Book format if needed
