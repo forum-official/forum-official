@@ -467,60 +467,52 @@ export function BooksScreen({
       </Header>
 
       <div className="max-w-md mx-auto px-4 py-4">
-        {/* Category Filter - 검색창 열릴 때 숨김 */}
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            showSearch
-              ? "max-h-0 opacity-0 mb-0 pointer-events-none"
-              : "max-h-40 opacity-100 mb-4"
-          }`}
-        >
-          <div className="flex gap-2 flex-wrap py-0.5">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => handleCategoryClick(category)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
-                  selectedCategory === category
-                    ? "bg-purple-600 text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+        {/* Category Filter - 검색창 열리면 숨김 */}
+        {!showSearch && (
+          <div className="mb-4">
+            <div className="flex gap-2 flex-wrap">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryClick(category)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
+                    selectedCategory === category
+                      ? "bg-purple-600 text-white"
+                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Sort Options - 검색창 열릴 때 숨김 */}
-        <div
-          className={`flex justify-end gap-1.5 text-xs transition-all duration-300 ease-in-out ${
-            showSearch
-              ? "max-h-0 opacity-0 mb-0 overflow-hidden pointer-events-none"
-              : "max-h-12 opacity-100 mb-4"
-          }`}
-        >
-          <button
-            onClick={() => setSortBy("likes")}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
-              sortBy === "likes"
-                ? "bg-purple-100 text-purple-700 border-purple-200 shadow-xs"
-                : "text-gray-500 hover:text-gray-700 bg-white border-gray-200"
-            }`}
-          >
-            👍 좋아요 많은순
-          </button>
-          <button
-            onClick={() => setSortBy("rating")}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
-              sortBy === "rating"
-                ? "bg-purple-100 text-purple-700 border-purple-200 shadow-xs"
-                : "text-gray-500 hover:text-gray-700 bg-white border-gray-200"
-            }`}
-          >
-            ⭐ 리뷰 좋은순
-          </button>
-        </div>
+        {/* Sort Options - 검색창 열리면 숨김 */}
+        {!showSearch && (
+          <div className="flex justify-end gap-1.5 mb-4 text-xs">
+            <button
+              onClick={() => setSortBy("likes")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
+                sortBy === "likes"
+                  ? "bg-purple-100 text-purple-700 border-purple-200 shadow-xs"
+                  : "text-gray-500 hover:text-gray-700 bg-white border-gray-200"
+              }`}
+            >
+              👍 좋아요 많은순
+            </button>
+            <button
+              onClick={() => setSortBy("rating")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
+                sortBy === "rating"
+                  ? "bg-purple-100 text-purple-700 border-purple-200 shadow-xs"
+                  : "text-gray-500 hover:text-gray-700 bg-white border-gray-200"
+              }`}
+            >
+              ⭐ 리뷰 좋은순
+            </button>
+          </div>
+        )}
 
         {/* Books List */}
         {isLoading && filteredBooks.length === 0 ? (
