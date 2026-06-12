@@ -66,6 +66,8 @@ export function BooksScreen({
   };
 
   // Aladin Search via CORS Proxy with Debounce
+  // 특정 카테고리 선택 시 API 호출 생략 - 알라딘 CID 필터가 strict하지 않아
+  // 타 카테고리 책이 섞이는 문제가 있음. 로컬 DB 데이터만 사용해 정확도를 보장.
   useEffect(() => {
     if (!searchQuery.trim()) {
       setApiBooks([]);
@@ -73,20 +75,12 @@ export function BooksScreen({
       return;
     }
 
-    const categoryToCidMap: Record<string, number> = {
-      "문학": 1,
-      "철학": 656, // 인문학 부모 카테고리 CID 사용
-      "인문": 656,
-      "역사": 74,
-      "과학": 987,
-      "심리": 656, // 인문학 부모 카테고리 CID 사용
-      "경제/경영": 170,
-      "자기계발": 336,
-      "사회": 798,
-      "라이트노벨": 1, // 소설/시/희곡 부모 카테고리 CID 사용
-      "청소년": 76001,
-      "자격증": 1383
-    };
+    // 카테고리가 선택돼 있으면 API 호출 없이 로컬 데이터만 사용
+    if (selectedCategory !== "전체") {
+      setApiBooks([]);
+      setIsLoading(false);
+      return;
+    }
 
     // Check session cache first to prevent redundant loading when returning
     const cachedQuery = sessionStorage.getItem("booksScreen_cachedQuery");
@@ -107,9 +101,8 @@ export function BooksScreen({
     setIsLoading(true);
     const delayDebounce = setTimeout(async () => {
       try {
-        const cid = categoryToCidMap[selectedCategory];
-        const cidParam = cid ? `&CID=${cid}` : "";
-        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}${cidParam}`;
+        // "전체" 카테고리: CID 없이 전체 검색
+        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}`;
         const html = await fetchHtmlViaProxy(targetUrl);
 
         const parser = new DOMParser();
@@ -367,25 +360,11 @@ export function BooksScreen({
       };
     });
 
-  // 로컬 매칭 + API 도서 병합 (제목 중복 방지 및 카테고리 필터)
-  // allLocalBooks: 전체 로컬 DB (필터 미적용) - API 결과 검증용
-  const allLocalBooks = getGlobalBooks(popularBooksData);
-
+  // 로컬 매칭 + API 도서 병합
+  // 카테고리가 "전체"일 때만 API 결과 병합 (특정 카테고리 선택 시 로컬 데이터만 사용)
   const mergedBooks = [...localMatches];
-  if (searchQuery.trim() !== "") {
-    apiBooks.filter(filterByCategory).forEach(apiBook => {
-      // 로컬 DB에 동일한 책이 있고, 해당 카테고리에 속하지 않으면 제외
-      // (API 결과의 genre는 강제 할당이라 신뢰할 수 없으므로 로컬 genre 우선)
-      const localVersion = allLocalBooks.find(
-        localBook =>
-          localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&
-          localBook.author.toLowerCase() === apiBook.author.toLowerCase()
-      );
-      if (localVersion && !filterByCategory(localVersion)) {
-        // 로컬 DB에 존재하지만 선택된 카테고리가 아님 → 제외
-        return;
-      }
-
+  if (searchQuery.trim() !== "" && selectedCategory === "전체") {
+    apiBooks.forEach(apiBook => {
       const isDuplicate = mergedBooks.some(
         localBook => 
           localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&
