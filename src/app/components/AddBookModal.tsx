@@ -482,12 +482,16 @@ export function AddBookModal({
                 </div>
               ) : (
                 <>
-                  {isLoading && (
-                    <div className="flex items-center justify-center py-2 text-purple-600 gap-1.5 border-b border-gray-100 pb-2 mb-2">
-                      <Loader2 className="size-4 animate-spin" />
-                      <span className="text-[10px] text-gray-500">실시간 도서 검색 중...</span>
-                    </div>
-                  )}
+                  {/* 로딩 인디케이터: 공간 항상 유지, visibility로 표시/숨김 (레이아웃 점프 방지) */}
+                  <div
+                    className={`flex items-center justify-center py-2 text-purple-600 gap-1.5 border-b border-gray-100 pb-2 mb-2 transition-opacity duration-200 ${
+                      isLoading ? "opacity-100" : "opacity-0 pointer-events-none"
+                    }`}
+                    style={{ height: "32px" }}
+                  >
+                    <Loader2 className="size-4 animate-spin" />
+                    <span className="text-[10px] text-gray-500">실시간 도서 검색 중...</span>
+                  </div>
                   {filteredBooks.map((book) => (
                     <button
                       key={book.id}
@@ -517,6 +521,7 @@ export function AddBookModal({
                 </>
               )}
             </div>
+
           </div>
         )}
 
