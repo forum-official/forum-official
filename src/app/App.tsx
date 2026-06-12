@@ -777,8 +777,10 @@ function AppContent() {
       setCurrentScreen(null);
       setSelectedBook(null);
     }
-    // 홈 화면으로 돌아갈 때 즉시 최상단으로 이동 (애니메이션 없이)
-    window.scrollTo(0, 0);
+    // 홈 화면이나 다른 탭으로 돌아갈 때만 최상단으로 이동 (책 상세에서 책 목록으로 돌아올 때는 스크롤 유지)
+    if (!(activeTab === "books" && currentScreen === "book-detail")) {
+      window.scrollTo(0, 0);
+    }
   };
 
   const handleUserProfileBack = () => {
@@ -1208,8 +1210,8 @@ function AppContent() {
       )}
 
       {/* Show books tab as a dedicated screen when activeTab is "books" */}
-      {!currentScreen && activeTab === "books" && (
-        <>
+      {activeTab === "books" && (
+        <div style={{ display: !currentScreen ? "block" : "none" }}>
           <BooksScreen 
             onBack={() => setActiveTab("home")} 
             onBookClick={handleBookClick}
@@ -1227,7 +1229,7 @@ function AppContent() {
             onTabChange={handleTabChange}
           />
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} isForcedMobile={isForcedMobile} />
-        </>
+        </div>
       )}
 
       {/* Main app view */}
