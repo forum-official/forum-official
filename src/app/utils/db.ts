@@ -151,8 +151,7 @@ export async function checkNicknameDuplicate(
         if (other) return true;
       }
     } catch (e) {
-      console.error("Failed to check nickname duplicate via Supabase client", e);
-      throw e;
+      console.warn("Failed to check nickname duplicate via Supabase client, falling back to local check:", e);
     }
   }
   return false;
