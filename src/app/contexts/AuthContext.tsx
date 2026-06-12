@@ -374,32 +374,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Supabase DB 및 Auth Meta 업데이트
-    try {
-      // 1. Auth 메타데이터 갱신
-      await supabase.auth.updateUser({
-        data: {
-          nickname: updates.nickname || user.nickname,
-          bio: updates.bio || user.bio,
-          profileImage: updates.profileImage || user.profileImage,
-          isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
-          nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
+    // Supabase DB 및 Auth Meta 업데이트 (UI 블로킹 방지를 위해 백그라운드 비동기 처리)
+    (async () => {
+      try {
+        // 1. Auth 메타데이터 갱신
+        await supabase.auth.updateUser({
+          data: {
+            nickname: updates.nickname || user.nickname,
+            bio: updates.bio || user.bio,
+            profileImage: updates.profileImage || user.profileImage,
+            isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
+            nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
+          }
+        });
+        // 2. Profiles DB 테이블 갱신
+        const sessionUser = (await supabase.auth.getUser()).data.user;
+        if (sessionUser) {
+          await supabase.from("profiles").update({
+            nickname: updates.nickname || user.nickname,
+            bio: updates.bio || user.bio,
+            profile_image: updates.profileImage || user.profileImage,
+            is_private: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
+            updated_at: new Date().toISOString()
+          }).eq("id", sessionUser.id);
         }
-      });
-      // 2. Profiles DB 테이블 갱신
-      const sessionUser = (await supabase.auth.getUser()).data.user;
-      if (sessionUser) {
-        await supabase.from("profiles").update({
-          nickname: updates.nickname || user.nickname,
-          bio: updates.bio || user.bio,
-          profile_image: updates.profileImage || user.profileImage,
-          is_private: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
-          updated_at: new Date().toISOString()
-        }).eq("id", sessionUser.id);
+      } catch (e) {
+        console.warn("Failed to update profile to Supabase DB:", e);
       }
-    } catch (e) {
-      console.warn("Failed to update profile to Supabase DB:", e);
-    }
+    })();
   };
 
   // 비밀번호 변경
