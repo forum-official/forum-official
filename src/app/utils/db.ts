@@ -132,11 +132,17 @@ export async function checkNicknameDuplicate(
   // 3. If cloud backend is enabled, query Supabase using the client
   if (isCloudEnabled) {
     try {
-      const { data, error } = await supabase
+      const queryPromise = supabase
         .from("profiles")
         .select("id, user_id, email, nickname")
         .ilike("nickname", nickname.trim());
+
+      const response = await Promise.race([
+        queryPromise,
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase query timeout")), 1500))
+      ]);
         
+      const { data, error } = response;
       if (error) {
         throw error;
       }
@@ -151,7 +157,7 @@ export async function checkNicknameDuplicate(
         if (other) return true;
       }
     } catch (e) {
-      console.warn("Failed to check nickname duplicate via Supabase client, falling back to local check:", e);
+      console.warn("Failed or timed out checking nickname duplicate via Supabase client, falling back to local check:", e);
     }
   }
   return false;
