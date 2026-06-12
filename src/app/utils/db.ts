@@ -202,7 +202,7 @@ export async function resolveDuplicateNicknames(): Promise<void> {
             }
           }
         } catch (e) {
-          console.error("Failed to sync updated nickname to agora_user:", e);
+          console.error("Failed to sync updated nickname to forum_user:", e);
         }
       }
     }
@@ -1162,7 +1162,7 @@ export function saveComment(comment: DbComment): void {
       const allReviews: DbReview[] = JSON.parse(reviewsData);
       const parentReview = allReviews.find(r => r.id === comment.targetId);
       if (parentReview && parentReview.author !== comment.author) {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         if (usersData) {
           const allUsers = JSON.parse(usersData);
           const parentUser = allUsers.find((u: any) => u.nickname === parentReview.author);
@@ -1178,7 +1178,7 @@ export function saveComment(comment: DbComment): void {
       const allDiscussions: DbDiscussion[] = JSON.parse(discussionsData);
       const parentDisc = allDiscussions.find(d => d.id === comment.targetId);
       if (parentDisc && parentDisc.author !== comment.author) {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         if (usersData) {
           const allUsers = JSON.parse(usersData);
           const parentUser = allUsers.find((u: any) => u.nickname === parentDisc.author);
@@ -1733,7 +1733,7 @@ export function getBookLikes(bookId: string): { likesCount: number; isLiked: boo
   }
 
   const bookRecord = likesRecord[bookId] || { count: 0, users: [] };
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   let currentUserId = "";
   if (storedUser) {
     try {
@@ -1749,7 +1749,7 @@ export function getBookLikes(bookId: string): { likesCount: number; isLiked: boo
 }
 
 export function toggleBookLike(bookId: string): { likesCount: number; isLiked: boolean } {
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   if (!storedUser) return { likesCount: 0, isLiked: false };
   let currentUserId = "";
   try {
@@ -1839,14 +1839,14 @@ export function addNotification(userId: string, type: DbNotification["type"], me
 }
 
 export function isUserProfilePrivate(nickname: string): boolean {
-  const usersData = localStorage.getItem("agora_users");
+  const usersData = localStorage.getItem("forum_users");
   if (!usersData) return false;
   try {
     const allUsers = JSON.parse(usersData);
     const user = allUsers.find((u: any) => u.nickname === nickname);
     return user ? user.isPrivate === true : false;
   } catch (e) {
-    console.error("Failed to parse agora_users in isUserProfilePrivate:", e);
+    console.error("Failed to parse forum_users in isUserProfilePrivate:", e);
   }
   return false;
 }
@@ -1892,7 +1892,7 @@ export function toggleCommentLike(commentId: string, userId: string): { likesCou
       comment.likes += 1;
       isLiked = true;
 
-      const storedUser = localStorage.getItem("agora_user");
+      const storedUser = localStorage.getItem("forum_user");
       let likerNickname = "익명";
       if (storedUser) {
         try {
@@ -1901,7 +1901,7 @@ export function toggleCommentLike(commentId: string, userId: string): { likesCou
       }
 
       if (comment.author && comment.author !== likerNickname) {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         if (usersData) {
           const allUsers = JSON.parse(usersData);
           const parentUser = allUsers.find((u: any) => u.nickname === comment.author);
@@ -1968,7 +1968,7 @@ export function toggleOpinionLike(opinionId: string, userId: string): { likesCou
       opinion.likes += 1;
       isLiked = true;
 
-      const storedUser = localStorage.getItem("agora_user");
+      const storedUser = localStorage.getItem("forum_user");
       let likerNickname = "익명";
       if (storedUser) {
         try {
@@ -1977,7 +1977,7 @@ export function toggleOpinionLike(opinionId: string, userId: string): { likesCou
       }
 
       if (opinion.author !== likerNickname) {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         if (usersData) {
           const allUsers = JSON.parse(usersData);
           const parentUser = allUsers.find((u: any) => u.nickname === opinion.author);
@@ -2044,7 +2044,7 @@ export function toggleReviewLike(reviewId: string, userId: string): { likesCount
       review.likes += 1;
       isLiked = true;
 
-      const storedUser = localStorage.getItem("agora_user");
+      const storedUser = localStorage.getItem("forum_user");
       let likerNickname = "익명";
       if (storedUser) {
         try {
@@ -2053,7 +2053,7 @@ export function toggleReviewLike(reviewId: string, userId: string): { likesCount
       }
 
       if (review.author !== likerNickname) {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         if (usersData) {
           const allUsers = JSON.parse(usersData);
           const parentUser = allUsers.find((u: any) => u.nickname === review.author);

@@ -75,15 +75,15 @@ export function BooksScreen({
 
     const categoryToCidMap: Record<string, number> = {
       "문학": 1,
-      "철학": 51387,
+      "철학": 656, // 인문학 부모 카테고리 CID 사용
       "인문": 656,
       "역사": 74,
       "과학": 987,
-      "심리": 5110,
+      "심리": 656, // 인문학 부모 카테고리 CID 사용
       "경제/경영": 170,
       "자기계발": 336,
       "사회": 798,
-      "라이트노벨": 50246,
+      "라이트노벨": 1, // 소설/시/희곡 부모 카테고리 CID 사용
       "청소년": 76001,
       "자격증": 1383
     };
@@ -368,9 +368,24 @@ export function BooksScreen({
     });
 
   // 로컬 매칭 + API 도서 병합 (제목 중복 방지 및 카테고리 필터)
+  // allLocalBooks: 전체 로컬 DB (필터 미적용) - API 결과 검증용
+  const allLocalBooks = getGlobalBooks(popularBooksData);
+
   const mergedBooks = [...localMatches];
   if (searchQuery.trim() !== "") {
     apiBooks.filter(filterByCategory).forEach(apiBook => {
+      // 로컬 DB에 동일한 책이 있고, 해당 카테고리에 속하지 않으면 제외
+      // (API 결과의 genre는 강제 할당이라 신뢰할 수 없으므로 로컬 genre 우선)
+      const localVersion = allLocalBooks.find(
+        localBook =>
+          localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&
+          localBook.author.toLowerCase() === apiBook.author.toLowerCase()
+      );
+      if (localVersion && !filterByCategory(localVersion)) {
+        // 로컬 DB에 존재하지만 선택된 카테고리가 아님 → 제외
+        return;
+      }
+
       const isDuplicate = mergedBooks.some(
         localBook => 
           localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&

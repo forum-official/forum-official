@@ -41,3 +41,5 @@ pnpm-debug.log*
 !/README.md
 !/ATTRIBUTIONS.md
 !/.gitignore
+
+.vercel
