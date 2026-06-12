@@ -225,8 +225,8 @@ export async function resolveDuplicateNicknames(): Promise<void> {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "your-anon-key";
 
-// 백엔드 연동 활성화 여부 (환경변수 체크)
-const isCloudEnabled = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+// 백엔드 연동 활성화 여부 (환경변수 및 플레이스홀더 체크)
+const isCloudEnabled = isSupabaseConfigured;
 
 // [참고] Firebase Firestore 연동을 위한 SDK 초기화 예시 코드
 /*
