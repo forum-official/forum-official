@@ -94,13 +94,116 @@ export async function checkNicknameDuplicate(
   currentUserId?: string,
   currentUserEmail?: string
 ): Promise<boolean> {
+  const norm = nickname.trim().toLowerCase();
+  
+  // 1. Check local storage users list
+  const usersData = localStorage.getItem("forum_users");
+  if (usersData) {
+    try {
+      const users = JSON.parse(usersData);
+      const exists = users.some((u: any) => {
+        const uNick = (u.nickname || "").trim().toLowerCase();
+        if (uNick !== norm) return false;
+        
+        const isSelf = (currentUserId && u.userId === currentUserId) || 
+                       (currentUserEmail && u.email && u.email.toLowerCase() === currentUserEmail.toLowerCase());
+        return !isSelf;
+      });
+      if (exists) return true;
+    } catch (e) {
+      console.error("Failed to parse local users for nickname check", e);
+    }
+  }
+
+  // 2. Check currently logged-in user in 'forum_user'
+  const currentUserData = localStorage.getItem("forum_user");
+  if (currentUserData) {
+    try {
+      const currUser = JSON.parse(currentUserData);
+      const currNick = (currUser.nickname || "").trim().toLowerCase();
+      if (currNick === norm) {
+        const isSelf = (currentUserId && currUser.userId === currentUserId) ||
+                       (currentUserEmail && currUser.email && currUser.email.toLowerCase() === currentUserEmail.toLowerCase());
+        if (!isSelf) return true;
+      }
+    } catch {}
+  }
+
+  // 3. If cloud backend is enabled, query Supabase using the client
+  if (isCloudEnabled) {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, user_id, email, nickname")
+        .ilike("nickname", nickname.trim());
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        const other = data.some((item) => {
+          const isSelf = (currentUserId && item.id === currentUserId) ||
+                         (currentUserId && item.user_id === currentUserId) ||
+                         (currentUserEmail && item.email && item.email.toLowerCase() === currentUserEmail.toLowerCase());
+          return !isSelf;
+        });
+        if (other) return true;
+      }
+    } catch (e) {
+      console.error("Failed to check nickname duplicate via Supabase client", e);
+      throw e;
+    }
+  }
   return false;
 }
 
 
 // Resolve existing duplicate nicknames in local storage by appending a numeric suffix
 export async function resolveDuplicateNicknames(): Promise<void> {
-  // Disabled: Allowing duplicate nicknames as requested
+  const usersData = localStorage.getItem("forum_users");
+  if (!usersData) return;
+  try {
+    const users = JSON.parse(usersData);
+    const nameCount = new Map<string, number>();
+    // Track which userIds had their nickname changed
+    const changedUserIds: string[] = [];
+    users.forEach((u: any) => {
+      const norm = (u.nickname || "").trim().toLowerCase();
+      if (!norm) return;
+      const count = nameCount.get(norm) ?? 0;
+      if (count === 0) {
+        nameCount.set(norm, 1);
+      } else {
+        const newNick = `${u.nickname}_${count + 1}`;
+        u.nickname = newNick;
+        nameCount.set(norm, count + 1);
+        nameCount.set(newNick.trim().toLowerCase(), 1);
+        if (u.userId) changedUserIds.push(u.userId);
+      }
+    });
+    localStorage.setItem("forum_users", JSON.stringify(users));
+
+    // If a currently logged‑in user exists and its nickname was changed, update the session storage too
+    if (changedUserIds.length) {
+      const currentUserData = localStorage.getItem("forum_user");
+      if (currentUserData) {
+        try {
+          const currentUser = JSON.parse(currentUserData);
+          if (changedUserIds.includes(currentUser.userId)) {
+            const updated = users.find((u: any) => u.userId === currentUser.userId);
+            if (updated) {
+              localStorage.setItem("forum_user", JSON.stringify(updated));
+            }
+          }
+        } catch (e) {
+          console.error("Failed to sync updated nickname to agora_user:", e);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to resolve duplicate nicknames:", e);
+  }
 }
 
 // ----------------------------------------------------

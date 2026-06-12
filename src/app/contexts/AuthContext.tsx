@@ -277,7 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (userIdExists) return { success: false, error: "이미 사용 중인 아이디입니다." };
         const emailExists = users.some((u: any) => u.email === email);
         if (emailExists) return { success: false, error: "이미 등록된 이메일입니다." };
-        // Nickname duplication check disabled as requested
+        const nicknameExists = users.some((u: any) => u.nickname.toLowerCase() === nickname.toLowerCase());
+        if (nicknameExists) return { success: false, error: "이미 사용 중인 닉네임입니다." };
 
         const newUser = {
           userId,
