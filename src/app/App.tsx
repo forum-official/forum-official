@@ -16,6 +16,7 @@ import { PublisherRecommendation } from "@/app/components/PublisherRecommendatio
 import { SearchModal } from "@/app/components/SearchModal";
 import { NotificationModal } from "@/app/components/NotificationModal";
 import { AuthModal } from "@/app/components/AuthModal";
+import { NicknameSetupModal } from "@/app/components/NicknameSetupModal";
 import { CreateDiscussionModal } from "@/app/components/CreateDiscussionModal";
 import { VoteDetailScreen } from "@/app/components/screens/VoteDetailScreen";
 import { PublisherRatingScreen } from "@/app/components/screens/PublisherRatingScreen";
@@ -314,7 +315,7 @@ const curations = [
     emoji: "🧠",
     badge: "💜 PICK",
     // 세상을 다르게 보게 만드는 지식의 최전선
-    bookIds: ["sapiens", "homo-deus", "guns-germs", "870950", "170482558", "349172323", "385481121", "372980631", "392447560", "391347880", "375395519", "393699252"]
+    bookIds: ["sapiens", "homo-deus", "guns-germs", "870950", "170482558", "349172323", "385481121", "372980631", "392447560", "311503950", "375395519", "393699252"]
   },
   {
     title: "논리로 상대를 압도하는 법: 지지 않는 대화의 기술",
@@ -334,6 +335,9 @@ const curations = [
 
 function AppContent() {
   const { isAuthenticated, user } = useAuth();
+
+  // 소셜 로그인 후 닉네임 미설정 시 자동으로 모달 표시
+  const showNicknameSetup = !!user?.isSocial && user?.nicknameSet === false;
   // Clear old/polluted cover cache once to force Korean cover reload
   useEffect(() => {
     const cacheVersion = "v7";
@@ -1726,6 +1730,9 @@ function AppContent() {
       
         </div> {/* End of iPhone 15 Container */}
       </div> {/* End of Root Layout Container */}
+
+      {/* 소셜 로그인 후 닉네임 미설정 유저 → 자동으로 닉네임 설정 모달 표시 */}
+      {showNicknameSetup && <NicknameSetupModal />}
     </>
   );
 }

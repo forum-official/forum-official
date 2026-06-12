@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { X, Camera } from "lucide-react";
+import { X, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { toast } from "sonner";
+import { checkNicknameDuplicate } from "@/app/utils/db";
 
 interface EditProfileModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
   const [nickname, setNickname] = useState(user?.nickname || "");
   const [bio, setBio] = useState(user?.bio || "");
   const [profileImage, setProfileImage] = useState(user?.profileImage || "");
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,21 +43,47 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
     setProfileImage("");
   };
 
-  const handleSave = () => {
-    if (!nickname.trim()) {
+  const handleSave = async () => {
+    const trimmed = nickname.trim();
+    if (!trimmed) {
       toast.error("닉네임을 입력해주세요");
       return;
     }
-
-    if (nickname.trim().length < 2) {
+    if (trimmed.length < 2) {
       toast.error("닉네임은 2자 이상이어야 합니다");
       return;
     }
+    if (trimmed.length > 20) {
+      toast.error("닉네임은 20자 이내여야 합니다");
+      return;
+    }
+    if (/\s/.test(trimmed)) {
+      toast.error("닉네임에 공백을 사용할 수 없습니다");
+      return;
+    }
 
-    updateProfile({ 
-      nickname: nickname.trim(), 
+    // 닉네임이 변경된 경우에만 중복 검사 수행
+    if (trimmed !== user?.nickname) {
+      setIsSaving(true);
+      try {
+        const isDuplicate = await checkNicknameDuplicate(trimmed, user?.userId, user?.email);
+        if (isDuplicate) {
+          toast.error("이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.");
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error("닉네임 확인 중 오류가 발생했습니다.");
+        return;
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
+    updateProfile({
+      nickname: trimmed,
       bio: bio.trim(),
-      profileImage: profileImage 
+      profileImage: profileImage,
     });
     toast.success("프로필이 수정되었습니다");
     onClose();
@@ -167,14 +195,21 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
             variant="outline"
             className="flex-1"
             onClick={onClose}
+            disabled={isSaving}
           >
             취소
           </Button>
           <Button
             className="flex-1 bg-purple-600 hover:bg-purple-700"
             onClick={handleSave}
+            disabled={isSaving || !nickname.trim()}
           >
-            저장
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" />
+                확인 중...
+              </span>
+            ) : "저장"}
           </Button>
         </div>
       </div>

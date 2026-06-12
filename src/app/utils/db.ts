@@ -1,6 +1,7 @@
 import { Book, popularBooksData } from "@/app/data/booksData";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
+import { supabase, isSupabaseConfigured } from "@/app/utils/supabaseClient";
 
 
 
@@ -87,6 +88,19 @@ export function getFormattedTimestamp(): string {
   const hh = String(now.getHours()).padStart(2, "0");
   const min = String(now.getMinutes()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+export async function checkNicknameDuplicate(
+  nickname: string,
+  currentUserId?: string,
+  currentUserEmail?: string
+): Promise<boolean> {
+  return false;
+}
+
+
+// Resolve existing duplicate nicknames in local storage by appending a numeric suffix
+export async function resolveDuplicateNicknames(): Promise<void> {
+  // Disabled: Allowing duplicate nicknames as requested
 }
 
 // ----------------------------------------------------
@@ -2684,5 +2698,7 @@ async function updateUserNicknameInCloud(oldNickname: string, newNickname: strin
     console.error("Failed to sync nickname update to cloud:", e);
   }
 }
+
+
 
 

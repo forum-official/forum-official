@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase, isSupabaseConfigured } from "@/app/utils/supabaseClient";
-import { fetchUserLikesFromCloud, updateUserNicknameInDb } from "@/app/utils/db";
+import { fetchUserLikesFromCloud, updateUserNicknameInDb, checkNicknameDuplicate, resolveDuplicateNicknames } from "@/app/utils/db";
 
 interface User {
   userId: string;
@@ -11,6 +11,7 @@ interface User {
   profileImage?: string;
   isSocial?: boolean;
   isPrivate?: boolean;
+  nicknameSet?: boolean;
 }
 
 interface AuthContextType {
@@ -20,94 +21,189 @@ interface AuthContextType {
   loginWithOAuth: (provider: "google" | "kakao", profile?: { nickname: string; email: string; profileImage: string }) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
-  updateProfile: (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean }) => void;
+  updateProfile: (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean }) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const syncUserToLocalList = (userToSync: any) => {
+  const usersData = localStorage.getItem("forum_users");
+  let users = [];
+  if (usersData) {
+    try {
+      users = JSON.parse(usersData);
+    } catch {}
+  }
+  const userIndex = users.findIndex((u: any) => u.userId === userToSync.userId);
+  if (userIndex !== -1) {
+    users[userIndex] = { ...users[userIndex], ...userToSync };
+  } else {
+    users.push(userToSync);
+  }
+  localStorage.setItem("forum_users", JSON.stringify(users));
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  // Supabase Auth 세션 청취 및 로컬 세션 복원
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      // 로컬 Fallback: LocalStorage 세션 복원
-      const storedUser = localStorage.getItem("agora_user");
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          fetchUserLikesFromCloud(parsedUser.userId);
-        } catch (error) {
-          console.error("Failed to parse stored user:", error);
-          localStorage.removeItem("agora_user");
-        }
-      }
-      return;
-    }
+    // Initialize user state (local fallback or Supabase session)
+    const init = async () => {
+      if (!isSupabaseConfigured) {
+        // Resolve duplicate nicknames before loading user
+        await resolveDuplicateNicknames();
 
-    // 1. 초기 세션 조회
-    supabase.auth.getSession().then(({ data: { session } }) => {
+        // Local fallback: restore session from LocalStorage
+        const storedUser = localStorage.getItem("forum_user");
+        if (storedUser) {
+          try {
+            const usersData = localStorage.getItem("forum_users");
+            let parsedUser = JSON.parse(storedUser);
+            if (usersData) {
+              try {
+                const users = JSON.parse(usersData);
+                const updated = users.find((u: any) => u.userId === parsedUser.userId);
+                if (updated) parsedUser = updated;
+              } catch (e) {
+                console.error("Failed to sync user after resolveDuplicateNicknames:", e);
+              }
+            }
+            setUser(parsedUser);
+            fetchUserLikesFromCloud(parsedUser.userId);
+          } catch (error) {
+            console.error("Failed to parse stored user:", error);
+            localStorage.removeItem("forum_user");
+          }
+        }
+        return;
+      }
+
+      // Supabase session fetch
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const meta = session.user.user_metadata;
         const provider = session.user.app_metadata?.provider;
         const isSocial = provider === "google" || provider === "kakao";
-        const profileUser: User = {
+        const baseUser: User = {
           userId: meta.userId || session.user.id,
           nickname: meta.nickname || session.user.email?.split("@")[0] || "유저",
           email: session.user.email || "",
           createdAt: session.user.created_at,
           bio: meta.bio || "",
           profileImage: meta.profileImage || "",
-          isSocial: isSocial,
+          isSocial,
           isPrivate: meta.isPrivate || false,
+          nicknameSet: meta.nickname_set || false,
         };
-        setUser(profileUser);
-        localStorage.setItem("agora_user", JSON.stringify(profileUser));
-        fetchUserLikesFromCloud(profileUser.userId);
-      }
-    });
 
-    // 2. 인증 상태 변화 실시간 감지 (세션 실시간 갱신 및 토큰 자동 처리)
+        // Resolve duplicates before using nickname
+        await resolveDuplicateNicknames();
+
+        // Merge with local storage if present
+        const usersData = localStorage.getItem("forum_users");
+        let finalUser = baseUser;
+        if (usersData) {
+          try {
+            const users = JSON.parse(usersData);
+            const updated = users.find((u: any) => u.userId === baseUser.userId);
+            if (updated) finalUser = updated;
+          } catch (e) {
+            console.error("Failed to parse agora_users after resolveDuplicateNicknames:", e);
+          }
+        }
+        setUser(finalUser);
+        localStorage.setItem("forum_user", JSON.stringify(finalUser));
+        syncUserToLocalList(finalUser);
+        fetchUserLikesFromCloud(finalUser.userId);
+
+        // Upsert profile information to Supabase DB
+        try {
+          await supabase.from("profiles").upsert(
+            {
+              id: session.user.id,
+              nickname: finalUser.nickname,
+              user_id: finalUser.userId,
+              email: finalUser.email,
+              profile_image: finalUser.profileImage,
+              bio: finalUser.bio,
+              is_private: finalUser.isPrivate,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
+        } catch (err) {
+          console.warn(
+            "Failed to upsert profile in Supabase database (Ignore if table isn't created):",
+            err
+          );
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem("forum_user");
+      }
+    };
+
+    // Run initialization
+    init();
+
+    // Real-time auth state change handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const meta = session.user.user_metadata;
         const provider = session.user.app_metadata?.provider;
         const isSocial = provider === "google" || provider === "kakao";
-        const profileUser: User = {
+        const baseUser: User = {
           userId: meta.userId || session.user.id,
           nickname: meta.nickname || session.user.email?.split("@")[0] || "유저",
           email: session.user.email || "",
           createdAt: session.user.created_at,
           bio: meta.bio || "",
           profileImage: meta.profileImage || "",
-          isSocial: isSocial,
+          isSocial,
           isPrivate: meta.isPrivate || false,
+          nicknameSet: meta.nickname_set || false,
         };
-        setUser(profileUser);
-        localStorage.setItem("agora_user", JSON.stringify(profileUser));
-        fetchUserLikesFromCloud(profileUser.userId);
+        await resolveDuplicateNicknames();
+        const usersData = localStorage.getItem("forum_users");
+        let finalUser = baseUser;
+        if (usersData) {
+          try {
+            const users = JSON.parse(usersData);
+            const updated = users.find((u: any) => u.userId === baseUser.userId);
+            if (updated) finalUser = updated;
+          } catch (e) {
+            console.error("Failed to parse agora_users after resolveDuplicateNicknames:", e);
+          }
+        }
+        setUser(finalUser);
+        localStorage.setItem("forum_user", JSON.stringify(finalUser));
+        syncUserToLocalList(finalUser);
+        fetchUserLikesFromCloud(finalUser.userId);
 
-        // 데이터베이스 profiles 테이블에 정보 Upsert
         try {
-          await supabase.from("profiles").upsert({
-            id: session.user.id,
-            nickname: profileUser.nickname,
-            user_id: profileUser.userId,
-            email: profileUser.email,
-            profile_image: profileUser.profileImage,
-            bio: profileUser.bio,
-            is_private: profileUser.isPrivate,
-            updated_at: new Date().toISOString()
-          }, { onConflict: "id" });
+          await supabase.from("profiles").upsert(
+            {
+              id: session.user.id,
+              nickname: finalUser.nickname,
+              user_id: finalUser.userId,
+              email: finalUser.email,
+              profile_image: finalUser.profileImage,
+              bio: finalUser.bio,
+              is_private: finalUser.isPrivate,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "id" }
+          );
         } catch (err) {
-          // RLS 규칙이나 테이블 미생성 시 오류를 무시하여 로컬 테스트 안정성 확보
-          console.warn("Failed to upsert profile in Supabase database (Ignore if table isn't created):", err);
+          console.warn(
+            "Failed to upsert profile in Supabase database (Ignore if table isn't created):",
+            err
+          );
         }
       } else {
         setUser(null);
-        localStorage.removeItem("agora_user");
+        localStorage.removeItem("forum_user");
       }
     });
 
@@ -120,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (emailOrUserId: string, password: string): Promise<boolean> => {
     if (!isSupabaseConfigured) {
       // 로컬 Mock 로그인 Fallback
-      const usersData = localStorage.getItem("agora_users");
+      const usersData = localStorage.getItem("forum_users");
       if (!usersData) return false;
       try {
         const users = JSON.parse(usersData);
@@ -138,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isPrivate: foundUser.isPrivate || false,
           };
           setUser(userToStore);
-          localStorage.setItem("agora_user", JSON.stringify(userToStore));
+          localStorage.setItem("forum_user", JSON.stringify(userToStore));
           return true;
         }
         return false;
@@ -175,12 +271,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isSupabaseConfigured) {
       // 로컬 Mock 회원가입 Fallback
       try {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         const users = usersData ? JSON.parse(usersData) : [];
         const userIdExists = users.some((u: any) => u.userId === userId);
         if (userIdExists) return { success: false, error: "이미 사용 중인 아이디입니다." };
         const emailExists = users.some((u: any) => u.email === email);
         if (emailExists) return { success: false, error: "이미 등록된 이메일입니다." };
+        // Nickname duplication check disabled as requested
 
         const newUser = {
           userId,
@@ -189,9 +286,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           createdAt: new Date().toISOString(),
           isPrivate: false,
+          nicknameSet: true,
         };
         users.push(newUser);
-        localStorage.setItem("agora_users", JSON.stringify(users));
+        localStorage.setItem("forum_users", JSON.stringify(users));
 
         const userToStore = {
           userId: newUser.userId,
@@ -199,9 +297,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: newUser.email,
           createdAt: newUser.createdAt,
           isPrivate: false,
+          nicknameSet: true,
         };
         setUser(userToStore);
-        localStorage.setItem("agora_user", JSON.stringify(userToStore));
+        localStorage.setItem("forum_user", JSON.stringify(userToStore));
         return { success: true };
       } catch (error) {
         return { success: false, error: "회원가입 중 오류가 발생했습니다." };
@@ -210,6 +309,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Supabase 실제 이메일 가입 실행
     try {
+      const isDuplicate = await checkNicknameDuplicate(nickname);
+      if (isDuplicate) {
+        return { success: false, error: "이미 사용 중인 닉네임입니다." };
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -217,6 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: {
             nickname,
             userId,
+            nickname_set: true,
           }
         }
       });
@@ -239,7 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 로그아웃 핸들러
   const logout = async () => {
     setUser(null);
-    localStorage.removeItem("agora_user");
+    localStorage.removeItem("forum_user");
     
     if (isSupabaseConfigured) {
       try {
@@ -251,7 +356,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 프로필 정보 업데이트
-  const updateProfile = async (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean }) => {
+  const updateProfile = async (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean }) => {
     if (!user) return;
     const oldNickname = user.nickname;
     const newNickname = updates.nickname;
@@ -261,21 +366,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem("agora_user", JSON.stringify(updatedUser));
+    localStorage.setItem("forum_user", JSON.stringify(updatedUser));
+    syncUserToLocalList(updatedUser);
 
     if (!isSupabaseConfigured) {
-      // 로컬 fallback 업데이트
-      const usersData = localStorage.getItem("agora_users");
-      if (usersData) {
-        try {
-          const users = JSON.parse(usersData);
-          const userIndex = users.findIndex((u: any) => u.userId === user.userId);
-          if (userIndex !== -1) {
-            users[userIndex] = { ...users[userIndex], ...updates };
-            localStorage.setItem("agora_users", JSON.stringify(users));
-          }
-        } catch {}
-      }
       return;
     }
 
@@ -288,6 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           bio: updates.bio || user.bio,
           profileImage: updates.profileImage || user.profileImage,
           isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
+          nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
         }
       });
       // 2. Profiles DB 테이블 갱신
@@ -311,14 +406,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return { success: false, error: "로그인 후 변경 가능합니다." };
 
     if (!isSupabaseConfigured) {
-      const usersData = localStorage.getItem("agora_users");
+      const usersData = localStorage.getItem("forum_users");
       if (!usersData) return { success: false, error: "사용자를 찾을 수 없습니다." };
       try {
         const users = JSON.parse(usersData);
         const idx = users.findIndex((u: any) => u.userId === user.userId && u.password === currentPassword);
         if (idx === -1) return { success: false, error: "비밀번호가 일치하지 않습니다." };
         users[idx].password = newPassword;
-        localStorage.setItem("agora_users", JSON.stringify(users));
+        localStorage.setItem("forum_users", JSON.stringify(users));
         return { success: true };
       } catch {
         return { success: false, error: "비밀번호 변경 실패" };
@@ -346,11 +441,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 로컬 Mock OAuth 로그인 가동
       if (!profile) return false;
       try {
-        const usersData = localStorage.getItem("agora_users");
+        const usersData = localStorage.getItem("forum_users");
         const users = usersData ? JSON.parse(usersData) : [];
         const oauthUserId = `${provider}_${profile.email.split("@")[0]}`;
         let foundUser = users.find((u: any) => u.userId === oauthUserId);
         if (!foundUser) {
+  // 중복 닉네임 확인
+  const isDup = await checkNicknameDuplicate(profile.nickname);
+  if (isDup) {
+    console.error('OAuth 로그인 중 중복 닉네임 감지');
+    return false;
+  }
           foundUser = {
             userId: oauthUserId,
             password: `oauth_${provider}_${Math.random()}`,
@@ -361,9 +462,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             bio: `${provider === "google" ? "Google" : "Kakao"} 소셜 로그인한 테스트 계정입니다.`,
             isSocial: true,
             isPrivate: false,
+            nicknameSet: false,
           };
           users.push(foundUser);
-          localStorage.setItem("agora_users", JSON.stringify(users));
+          localStorage.setItem("forum_users", JSON.stringify(users));
         }
 
         const userToStore = {
@@ -375,9 +477,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profileImage: foundUser.profileImage,
           isSocial: true,
           isPrivate: foundUser.isPrivate || false,
+          nicknameSet: foundUser.nicknameSet || false,
         };
         setUser(userToStore);
-        localStorage.setItem("agora_user", JSON.stringify(userToStore));
+        localStorage.setItem("forum_user", JSON.stringify(userToStore));
         return true;
       } catch {
         return false;
