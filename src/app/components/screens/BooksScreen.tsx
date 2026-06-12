@@ -73,10 +73,43 @@ export function BooksScreen({
       return;
     }
 
+    const categoryToCidMap: Record<string, number> = {
+      "문학": 1,
+      "철학": 51387,
+      "인문": 656,
+      "역사": 74,
+      "과학": 987,
+      "심리": 5110,
+      "경제/경영": 170,
+      "자기계발": 336,
+      "사회": 798,
+      "라이트노벨": 50246,
+      "청소년": 76001,
+      "자격증": 1383
+    };
+
+    // Check session cache first to prevent redundant loading when returning
+    const cachedQuery = sessionStorage.getItem("booksScreen_cachedQuery");
+    const cachedCategory = sessionStorage.getItem("booksScreen_cachedCategory");
+    const cachedBooksStr = sessionStorage.getItem("booksScreen_apiBooks");
+
+    if (cachedQuery === searchQuery && cachedCategory === selectedCategory && cachedBooksStr) {
+      try {
+        const cachedBooks = JSON.parse(cachedBooksStr);
+        setApiBooks(cachedBooks);
+        setIsLoading(false);
+        return;
+      } catch (e) {
+        console.error("Failed to parse cached books:", e);
+      }
+    }
+
     setIsLoading(true);
     const delayDebounce = setTimeout(async () => {
       try {
-        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}`;
+        const cid = categoryToCidMap[selectedCategory];
+        const cidParam = cid ? `&CID=${cid}` : "";
+        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}${cidParam}`;
         const html = await fetchHtmlViaProxy(targetUrl);
 
         const parser = new DOMParser();
@@ -174,6 +207,9 @@ export function BooksScreen({
             // 앱 내 리뷰나 별점이 없으면 0.0 (별점 없음)
             const finalRating = (ratingStats.reviewsCount + ratingStats.quickCount) > 0 ? ratingStats.rating : 0.0;
 
+            // Aladin search results have their genre matched to the selected category (default to ["도서"] if "전체")
+            const genre = selectedCategory !== "전체" ? [selectedCategory] : ["도서"];
+
             return {
               id: itemId,
               title,
@@ -185,7 +221,7 @@ export function BooksScreen({
               reviews: ratingStats.reviewsCount,
               publishers: pubVotes.map(pv => ({ name: pv.name, votes: pv.votes })),
               year,
-              genre: ["도서"],
+              genre,
               salesPoint,
             };
           } catch (e) {
@@ -195,6 +231,9 @@ export function BooksScreen({
         }).filter((b): b is Book => b !== null);
 
         setApiBooks(formattedBooks);
+        sessionStorage.setItem("booksScreen_apiBooks", JSON.stringify(formattedBooks));
+        sessionStorage.setItem("booksScreen_cachedQuery", searchQuery);
+        sessionStorage.setItem("booksScreen_cachedCategory", selectedCategory);
       } catch (error) {
         console.error("Error in search debounce logic:", error);
         setApiBooks([]);
@@ -204,7 +243,7 @@ export function BooksScreen({
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategory]);
 
   // 카테고리 그룹화
   const categories = [
@@ -328,10 +367,10 @@ export function BooksScreen({
       };
     });
 
-  // 로컬 매칭 + API 도서 병합 (제목 중복 방지)
+  // 로컬 매칭 + API 도서 병합 (제목 중복 방지 및 카테고리 필터)
   const mergedBooks = [...localMatches];
   if (searchQuery.trim() !== "") {
-    apiBooks.forEach(apiBook => {
+    apiBooks.filter(filterByCategory).forEach(apiBook => {
       const isDuplicate = mergedBooks.some(
         localBook => 
           localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&
