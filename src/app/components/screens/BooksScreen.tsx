@@ -45,15 +45,16 @@ export function BooksScreen({
 
 
 
-  // 검색 버튼 클릭 시 검색창 토글 및 닫힐 때 검색어 초기화
+  // 검색창 토글: 열릴 때 카테고리 초기화, 닫힐 때 검색어 초기화
   const handleSearchToggle = () => {
     const nextShowSearch = !showSearch;
     setShowSearch(nextShowSearch);
     if (!nextShowSearch) {
+      // 검색창 닫을 때: 검색어 초기화, 카테고리 전체로 복귀
       setSearchQuery("");
-    } else {
       setSelectedCategory("전체");
     }
+    // 검색창 열 때는 카테고리 초기화 없이 그냥 열기
   };
 
   // 카테고리 클릭 핸들러
@@ -466,9 +467,15 @@ export function BooksScreen({
       </Header>
 
       <div className="max-w-md mx-auto px-4 py-4">
-        {/* Category Filter */}
-        <div className="mb-4">
-          <div className="flex gap-2 flex-wrap">
+        {/* Category Filter - 검색창 열릴 때 숨김 */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            showSearch
+              ? "max-h-0 opacity-0 mb-0 pointer-events-none"
+              : "max-h-40 opacity-100 mb-4"
+          }`}
+        >
+          <div className="flex gap-2 flex-wrap py-0.5">
             {categories.map((category) => (
               <button
                 key={category}
@@ -485,8 +492,14 @@ export function BooksScreen({
           </div>
         </div>
 
-        {/* Sort Options */}
-        <div className="flex justify-end gap-1.5 mb-4 text-xs">
+        {/* Sort Options - 검색창 열릴 때 숨김 */}
+        <div
+          className={`flex justify-end gap-1.5 text-xs transition-all duration-300 ease-in-out ${
+            showSearch
+              ? "max-h-0 opacity-0 mb-0 overflow-hidden pointer-events-none"
+              : "max-h-12 opacity-100 mb-4"
+          }`}
+        >
           <button
             onClick={() => setSortBy("likes")}
             className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
