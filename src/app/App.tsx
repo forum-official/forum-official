@@ -770,11 +770,6 @@ function AppContent() {
       }
     } else {
       // 상세 화면 등에서 뒤로가기 시 책 탭 및 작가 아카이브의 상태도 초기화
-      if (currentScreen === "book-detail") {
-        setSearchQuery("");
-        setSelectedCategory("전체");
-        setBooksScreenShowSearch(false);
-      }
       if (currentScreen === "author-archive" || currentScreen === "author-detail") {
         sessionStorage.removeItem('authorArchive_search');
         sessionStorage.removeItem('authorArchive_country');
