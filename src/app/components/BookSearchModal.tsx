@@ -6,7 +6,7 @@ import { popularBooksData } from "@/app/data/booksData";
 import type { Book as BookType } from "@/app/data/booksData";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getBookRatingStatsWithQuick, getGlobalBooks } from "@/app/utils/db";
-import { cleanAladinAuthors } from "@/app/utils/authorUtils";
+import { cleanAladinAuthors, splitAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
@@ -188,6 +188,32 @@ export function BookSearchModal({
                   
                   if (isMetadataLine) {
                     author = cleanAladinAuthors(parts[0] || "");
+                    
+                    // Extract Aladin author IDs matching clean author names
+                    const cleanNames = splitAuthors(author);
+                    const aladinAuthorIds: string[] = [];
+                    cleanNames.forEach(name => {
+                      const authorLink = Array.from(listItems[i].querySelectorAll('a')).find(a => a.textContent.trim() === name);
+                      if (authorLink) {
+                        const href = authorLink.getAttribute('href') || '';
+                        const match = href.match(/AuthorSearch=([^&]+)/);
+                        if (match) {
+                          try {
+                            const decoded = decodeURIComponent(match[1]);
+                            if (decoded.includes('@')) {
+                              const parts = decoded.split('@');
+                              const authorId = parts[1];
+                              if (authorId) {
+                                aladinAuthorIds.push(authorId);
+                              }
+                            }
+                          } catch (e) {
+                            console.error("Failed to decode AuthorSearch:", e);
+                          }
+                        }
+                      }
+                    });
+                    
                     publisher = parts[1].replace(/\s*\([^)]+\)/g, "").trim();
                     if (parts[2]) {
                       const yearMatch = parts[2].match(/\d{4}/);
@@ -197,6 +223,7 @@ export function BookSearchModal({
                       if (yearMatch) year = parseInt(yearMatch[0]);
                     }
                     foundMetadata = true;
+                    (box as any)._scrapedAuthorAladinIds = aladinAuthorIds;
                   }
                 }
               }
@@ -229,6 +256,7 @@ export function BookSearchModal({
                 year,
                 genre: ["도서"],
                 salesPoint,
+                authorAladinIds: (box as any)._scrapedAuthorAladinIds || []
               };
             } catch (e) {
               console.error("Failed to parse box item:", e);
@@ -299,6 +327,7 @@ export function BookSearchModal({
       description: book.description || "",
       year: book.year || 2024,
       genre: book.genre || [],
+      authorAladinIds: book.authorAladinIds || []
     };
     saveGlobalBook(globalBook);
 

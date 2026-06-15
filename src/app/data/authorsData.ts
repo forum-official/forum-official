@@ -18,6 +18,7 @@ export interface Author {
     publishers: string[];
   }[];
   awards?: string[];
+  aladinId?: string;
 }
 
 export const initialAuthors: Author[] = [

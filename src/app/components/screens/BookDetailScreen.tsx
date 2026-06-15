@@ -228,6 +228,7 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
       isGarbageDescription(book.description)
     );
 
+    const needsAuthorIds = !isStaticBook && (!book.authorAladinIds || book.authorAladinIds.length === 0);
     const isDefaultDesc = !book.description || 
       isDummyDesc ||                                        // 딱딱한 템플릿 설명인 경우 무조건 크롤링 수행
       (!isStaticBook && book.description.length < 30) ||   // 검색 추가 도서 중 설명이 너무 짧은 경우만 크롤링
@@ -235,12 +236,14 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
       (book.description.includes("작가의 작품") && book.description.includes("입니다.")) ||
       book.description.trim().endsWith("...") ||
       book.description.trim().endsWith("…") ||
-      book.description.trim().endsWith("..");
+      book.description.trim().endsWith("..") ||
+      needsAuthorIds;
 
     const fetchBookInfo = async () => {
       let descriptionFound = false;
       let scrapedAuthor = "";
       let description = "";
+      let scrapedAuthorAladinIds: string[] = [];
 
       const fetchAladinDescription = async (itemId: string): Promise<string> => {
         if (!itemId) return "";
@@ -362,23 +365,49 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                   description = desc;
                   descriptionFound = true;
                   
-                  if (!scrapedAuthor) {
-                    const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
-                    for (let i = 0; i < listItems.length; i++) {
-                      const text = listItems[i].textContent || "";
-                      if (text.includes("|")) {
-                        const parts = text.split("|").map(p => p.trim());
-                        const isShoppingOrPricing = 
-                          /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
-                          (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
-                          
-                        const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing &&
-                          (text.includes("지은이") || text.includes("저자") || text.includes("지음") || text.includes("옮김") || text.includes("역자") || text.includes("저") || text.includes("글") || text.includes("그림") || /\d{4}/.test(text));
+                  // Always parse metadata to get Aladin IDs if they are missing
+                  const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
+                  for (let i = 0; i < listItems.length; i++) {
+                    const text = listItems[i].textContent || "";
+                    if (text.includes("|")) {
+                      const parts = text.split("|").map(p => p.trim());
+                      const isShoppingOrPricing = 
+                        /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
+                        (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
                         
-                        if (isMetadataLine) {
-                          scrapedAuthor = cleanAladinAuthors(parts[0] || "");
-                          break;
+                      const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing &&
+                        (text.includes("지은이") || text.includes("옮긴이") || text.includes("저자") || text.includes("지음") || text.includes("옮김") || text.includes("역자") || text.includes("저") || text.includes("글") || text.includes("그림") || /\d{4}/.test(text));
+                      
+                      if (isMetadataLine) {
+                        const tempAuthor = cleanAladinAuthors(parts[0] || "");
+                        if (!scrapedAuthor) {
+                          scrapedAuthor = tempAuthor;
                         }
+                        
+                        // Extract Aladin author IDs matching clean names
+                        const cleanNames = splitAuthors(tempAuthor);
+                        const aladinAuthorIds: string[] = [];
+                        cleanNames.forEach(name => {
+                          const authorLink = Array.from(listItems[i].querySelectorAll('a')).find(a => a.textContent.trim() === name);
+                          if (authorLink) {
+                            const href = authorLink.getAttribute('href') || '';
+                            const match = href.match(/AuthorSearch=([^&]+)/);
+                            if (match) {
+                              try {
+                                const decoded = decodeURIComponent(match[1]);
+                                if (decoded.includes('@')) {
+                                  const scrapedId = decoded.split('@')[1];
+                                  if (scrapedId) aladinAuthorIds.push(scrapedId);
+                                }
+                              } catch (e) {
+                                console.error(e);
+                              }
+                            }
+                          }
+                        });
+                        (box as any)._scrapedAuthorAladinIds = aladinAuthorIds;
+                        scrapedAuthorAladinIds = aladinAuthorIds;
+                        break;
                       }
                     }
                   }
@@ -499,6 +528,11 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
           setBookAuthor(scrapedAuthor);
           hasUpdated = true;
           healLibraryBookAuthor(book.id, scrapedAuthor);
+        }
+
+        if (scrapedAuthorAladinIds && scrapedAuthorAladinIds.length > 0 && JSON.stringify(scrapedAuthorAladinIds) !== JSON.stringify(book.authorAladinIds)) {
+          updatedBook.authorAladinIds = scrapedAuthorAladinIds;
+          hasUpdated = true;
         }
 
         if (hasUpdated) {
@@ -786,9 +820,12 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                              // 전체 DB와 동명이인 예외 리스트에서 가장 어울리는 작가 획득 (생몰연도, 대표작, 장르, 설명 분석)
                              const richAuthor = getBestAuthorMatch(authorName, book);
 
+                             const aladinId = book.authorAladinIds?.[index] || null;
+
                             // 2. 실제 작가 데이터가 있으면 사용, 없으면 임시 객체로 fallback
                             const authorData = richAuthor ?? {
-                              id: 0,
+                              id: aladinId ? (parseInt(aladinId) || (99999 + index)) : 0,
+                              aladinId: aladinId || undefined,
                               name: authorName,
                               nameEn: authorName,
                               nationality: "미상",

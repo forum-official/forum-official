@@ -29,6 +29,7 @@ interface Author {
   awards: string[];
   imageUrl?: string;
   wikiTitle?: string;
+  aladinId?: string;
 }
 
 interface Opinion {
@@ -68,7 +69,8 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                          desc.includes("작가의 작품들") || 
                          nationality === "미상" || 
                          booksList.length <= 1;
-    return (author?.id === 0) || isIncomplete;
+    const isDynamic = author?.id === 0 || !!author?.aladinId || (author?.id && author.id >= 10000);
+    return isDynamic || isIncomplete;
   });
 
   useEffect(() => {
@@ -81,7 +83,8 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                            desc.includes("작가의 작품들") || 
                            nationality === "미상" || 
                            booksList.length <= 1;
-      return (author?.id === 0) || isIncomplete;
+      const isDynamic = author?.id === 0 || !!author?.aladinId || (author?.id && author.id >= 10000);
+      return isDynamic || isIncomplete;
     });
     
     let isMounted = true;
@@ -170,11 +173,47 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
         console.error("Wiki bio load failed:", e);
       }
 
+      // ── A-2. 알라딘 작가 공식 프로필 상세 조회 ──
+      if (author?.aladinId) {
+        try {
+          const authorUrl = `https://www.aladin.co.kr/wauthor/wauthor_main.aspx?AuthorId=${author.aladinId}`;
+          const authorHtml = await fetchHtmlViaProxy(authorUrl);
+          if (isMounted) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(authorHtml, "text/html");
+            
+            // Photo scraping
+            const picImg = doc.querySelector(".wa_main_pic img, .author_photo img, img[src*='author']");
+            if (picImg) {
+              const src = picImg.getAttribute("src") || "";
+              if (src && (!updatedImg || updatedImg.includes("unsplash.com") || updatedImg.includes("aladin.co.kr"))) {
+                updatedImg = src;
+                hasUpdates = true;
+              }
+            }
+            
+            // Bio scraping
+            const introDiv = doc.querySelector(".wa_main_authorinfo, .wa_author_intro, #div_Introduce_All, #div_Introduce_Short, .wa_bio");
+            if (introDiv) {
+              const rawText = introDiv.textContent?.trim().replace(/\s+/g, " ") || "";
+              if (rawText && rawText.length > 20 && (updatedDesc.includes("작가의 작품들") || updatedDesc.length < 30)) {
+                updatedDesc = rawText;
+                hasUpdates = true;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Aladin author page load failed:", e);
+        }
+      }
+
       // ── B. 알라딘 검색 결과를 통한 실시간 작품 목록 수집 ──
-      if (author?.id === 0) {
+      if (author?.id === 0 || !!author?.aladinId || (author?.id && author.id >= 10000)) {
         try {
           const query = author?.name || "";
-          const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
+          const targetUrl = author?.aladinId 
+            ? `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&AuthorSearch=${encodeURIComponent(author.name + '@' + author.aladinId)}&BranchType=1`
+            : `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
           const html = await fetchHtmlViaProxy(targetUrl);
           if (isMounted) {
             const parser = new DOMParser();
@@ -215,9 +254,29 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                 // 만약 이 fallback 작가(id = 0)가 유명/동명이인 DB 작가(예: 김유정 등)와 이름이 같다면,
                 // 스크레이핑된 서적이 그 DB 작가의 저서로 분류되는지 체크하여, DB 작가의 서적이라면 이 fallback 작가의 페이지에서 제외시킵니다!
                 if (isScrapedAuthorMatched && author?.name) {
-                  const matchedDbAuthor = getBestAuthorMatch(author.name, { title, year, description: "", genre: author.genre });
-                  if (matchedDbAuthor !== null) {
-                    isScrapedAuthorMatched = false; // DB 작가의 책이므로 fallback 작가에 할당하지 않음
+                  if (author.aladinId) {
+                    const authorLink = Array.from(box.querySelectorAll('a')).find(a => a.textContent.trim() === author.name);
+                    let scrapedAladinId = "";
+                    if (authorLink) {
+                      const href = authorLink.getAttribute('href') || '';
+                      const match = href.match(/AuthorSearch=([^&]+)/);
+                      if (match) {
+                        try {
+                          const decoded = decodeURIComponent(match[1]);
+                          if (decoded.includes('@')) {
+                            scrapedAladinId = decoded.split('@')[1];
+                          }
+                        } catch (e) {}
+                      }
+                    }
+                    if (scrapedAladinId && scrapedAladinId !== author.aladinId) {
+                      isScrapedAuthorMatched = false; // Aladin ID mismatch
+                    }
+                  } else {
+                    const matchedDbAuthor = getBestAuthorMatch(author.name, { title, year, description: "", genre: author.genre });
+                    if (matchedDbAuthor !== null) {
+                      isScrapedAuthorMatched = false; // DB 작가의 책이므로 fallback 작가에 할당하지 않음
+                    }
                   }
                 }
                 
@@ -248,7 +307,8 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                     reviews: 0,
                     description: `${cleanAuthorsStr} 작가의 작품 ${title}입니다.`,
                     genre: author?.genre || ["소설"],
-                    year
+                    year,
+                    authorAladinIds: author.aladinId ? [author.aladinId] : []
                   });
                 }
               } catch (e) {
