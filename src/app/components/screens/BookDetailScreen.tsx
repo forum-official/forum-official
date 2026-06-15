@@ -13,7 +13,7 @@ import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getReviews, saveReview, deleteReview, getPublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud } from "@/app/utils/db";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors } from "@/app/data/authorsData";
-import { splitAuthors, cleanAladinAuthors } from "@/app/utils/authorUtils";
+import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
 
@@ -786,20 +786,23 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                             // 1. 전체 DB에서 작가 정보 조회 (getAuthorsList 사용)
                             const allBooksForLookup = getGlobalBooks(popularBooksData);
                             
-                            // 이름이 같은 동명이인 중 책 제목이나 장르 등의 연관성으로 매칭 시도
-                            const matchedAuthor = [...initialAuthors, ...specialFallbackAuthors].find(a => {
-                              if (a.name !== authorName && a.nameEn !== authorName) return false;
-                              // 책 제목이 작가의 대표작 목록에 있거나 저서(books) 목록에 있는지 확인
-                              const hasBook = 
-                                (a.representative && a.representative.some(title => book.title.includes(title) || title.includes(book.title))) ||
-                                (a.books && a.books.some(b => book.title.includes(b.title) || b.title.includes(book.title)));
-                              return hasBook;
-                            });
+                             // 1차 패스: 이름이 같으면서 책 제목이 대표작/저서 목록에 명시되어 있는 경우 최우선 매칭
+                             const nameMatchedAuthors = [...initialAuthors, ...specialFallbackAuthors].filter(
+                               a => a.name === authorName || a.nameEn === authorName
+                             );
+                             
+                             let richAuthor = nameMatchedAuthors.find(a => {
+                               const titleLower = book.title.toLowerCase();
+                               return (
+                                 (a.representative && a.representative.some(title => titleLower.includes(title.toLowerCase()) || title.toLowerCase().includes(titleLower))) ||
+                                 (a.books && a.books.some(b => titleLower.includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(titleLower)))
+                               );
+                             });
 
-                            // 만약 대표작 매칭으로 찾지 못했다면 이름으로만 매칭되는 첫 작가 검색
-                            const richAuthor = matchedAuthor || [...getAuthorsList(allBooksForLookup), ...specialFallbackAuthors].find(
-                              a => a.name === authorName || a.nameEn === authorName
-                            );
+                             // 2차 패스: 명시적인 대표작/저서 매칭이 없는 경우, 동명이인 검증 로직(isAuthorMatched)을 통과하는 작가 선택
+                             if (!richAuthor) {
+                               richAuthor = nameMatchedAuthors.find(a => isAuthorMatched(a, book));
+                             }
 
                             // 2. 실제 작가 데이터가 있으면 사용, 없으면 임시 객체로 fallback
                             const authorData = richAuthor ?? {

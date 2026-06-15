@@ -10,8 +10,9 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import { AuthorImage } from "@/app/components/AuthorImage";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getGlobalBooks } from "@/app/utils/db";
-import { cleanAladinAuthors } from "@/app/utils/authorUtils";
+import { cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { popularBooksData } from "@/app/data/booksData";
+import { initialAuthors, specialFallbackAuthors } from "@/app/data/authorsData";
 
 import { getAuthorOpinions, saveAuthorOpinion, toggleAuthorOpinionLike, getAuthorOpinionLikeStatus, getFormattedTimestamp } from "@/app/utils/db";
 
@@ -190,14 +191,14 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                 const infoDiv = box.querySelector(".ss_book_list");
                 let publishers: string[] = [];
                 let year = 2024;
-                let isAuthorMatched = false;
+                let isScrapedAuthorMatched = false;
                 let cleanAuthorsStr = author?.name || "";
                 if (infoDiv) {
                   const text = infoDiv.textContent || "";
                   
                   // 저자명 일치 여부 확인 (예: "박경리 지음", "박경리 소설" 등)
                   if (author?.name && text.includes(author.name)) {
-                    isAuthorMatched = true;
+                    isScrapedAuthorMatched = true;
                   }
                   
                   const parts = text.split("|").map(p => p.trim());
@@ -211,8 +212,22 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                   }
                 }
                 
+                // 만약 이 fallback 작가(id = 0)가 유명/동명이인 DB 작가(예: 김유정 등)와 이름이 같다면,
+                // 스크레이핑된 서적이 그 DB 작가의 저서로 분류되는지 체크하여, DB 작가의 서적이라면 이 fallback 작가의 페이지에서 제외시킵니다!
+                if (isScrapedAuthorMatched && author?.name) {
+                  const dbAuthorsWithName = [...initialAuthors, ...specialFallbackAuthors].filter(
+                    a => a.name === author.name || a.nameEn === author.name
+                  );
+                  const isBookFromDbAuthor = dbAuthorsWithName.some(dbAuthor => 
+                    isAuthorMatched(dbAuthor, { title, year, description: "" })
+                  );
+                  if (isBookFromDbAuthor) {
+                    isScrapedAuthorMatched = false; // DB 작가의 책이므로 fallback 작가에 할당하지 않음
+                  }
+                }
+                
                 // 현재 작품 목록에 없는 서적이자 저자명이 확인된 서적인 경우 추가
-                if (title && isAuthorMatched && !updatedBooks.some(b => b.title === title)) {
+                if (title && isScrapedAuthorMatched && !updatedBooks.some(b => b.title === title)) {
                   updatedBooks.push({
                     title,
                     year,
