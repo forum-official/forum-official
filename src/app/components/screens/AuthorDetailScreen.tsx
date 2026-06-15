@@ -124,27 +124,29 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
 
           if (isDisambiguation) {
             // Disambiguation이면 아무것도 사용하지 않음
-          } else if (data.extract && (currentDesc.includes("작가의 작품들") || currentDesc.length < 30)) {
+          } else {
             // ❌ 작가/저자와 무관한 페이지 필터링 (정치인, 배우, 기업인 등)
             const authorKeywords = ["소설", "시인", "작가", "저자", "문학", "수필", "평론", "번역", "교수", "학자", "연구", "글", "책", "출판", "writer", "author", "novelist", "poet", "professor"];
             const politicsKeywords = ["국회의원", "정치인", "배우", "가수", "운동선수", "감독", "기업인", "CEO", "대통령", "장관", "판사", "검사", "경찰", "군인"];
-            const hasAuthorKeyword = authorKeywords.some(kw => data.extract.includes(kw));
-            const hasPoliticsOnly = politicsKeywords.some(kw => data.extract.includes(kw)) && !hasAuthorKeyword;
-            
-            if (!hasPoliticsOnly) {
-              updatedDesc = data.extract;
+            const hasAuthorKeyword = data.extract ? authorKeywords.some(kw => data.extract.includes(kw)) : false;
+            const hasPoliticsOnly = data.extract ? (politicsKeywords.some(kw => data.extract.includes(kw)) && !hasAuthorKeyword) : false;
+
+            // 설명 업데이트: 정치인 페이지가 아니고, 기존 설명이 짧을 때만
+            if (data.extract && (currentDesc.includes("작가의 작품들") || currentDesc.length < 30)) {
+              if (!hasPoliticsOnly) {
+                updatedDesc = data.extract;
+                hasUpdates = true;
+              }
+            }
+
+            // 썸네일: 정치인 페이지가 아닐 때만 사용 (핵심 수정: 정치인 사진 차단)
+            if (!hasPoliticsOnly && data.thumbnail?.source && (!author?.imageUrl || author.imageUrl.includes("unsplash.com") || author.imageUrl.includes("aladin.co.kr"))) {
+              updatedImg = data.thumbnail.source;
               hasUpdates = true;
             }
-          }
 
-          // 썸네일은 disambiguation이 아닐 때만 사용
-          if (!isDisambiguation && data.thumbnail?.source && (!author?.imageUrl || author.imageUrl.includes("unsplash.com") || author.imageUrl.includes("aladin.co.kr"))) {
-            updatedImg = data.thumbnail.source;
-            hasUpdates = true;
-          }
-
-          if (!isDisambiguation && data.extract) {
-            if ((author?.nationality || "미상") === "미상") {
+            // 국적 업데이트
+            if (data.extract && (author?.nationality || "미상") === "미상") {
               if (data.extract.includes("대한민국") || data.extract.includes("한국의") || data.extract.includes("조선")) {
                 updatedNation = "한국";
                 hasUpdates = true;
