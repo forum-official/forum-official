@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getReviews, saveReview, deleteReview, getPublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud } from "@/app/utils/db";
-import { getAuthorsList, initialAuthors, specialFallbackAuthors } from "@/app/data/authorsData";
+import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
@@ -783,26 +783,8 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                       ) : (
                         <button 
                           onClick={() => {
-                            // 1. 전체 DB에서 작가 정보 조회 (getAuthorsList 사용)
-                            const allBooksForLookup = getGlobalBooks(popularBooksData);
-                            
-                             // 1차 패스: 이름이 같으면서 책 제목이 대표작/저서 목록에 명시되어 있는 경우 최우선 매칭
-                             const nameMatchedAuthors = [...initialAuthors, ...specialFallbackAuthors].filter(
-                               a => a.name === authorName || a.nameEn === authorName
-                             );
-                             
-                             let richAuthor = nameMatchedAuthors.find(a => {
-                               const titleLower = book.title.toLowerCase();
-                               return (
-                                 (a.representative && a.representative.some(title => titleLower.includes(title.toLowerCase()) || title.toLowerCase().includes(titleLower))) ||
-                                 (a.books && a.books.some(b => titleLower.includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(titleLower)))
-                               );
-                             });
-
-                             // 2차 패스: 명시적인 대표작/저서 매칭이 없는 경우, 동명이인 검증 로직(isAuthorMatched)을 통과하는 작가 선택
-                             if (!richAuthor) {
-                               richAuthor = nameMatchedAuthors.find(a => isAuthorMatched(a, book));
-                             }
+                             // 전체 DB와 동명이인 예외 리스트에서 가장 어울리는 작가 획득 (생몰연도, 대표작, 장르, 설명 분석)
+                             const richAuthor = getBestAuthorMatch(authorName, book);
 
                             // 2. 실제 작가 데이터가 있으면 사용, 없으면 임시 객체로 fallback
                             const authorData = richAuthor ?? {

@@ -2050,3 +2050,104 @@ export function getAuthorsList(books: Book[]): Author[] {
     return true;
   });
 }
+
+/**
+ * Verifies and finds the best matching author from initialAuthors and specialFallbackAuthors
+ * for a given book based on direct title matches, death year checks, genre compatibility, and keywords.
+ */
+export function getBestAuthorMatch(authorName: string, book: any): Author | null {
+  if (!authorName) return null;
+  
+  const nameMatchedAuthors = [...initialAuthors, ...specialFallbackAuthors].filter(
+    a => a.name === authorName || a.nameEn === authorName
+  );
+  
+  if (nameMatchedAuthors.length === 0) return null;
+  
+  const bookTitle = (book.title || "").toLowerCase();
+  const bookGenres = (book.genre || []).map((g: string) => g.toLowerCase());
+  const bookDesc = (book.description || "").toLowerCase();
+  
+  let bestAuthor: Author | null = null;
+  let bestScore = -9999;
+  
+  for (const author of nameMatchedAuthors) {
+    let score = 0;
+    
+    // 1. 대표작/저서 직접 매치 (매우 높은 점수)
+    const hasDirectBook = 
+      (author.representative && author.representative.some((t: string) => bookTitle.includes(t.toLowerCase()) || t.toLowerCase().includes(bookTitle))) ||
+      (author.books && author.books.some((b: any) => bookTitle.includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(bookTitle)));
+      
+    if (hasDirectBook) {
+      score += 1000;
+    }
+    
+    // 2. 생몰 연도 검사 (사망 후 출판된 비-문학작품 강한 감점)
+    if (author.birth && author.birth.includes("-")) {
+      const parts = author.birth.split("-");
+      const deathYearStr = parts[1] ? parts[1].trim() : "";
+      if (deathYearStr) {
+        const deathYear = parseInt(deathYearStr);
+        if (!isNaN(deathYear)) {
+          const bookYear = book.year || 2024;
+          if (bookYear > deathYear) {
+            // 소설집, 시집 등의 클래식 컬렉션인지 확인
+            const classicKeywords = ["소설집", "선집", "문학선", "시집", "전집", "대표작", "작품집", "단편선", "대표소설", "문학집", "소설선", "수필집", "시선집", "작품선"];
+            const isClassicCollection = classicKeywords.some(kw => bookTitle.includes(kw));
+            
+            if (!hasDirectBook && !isClassicCollection) {
+              score -= 1000; // 사망 후의 현대 책인데 대표작도 선집도 아니면 강한 감점
+            }
+          }
+        }
+      }
+    }
+    
+    // 3. 장르 매칭 점수
+    const authorGenres = (author.genre || []).map((g: string) => g.toLowerCase());
+    let genreMatchCount = 0;
+    authorGenres.forEach((ag: string) => {
+      bookGenres.forEach((bg: string) => {
+        if (bg.includes(ag) || ag.includes(bg)) {
+          genreMatchCount++;
+        }
+      });
+    });
+    score += genreMatchCount * 10;
+    
+    // 만약 역사적 문학 작가인데 현대 기술/경영/IT 책 장르라면 강한 감점
+    const isAuthorLiterary = authorGenres.some((g: string) => ["소설", "시", "수필", "에세이", "문학", "희곡", "평론"].some(t => g.includes(t)));
+    const isBookTechnical = bookGenres.some((g: string) => ["컴퓨터", "it", "경제", "경영", "과학", "의학", "기술", "재테크", "회계", "공학", "금융", "비즈니스"].some(t => g.includes(t)));
+    if (isAuthorLiterary && isBookTechnical && !hasDirectBook) {
+      score -= 500;
+    }
+    
+    // 4. 특정 작가 전용 키워드 매칭
+    if (author.name === "이준석") {
+      if (author.id === 7001) { // 클래식 전공
+        const classicKeywords = ["일리아스", "오디세이아", "호메로스", "그리스", "로마", "신화", "고전", "비극", "트로이"];
+        if (classicKeywords.some(kw => bookTitle.includes(kw) || bookDesc.includes(kw))) {
+          score += 100;
+        }
+      } else if (author.id === 7002) { // 정치인
+        const politicsKeywords = ["정치", "보수", "개혁", "선거", "의원", "대표", "대망론", "토론", "경쟁", "미래", "공정", "자산", "토큰", "비트코인"];
+        if (politicsKeywords.some(kw => bookTitle.includes(kw) || bookDesc.includes(kw))) {
+          score += 100;
+        }
+      }
+    }
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestAuthor = author;
+    }
+  }
+  
+  // 최소 점수 컷오프 (감점이 너무 크면 동명이인 타인으로 취급하여 매칭 안함)
+  if (bestScore < -300) {
+    return null;
+  }
+  
+  return bestAuthor;
+}

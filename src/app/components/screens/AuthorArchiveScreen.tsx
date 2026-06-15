@@ -8,7 +8,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { AuthorImage } from "@/app/components/AuthorImage";
 import { getGlobalBooks } from "@/app/utils/db";
-import { getAuthorsList, specialFallbackAuthors } from "@/app/data/authorsData";
+import { getAuthorsList, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { cleanAladinAuthors, isOrganization } from "@/app/utils/authorUtils";
 
@@ -132,6 +132,13 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
                     authorBooksMap.set(indAuthor, []);
                   }
                   const currentBooks = authorBooksMap.get(indAuthor)!;
+                  
+                  // 동명이인 데이터베이스 작가가 있고, 이 책이 그 작가의 책이라면 동적 작가 결과에서 배제시킵니다.
+                  const matchedDbAuthor = getBestAuthorMatch(indAuthor, { title, year, description: "" });
+                  if (matchedDbAuthor !== null) {
+                    return;
+                  }
+
                   if (!currentBooks.some(b => b.title === title)) {
                     currentBooks.push({
                       title,
@@ -307,7 +314,12 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
     const merged = [...filteredAuthors];
     apiAuthors.forEach(apiAuthor => {
       const isDuplicate = merged.some(
-        localAuthor => localAuthor.name.toLowerCase() === apiAuthor.name.toLowerCase()
+        localAuthor => 
+          localAuthor.name.toLowerCase() === apiAuthor.name.toLowerCase() &&
+          // 책이 겹치거나, 둘 다 fallback 작가(id = 0)인 경우에만 중복으로 간주하고 합칩니다.
+          (localAuthor.id === 0 || apiAuthor.books.some(b => 
+            localAuthor.books.some((lb: any) => lb.title.toLowerCase() === b.title.toLowerCase())
+          ))
       );
       if (!isDuplicate) {
         merged.push(apiAuthor);

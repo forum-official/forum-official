@@ -12,7 +12,7 @@ import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getGlobalBooks } from "@/app/utils/db";
 import { cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { popularBooksData } from "@/app/data/booksData";
-import { initialAuthors, specialFallbackAuthors } from "@/app/data/authorsData";
+import { initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 
 import { getAuthorOpinions, saveAuthorOpinion, toggleAuthorOpinionLike, getAuthorOpinionLikeStatus, getFormattedTimestamp } from "@/app/utils/db";
 
@@ -215,13 +215,8 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                 // 만약 이 fallback 작가(id = 0)가 유명/동명이인 DB 작가(예: 김유정 등)와 이름이 같다면,
                 // 스크레이핑된 서적이 그 DB 작가의 저서로 분류되는지 체크하여, DB 작가의 서적이라면 이 fallback 작가의 페이지에서 제외시킵니다!
                 if (isScrapedAuthorMatched && author?.name) {
-                  const dbAuthorsWithName = [...initialAuthors, ...specialFallbackAuthors].filter(
-                    a => a.name === author.name || a.nameEn === author.name
-                  );
-                  const isBookFromDbAuthor = dbAuthorsWithName.some(dbAuthor => 
-                    isAuthorMatched(dbAuthor, { title, year, description: "" })
-                  );
-                  if (isBookFromDbAuthor) {
+                  const matchedDbAuthor = getBestAuthorMatch(author.name, { title, year, description: "", genre: author.genre });
+                  if (matchedDbAuthor !== null) {
                     isScrapedAuthorMatched = false; // DB 작가의 책이므로 fallback 작가에 할당하지 않음
                   }
                 }
