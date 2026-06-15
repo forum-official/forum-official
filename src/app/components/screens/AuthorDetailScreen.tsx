@@ -125,13 +125,15 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
           if (isDisambiguation) {
             // Disambiguation이면 아무것도 사용하지 않음
           } else {
-            // ❌ 작가/저자와 무관한 페이지 필터링 (정치인, 배우, 기업인 등)
+             // ❌ 작가/저자와 무관한 페이지 필터링 (정치인, 배우, 기업인 등)
             const authorKeywords = ["소설", "시인", "작가", "저자", "문학", "수필", "평론", "번역", "교수", "학자", "연구", "글", "책", "출판", "writer", "author", "novelist", "poet", "professor"];
             const politicsKeywords = ["국회의원", "정치인", "배우", "가수", "운동선수", "감독", "기업인", "CEO", "대통령", "장관", "판사", "검사", "경찰", "군인"];
             const hasAuthorKeyword = data.extract ? authorKeywords.some(kw => data.extract.includes(kw)) : false;
-            const hasPoliticsOnly = data.extract ? (politicsKeywords.some(kw => data.extract.includes(kw)) && !hasAuthorKeyword) : false;
+            // DB에 등록된 공식 작가이고, 장르가 '정치' 또는 '사회'인 경우는 정치인 필터를 패스하게 함
+            const isRegisteredPoliticalAuthor = author && author.id !== 0 && (author.genre || []).some(g => g === "정치" || g === "사회");
+            const hasPoliticsOnly = data.extract ? (politicsKeywords.some(kw => data.extract.includes(kw)) && !hasAuthorKeyword && !isRegisteredPoliticalAuthor) : false;
 
-            // 설명 업데이트: 정치인 페이지가 아니고, 기존 설명이 짧을 때만
+            // 설명 업데이트: 정치인 페이지가 아니고(또는 등록된 정치 작가이고), 기존 설명이 짧을 때만
             if (data.extract && (currentDesc.includes("작가의 작품들") || currentDesc.length < 30)) {
               if (!hasPoliticsOnly) {
                 updatedDesc = data.extract;
@@ -139,7 +141,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
               }
             }
 
-            // 썸네일: 정치인 페이지가 아닐 때만 사용 (핵심 수정: 정치인 사진 차단)
+            // 썸네일: 정치인 페이지가 아닐 때(또는 등록된 정치 작가일 때) 사용
             if (!hasPoliticsOnly && data.thumbnail?.source && (!author?.imageUrl || author.imageUrl.includes("unsplash.com") || author.imageUrl.includes("aladin.co.kr"))) {
               updatedImg = data.thumbnail.source;
               hasUpdates = true;

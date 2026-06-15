@@ -1196,6 +1196,22 @@ export const initialAuthors: Author[] = [
     ],
     awards: [],
   },
+  // ── 정치인 (교수/연구자 동명이인과 분리) ──
+  {
+    id: 712,
+    name: "이준석",
+    nameEn: "Lee Jun-seok",
+    nationality: "한국",
+    birth: "1985-",
+    genre: ["정치", "사회"],
+    wikiTitle: "이준석",
+    description: "대한민국의 정치인. 제22대 국회의원(개혁신당)이자 전 국민의힘 대표를 지냈다. 저서로 『이준석의 거부할 수 없는 미래』(2023) 등이 있다.",
+    representative: ["이준석의 거부할 수 없는 미래"],
+    books: [
+      { title: "이준석의 거부할 수 없는 미래", year: 2023, publishers: ["철수와영희"] },
+    ],
+    awards: [],
+  },
 ];
 
 export const AUTHOR_META: Record<string, {

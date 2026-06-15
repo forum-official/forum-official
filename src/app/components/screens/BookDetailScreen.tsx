@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getReviews, saveReview, deleteReview, getPublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud } from "@/app/utils/db";
-import { getAuthorsList } from "@/app/data/authorsData";
+import { getAuthorsList, initialAuthors } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
@@ -785,8 +785,19 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                           onClick={() => {
                             // 1. 전체 DB에서 작가 정보 조회 (getAuthorsList 사용)
                             const allBooksForLookup = getGlobalBooks(popularBooksData);
-                            const allAuthors = getAuthorsList(allBooksForLookup);
-                            const richAuthor = allAuthors.find(
+                            
+                            // 이름이 같은 동명이인 중 책 제목이나 장르 등의 연관성으로 매칭 시도
+                            const matchedAuthor = initialAuthors.find(a => {
+                              if (a.name !== authorName && a.nameEn !== authorName) return false;
+                              // 책 제목이 작가의 대표작 목록에 있거나 저서(books) 목록에 있는지 확인
+                              const hasBook = 
+                                (a.representative && a.representative.some(title => book.title.includes(title) || title.includes(book.title))) ||
+                                (a.books && a.books.some(b => book.title.includes(b.title) || b.title.includes(book.title)));
+                              return hasBook;
+                            });
+
+                            // 만약 대표작 매칭으로 찾지 못했다면 이름으로만 매칭되는 첫 작가 검색
+                            const richAuthor = matchedAuthor || getAuthorsList(allBooksForLookup).find(
                               a => a.name === authorName || a.nameEn === authorName
                             );
 
