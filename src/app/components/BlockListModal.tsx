@@ -24,7 +24,7 @@ export function BlockListModal({ onClose }: BlockListModalProps) {
     const rawBlocked = getBlockedUsers();
     let allUsers: any[] = [];
     try {
-      const stored = localStorage.getItem("agora_users");
+      const stored = localStorage.getItem("forum_users");
       if (stored) {
         allUsers = JSON.parse(stored);
       }

@@ -119,7 +119,7 @@ export const commentSkins: CommentSkin[] = [
 ];
 
 const getUserId = (): string => {
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   if (storedUser) {
     try {
       const parsed = JSON.parse(storedUser);
@@ -160,7 +160,7 @@ export const setSelectedSkin = (skinId: string): void => {
 
 // 포인트 관리
 export const getUserPoints = (): number => {
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   if (!storedUser) {
     return 0; // 로그인하지 않은 상태에서는 0 포인트
   }
@@ -175,7 +175,7 @@ export const getUserPoints = (): number => {
 };
 
 export const setUserPoints = (points: number): void => {
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   if (!storedUser) return;
   try {
     const parsedUser = JSON.parse(storedUser);
@@ -186,7 +186,7 @@ export const setUserPoints = (points: number): void => {
 
 export const purchaseSkin = (skin: CommentSkin): { success: boolean; message: string; requireLogin?: boolean } => {
   // 로그인 확인
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   if (!storedUser) {
     return { success: false, message: "로그인이 필요합니다", requireLogin: true };
   }

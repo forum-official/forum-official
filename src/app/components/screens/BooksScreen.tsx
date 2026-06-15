@@ -286,7 +286,7 @@ export function BooksScreen({
     try { bookLikesRecord = JSON.parse(bookLikesData); } catch {}
   }
 
-  const storedUser = localStorage.getItem("agora_user");
+  const storedUser = localStorage.getItem("forum_user");
   let currentUserId = "";
   if (storedUser) {
     try { currentUserId = JSON.parse(storedUser).userId; } catch {}

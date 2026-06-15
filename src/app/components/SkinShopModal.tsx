@@ -30,7 +30,7 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
   const [adCountdown, setAdCountdown] = useState<number>(0);
 
   useEffect(() => {
-    const loggedIn = !!localStorage.getItem("agora_user");
+    const loggedIn = !!localStorage.getItem("forum_user");
     setIsLoggedIn(loggedIn);
     setOwnedSkins(getUserOwnedSkins());
     setSelectedSkinId(getSelectedSkin().id);
