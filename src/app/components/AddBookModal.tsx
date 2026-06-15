@@ -420,7 +420,7 @@ export function AddBookModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-5">
-      <div className="bg-white w-full max-w-[353px] rounded-2xl overflow-hidden max-h-[90vh] flex flex-col overscroll-contain">
+      <div className="bg-white w-full max-w-[353px] rounded-2xl overflow-hidden h-[580px] max-h-[90vh] flex flex-col overscroll-contain">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
           <div className="flex items-center gap-2">

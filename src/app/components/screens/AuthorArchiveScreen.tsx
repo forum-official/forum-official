@@ -8,7 +8,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { AuthorImage } from "@/app/components/AuthorImage";
 import { getGlobalBooks } from "@/app/utils/db";
-import { getAuthorsList } from "@/app/data/authorsData";
+import { getAuthorsList, specialFallbackAuthors } from "@/app/data/authorsData";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { cleanAladinAuthors, isOrganization } from "@/app/utils/authorUtils";
 
@@ -278,11 +278,28 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
   
   // 검색어 필터
   if (searchQuery) {
-    filteredAuthors = filteredAuthors.filter(
+    const queryLower = searchQuery.toLowerCase();
+    const localMatches = authors.filter(
       (author) =>
-        author.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        author.nameEn.toLowerCase().includes(searchQuery.toLowerCase())
+        author.name.toLowerCase().includes(queryLower) ||
+        author.nameEn.toLowerCase().includes(queryLower)
     );
+    
+    const specialMatches = specialFallbackAuthors.filter(
+      (author) =>
+        author.name.toLowerCase().includes(queryLower) ||
+        author.nameEn.toLowerCase().includes(queryLower)
+    );
+    
+    // Merge without duplicate IDs
+    const mergedLocal = [...localMatches];
+    specialMatches.forEach(spec => {
+      if (!mergedLocal.some(l => l.id === spec.id)) {
+        mergedLocal.push(spec);
+      }
+    });
+    
+    filteredAuthors = mergedLocal;
   }
 
   // API 작가 목록과 병합 (중복 제거)
