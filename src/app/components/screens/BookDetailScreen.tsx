@@ -36,6 +36,11 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   const userId = user?.userId || "guest";
   const [reviews, setReviews] = useState(() => getReviews(book.id));
   const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(book.id, userId));
+  const [activeCoverUrl, setActiveCoverUrl] = useState(book.coverUrl);
+
+  useEffect(() => {
+    setActiveCoverUrl(book.coverUrl);
+  }, [book.coverUrl, book.id]);
 
   const getAladinLink = () => {
     const isNumeric = /^\d+$/.test(book.id);
@@ -800,9 +805,36 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                 title={book.title} 
                 author={bookAuthor} 
                 publisherName={sortedPublishers[0]?.name}
-                coverUrl={book.coverUrl} 
+                coverUrl={activeCoverUrl} 
                 className="w-full rounded-lg shadow-md"
               />
+              {book.alternativeCovers && book.alternativeCovers.length >= 2 && (
+                <div className="mt-3 bg-white rounded-xl p-2.5 border border-purple-100 shadow-sm w-full">
+                  <span className="text-[10px] text-purple-600 font-bold block mb-2 text-center">다른 출판사 표지 보기</span>
+                  <div className="flex gap-2 overflow-x-auto pb-1 justify-center scrollbar-thin">
+                    {book.alternativeCovers.map((item: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveCoverUrl(item.coverUrl)}
+                        className={`flex-shrink-0 flex flex-col items-center p-1 rounded-lg border-2 transition-all ${
+                          activeCoverUrl === item.coverUrl
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-transparent bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <img 
+                          src={item.coverUrl} 
+                          alt={item.publisher} 
+                          className="w-9 h-12 object-cover rounded shadow-sm mb-1"
+                        />
+                        <span className="text-[8px] font-semibold text-gray-700 max-w-[40px] truncate">
+                          {item.publisher}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <h2 className="font-bold text-xl mb-2 leading-tight">{book.title}</h2>

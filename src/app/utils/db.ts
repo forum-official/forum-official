@@ -2619,10 +2619,22 @@ export function saveGlobalBook(book: Book): void {
         updatedPublishers.push(pub);
       }
     });
+
+    const updatedCovers = (existing.alternativeCovers && Array.isArray(existing.alternativeCovers)) ? [...existing.alternativeCovers] : [];
+    const newCovers = (book.alternativeCovers && Array.isArray(book.alternativeCovers)) ? book.alternativeCovers : [];
+    newCovers.forEach(cov => {
+      if (!cov || typeof cov !== 'object') return;
+      const covExists = updatedCovers.some(c => c && c.publisher === cov.publisher);
+      if (!covExists && cov.coverUrl) {
+        updatedCovers.push(cov);
+      }
+    });
+
     books[idx] = {
       ...existing,
       ...book,
-      publishers: updatedPublishers
+      publishers: updatedPublishers,
+      alternativeCovers: updatedCovers
     };
   } else {
     books.unshift(book);

@@ -18,6 +18,7 @@ export interface Book {
   genre: string[];
   salesPoint?: number;
   authorAladinIds?: string[];
+  alternativeCovers?: { publisher: string; coverUrl: string }[];
 }
 
 export const popularBooksData: Book[] = [

@@ -29,6 +29,70 @@ export function hasTranslationInfo(book: any): boolean {
 
 
 
+export function integrateBooks(books: any[]): any[] {
+  const integrated: any[] = [];
+
+  const cleanTitle = (t: string) => {
+    return t.replace(/\s*\([^)]*(민음사|문학동네|더스토리|혜원출판사|열린책들|소담출판사|을유문화사|펭귄클래식|시공사|창비|웅진|쌤앤파커스|위즈덤하우스|RHK|다산|김영사|한빛|인플루엔셜|아르테)[^)]*\)/gi, "").trim();
+  };
+
+  const sorted = [...books].sort((a, b) => {
+    const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5 + (a.rating || 0) * 10;
+    const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5 + (b.rating || 0) * 10;
+    return scoreB - scoreA;
+  });
+
+  sorted.forEach(book => {
+    const cleanedTitle = cleanTitle(book.title);
+    
+    const existing = integrated.find(item => {
+      const cleanItemTitle = cleanTitle(item.title);
+      const cleanBookAuthor = book.author.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
+      const cleanItemAuthor = item.author.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
+      
+      const isTitleMatch = cleanItemTitle.toLowerCase() === cleanedTitle.toLowerCase() || 
+                           cleanItemTitle.toLowerCase().includes(cleanedTitle.toLowerCase()) || 
+                           cleanedTitle.toLowerCase().includes(cleanItemTitle.toLowerCase());
+      const isAuthorMatch = cleanBookAuthor.includes(cleanItemAuthor) || cleanItemAuthor.includes(cleanBookAuthor);
+      
+      return isTitleMatch && isAuthorMatch;
+    });
+
+    if (existing) {
+      const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
+      if (!existing.publishers.some((p: any) => p.name === newPubName)) {
+        existing.publishers.push({ name: newPubName, votes: book.publishers?.[0]?.votes || 0 });
+      }
+      
+      if (!existing.alternativeCovers) {
+        existing.alternativeCovers = [];
+      }
+      if (book.coverUrl && !existing.alternativeCovers.some((c: any) => c.publisher === newPubName)) {
+        existing.alternativeCovers.push({
+          publisher: newPubName,
+          coverUrl: book.coverUrl
+        });
+      }
+    } else {
+      const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
+      const newBook = {
+        ...book,
+        title: cleanedTitle,
+        publishers: book.publishers || [{ name: newPubName, votes: 0 }],
+        alternativeCovers: [
+          {
+            publisher: newPubName,
+            coverUrl: book.coverUrl
+          }
+        ]
+      };
+      integrated.push(newBook);
+    }
+  });
+
+  return integrated;
+}
+
 interface Book {
   id: number;
   coverUrl: string;
@@ -36,6 +100,8 @@ interface Book {
   author: string;
   publisher: string;
   rating: number;
+  publishers?: { name: string; votes: number }[];
+  alternativeCovers?: { publisher: string; coverUrl: string }[];
 }
 
 interface BookSearchModalProps {
@@ -268,7 +334,7 @@ export function BookSearchModal({
         }
       }
 
-      // Merge local matches with API books, eliminating duplicates by title
+      // Merge local matches with API books
       const mergedBooks = [...localMatches];
       apiBooks.forEach(apiBook => {
         if (filterDebateBooksOnly && !hasDebateTopic(apiBook.title)) {
@@ -277,23 +343,11 @@ export function BookSearchModal({
         if (filterTranslationBooksOnly && !hasTranslationInfo(apiBook)) {
           return;
         }
-
-        const isDuplicate = mergedBooks.some(
-          localBook => 
-            localBook.title.toLowerCase() === apiBook.title.toLowerCase() &&
-            localBook.author.toLowerCase() === apiBook.author.toLowerCase()
-        );
-        if (!isDuplicate) {
-          mergedBooks.push(apiBook);
-        }
+        mergedBooks.push(apiBook);
       });
 
-      const sortedBooks = mergedBooks.sort((a, b) => {
-        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5;
-        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5;
-        return scoreB - scoreA;
-      });
-      setBooksList(sortedBooks);
+      const integrated = integrateBooks(mergedBooks);
+      setBooksList(integrated);
       setIsLoading(false);
     }, 400); // 400ms debounce to decrease redundant request overhead
 
@@ -312,6 +366,7 @@ export function BookSearchModal({
       publisher: book.publisher || book.publishers?.[0]?.name || "민음사",
       rating: book.rating,
       publishers: book.publishers || [{ name: book.publisher || "민음사", votes: 0 }],
+      alternativeCovers: book.alternativeCovers || []
     };
 
     // Save to global books database
@@ -327,7 +382,8 @@ export function BookSearchModal({
       description: book.description || "",
       year: book.year || 2024,
       genre: book.genre || [],
-      authorAladinIds: book.authorAladinIds || []
+      authorAladinIds: book.authorAladinIds || [],
+      alternativeCovers: book.alternativeCovers || []
     };
     saveGlobalBook(globalBook);
 
