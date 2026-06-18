@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ChangePasswordModal } from "@/app/components/ChangePasswordModal";
 import { BlockListModal } from "@/app/components/BlockListModal";
 import { InfoModal } from "@/app/components/InfoModal";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 import { useAuth } from "@/app/contexts/AuthContext";
 
@@ -13,7 +14,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, withdraw } = useAuth();
   const userId = user?.userId || "guest";
 
   const [pushNotifications, setPushNotifications] = useState(() => {
@@ -28,7 +29,19 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   const [isChangePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [isBlockListModalOpen, setBlockListModalOpen] = useState(false);
+  const [isWithdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const [infoModalType, setInfoModalType] = useState<string | null>(null);
+
+  const handleWithdraw = async () => {
+    setWithdrawConfirmOpen(false);
+    const result = await withdraw();
+    if (result.success) {
+      toast.success("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
+      onClose();
+    } else {
+      toast.error(result.error || "탈퇴 처리 중 오류가 발생했습니다.");
+    }
+  };
 
   const handleTogglePush = (checked: boolean) => {
     setPushNotifications(checked);
@@ -136,6 +149,13 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 </span>
                 <ChevronRight className="size-4 text-gray-400" />
               </button>
+              <button
+                className="w-full flex items-center justify-between p-3 hover:bg-red-50 text-red-600 rounded-xl transition-colors"
+                onClick={() => setWithdrawConfirmOpen(true)}
+              >
+                <span className="text-sm font-medium">회원 탈퇴</span>
+                <ChevronRight className="size-4 text-red-400" />
+              </button>
             </div>
           </div>
 
@@ -218,6 +238,17 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       )}
       {isBlockListModalOpen && (
         <BlockListModal onClose={() => setBlockListModalOpen(false)} />
+      )}
+      {isWithdrawConfirmOpen && (
+        <ConfirmDialog
+          title="회원 탈퇴"
+          message="정말 탈퇴하시겠습니까? 탈퇴 시 작성하신 모든 리뷰와 댓글은 '탈퇴한 회원'으로 비식별화 처리되며, 계정 정보는 즉시 파기됩니다."
+          confirmText="탈퇴하기"
+          cancelText="취소"
+          onConfirm={handleWithdraw}
+          onCancel={() => setWithdrawConfirmOpen(false)}
+          confirmColor="red"
+        />
       )}
       {infoModalType && (
         <InfoModal

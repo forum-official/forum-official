@@ -23,6 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   updateProfile: (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean }) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  withdraw: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -509,6 +510,105 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const withdraw = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: "로그인된 사용자가 없습니다." };
+
+    const targetUserId = user.userId;
+    const targetNickname = user.nickname;
+
+    if (!isSupabaseConfigured) {
+      try {
+        // 1. 로컬 유저 목록에서 제거
+        const usersData = localStorage.getItem("forum_users");
+        if (usersData) {
+          const users = JSON.parse(usersData);
+          const updatedUsers = users.filter((u: any) => u.userId !== targetUserId);
+          localStorage.setItem("forum_users", JSON.stringify(updatedUsers));
+        }
+
+        // 2. 사용자가 작성한 리뷰들에서 작성자 이름을 '탈퇴한 회원'으로 변경
+        const reviewsData = localStorage.getItem("forum_reviews");
+        if (reviewsData) {
+          const reviews = JSON.parse(reviewsData);
+          const updatedReviews = reviews.map((r: any) => {
+            if (r.userId === targetUserId || r.author === targetNickname) {
+              return { ...r, author: "탈퇴한 회원" };
+            }
+            return r;
+          });
+          localStorage.setItem("forum_reviews", JSON.stringify(updatedReviews));
+        }
+
+        // 3. 사용자가 작성한 댓글들에서 작성자 이름을 '탈퇴한 회원'으로 변경
+        const commentsData = localStorage.getItem("forum_comments");
+        if (commentsData) {
+          const comments = JSON.parse(commentsData);
+          const updatedComments = comments.map((c: any) => {
+            if (c.author === targetNickname) {
+              return { ...c, author: "탈퇴한 회원" };
+            }
+            return c;
+          });
+          localStorage.setItem("forum_comments", JSON.stringify(updatedComments));
+        }
+
+        // 4. 로컬 세션 클리어 및 로그아웃
+        setUser(null);
+        localStorage.removeItem("forum_user");
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: "탈퇴 처리 중 오류가 발생했습니다." };
+      }
+    }
+
+    // Supabase 연동 시
+    try {
+      // 1. Supabase Profiles 테이블에서 사용자 데이터 삭제
+      const sessionUser = (await supabase.auth.getUser()).data.user;
+      if (sessionUser) {
+        const { error: dbError } = await supabase.from("profiles").delete().eq("id", sessionUser.id);
+        if (dbError) {
+          console.warn("Supabase profiles delete failed:", dbError.message);
+        }
+      }
+
+      // 2. 작성 리뷰/댓글 비식별화
+      const reviewsData = localStorage.getItem("forum_reviews");
+      if (reviewsData) {
+        try {
+          const reviews = JSON.parse(reviewsData);
+          const updatedReviews = reviews.map((r: any) => {
+            if (r.userId === targetUserId || r.author === targetNickname) {
+              return { ...r, author: "탈퇴한 회원" };
+            }
+            return r;
+          });
+          localStorage.setItem("forum_reviews", JSON.stringify(updatedReviews));
+        } catch {}
+      }
+
+      const commentsData = localStorage.getItem("forum_comments");
+      if (commentsData) {
+        try {
+          const comments = JSON.parse(commentsData);
+          const updatedComments = comments.map((c: any) => {
+            if (c.author === targetNickname) {
+              return { ...c, author: "탈퇴한 회원" };
+            }
+            return c;
+          });
+          localStorage.setItem("forum_comments", JSON.stringify(updatedComments));
+        } catch {}
+      }
+
+      // 3. Supabase 로그아웃 및 로컬 세션 삭제
+      await logout();
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || "탈퇴 처리 중 오류가 발생했습니다." };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -520,6 +620,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         updateProfile,
         changePassword,
+        withdraw,
       }}
     >
       {children}
