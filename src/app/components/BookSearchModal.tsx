@@ -9,6 +9,7 @@ import { saveGlobalBook, getBookRatingStatsWithQuick, getGlobalBooks } from "@/a
 import { cleanAladinAuthors, splitAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 export function hasDebateTopic(title: string): boolean {
   const clean = title.replace(/\s+/g, "").toLowerCase();
@@ -123,6 +124,7 @@ export function BookSearchModal({
   filterDebateBooksOnly = false,
   filterTranslationBooksOnly = false
 }: BookSearchModalProps) {
+  useLockBodyScroll();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("종이책");
   const [addedBooks, setAddedBooks] = useState<number[]>([]);

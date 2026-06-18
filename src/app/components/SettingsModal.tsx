@@ -6,14 +6,15 @@ import { ChangePasswordModal } from "@/app/components/ChangePasswordModal";
 import { BlockListModal } from "@/app/components/BlockListModal";
 import { InfoModal } from "@/app/components/InfoModal";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
-
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 interface SettingsModalProps {
   onClose: () => void;
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
+  useLockBodyScroll();
   const { user, updateProfile, withdraw } = useAuth();
   const userId = user?.userId || "guest";
 

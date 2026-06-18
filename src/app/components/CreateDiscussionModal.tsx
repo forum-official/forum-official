@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Plus, Minus, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 interface CreateDiscussionModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface CreateDiscussionModalProps {
 }
 
 export function CreateDiscussionModal({ onClose, onCreate, onLoginRequired }: CreateDiscussionModalProps) {
+  useLockBodyScroll();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState(["", ""]);

@@ -949,7 +949,7 @@ function AppContent() {
       />
       
       {/* Root Layout Container */}
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex justify-center items-start w-full p-0 overflow-x-hidden">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex justify-center items-start w-full p-0">
         
         {/* Mobile-only Container */}
         <div className="mx-auto w-full max-w-[393px] min-h-screen bg-white shadow-2xl relative flex flex-col shrink-0">

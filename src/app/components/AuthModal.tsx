@@ -3,12 +3,14 @@ import { Button } from "@/app/components/ui/button";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { toast } from "sonner";
+import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
 export function AuthModal({ onClose }: AuthModalProps) {
+  useLockBodyScroll();
   const [isLoading, setIsLoading] = useState(false);
   const [isSupabaseMode, setIsSupabaseMode] = useState(false);
   const { loginWithOAuth } = useAuth();

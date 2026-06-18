@@ -5,6 +5,7 @@ import { commentSkins, getSelectedSkin } from "@/app/data/commentSkins";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { getFormattedTimestamp } from "@/app/utils/db";
+import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 interface CreateReviewModalProps {
   bookTitle: string;
@@ -14,6 +15,7 @@ interface CreateReviewModalProps {
 }
 
 export function CreateReviewModal({ bookTitle, onClose, onCreate, initialRating = 0 }: CreateReviewModalProps) {
+  useLockBodyScroll();
   const [rating, setRating] = useState(initialRating);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [content, setContent] = useState("");

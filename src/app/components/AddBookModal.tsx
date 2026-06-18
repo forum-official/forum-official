@@ -6,6 +6,7 @@ import { popularBooksData, Book } from "@/app/data/booksData";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getGlobalBooks } from "@/app/utils/db";
 import { cleanAladinAuthors, splitAuthors } from "@/app/utils/authorUtils";
+import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 interface AddBookModalProps {
   onClose: () => void;
@@ -24,6 +25,7 @@ export function AddBookModal({
   initialBook,
   onDelete
 }: AddBookModalProps) {
+  useLockBodyScroll();
   const [step, setStep] = useState<"search" | "publisher" | "category">(editMode ? "category" : "search");
   const [selectedCategory, setSelectedCategory] = useState<"reading" | "finished" | "wishlist">(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
