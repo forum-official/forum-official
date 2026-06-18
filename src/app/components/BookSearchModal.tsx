@@ -31,10 +31,22 @@ export function hasTranslationInfo(book: any): boolean {
 
 
 export function integrateBooks(books: any[]): any[] {
-  const integrated: any[] = [];
-
   const cleanTitle = (t: string) => {
-    return t.replace(/\s*\([^)]*(민음사|문학동네|더스토리|혜원출판사|열린책들|소담출판사|을유문화사|펭귄클래식|시공사|창비|웅진|쌤앤파커스|위즈덤하우스|RHK|다산|김영사|한빛|인플루엔셜|아르테)[^)]*\)/gi, "").trim();
+    let cleaned = t;
+    // 1. 특정 출판사 괄호 및 일반 괄호 제거 (예: (민음사), (무선), (10주년 특별판) 등)
+    cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
+    
+    // 2. 세트, 권수 관련 텍스트 정제 (문자열 끝부분 대상)
+    cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
+    cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+    
+    // 3. 문장부호 제거 및 공백 정제
+    cleaned = cleaned.replace(/[-:：,;.]/g, " ");
+    return cleaned.replace(/\s+/g, " ").trim();
+  };
+
+  const cleanAuthor = (a: string) => {
+    return (a || "").replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
   };
 
   const sorted = [...books].sort((a, b) => {
@@ -43,21 +55,26 @@ export function integrateBooks(books: any[]): any[] {
     return scoreB - scoreA;
   });
 
+  const integratedMap = new Map<string, any>();
+
   sorted.forEach(book => {
     const cleanedTitle = cleanTitle(book.title);
+    const cleanedAuthor = cleanAuthor(book.author);
+    const uniqueKey = `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
     
-    const existing = integrated.find(item => {
-      const cleanItemTitle = cleanTitle(item.title);
-      const cleanBookAuthor = book.author.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
-      const cleanItemAuthor = item.author.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
-      
-      const isTitleMatch = cleanItemTitle.toLowerCase() === cleanedTitle.toLowerCase() || 
-                           cleanItemTitle.toLowerCase().includes(cleanedTitle.toLowerCase()) || 
-                           cleanedTitle.toLowerCase().includes(cleanItemTitle.toLowerCase());
-      const isAuthorMatch = cleanBookAuthor.includes(cleanItemAuthor) || cleanItemAuthor.includes(cleanBookAuthor);
-      
-      return isTitleMatch && isAuthorMatch;
-    });
+    let existingKey = uniqueKey;
+    if (!integratedMap.has(uniqueKey)) {
+      const foundKey = Array.from(integratedMap.keys()).find(k => {
+        const [t, a] = k.split("_");
+        if (a !== cleanedAuthor) return false;
+        return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
+      });
+      if (foundKey) {
+        existingKey = foundKey;
+      }
+    }
+
+    const existing = integratedMap.get(existingKey);
 
     if (existing) {
       const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
@@ -87,11 +104,11 @@ export function integrateBooks(books: any[]): any[] {
           }
         ]
       };
-      integrated.push(newBook);
+      integratedMap.set(uniqueKey, newBook);
     }
   });
 
-  return integrated;
+  return Array.from(integratedMap.values());
 }
 
 interface Book {

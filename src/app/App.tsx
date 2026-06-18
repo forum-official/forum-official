@@ -938,9 +938,19 @@ function AppContent() {
     setShowAuthModal(true);
   };
 
-  // 화면(currentScreen)이나 탭(activeTab)이 변경될 때 스크롤 위치를 최상단으로 초기화
+  // 화면(currentScreen)이나 탭(activeTab)이 변경될 때 스크롤 위치를 최상단으로 초기화 (타이밍 이슈 방지)
   useEffect(() => {
     window.scrollTo(0, 0);
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 50);
+    const animationFrame = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(animationFrame);
+    };
   }, [currentScreen, activeTab]);
 
   const isForcedMobile = true;
