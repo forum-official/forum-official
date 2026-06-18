@@ -807,47 +807,12 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
             <div className="flex-1">
               <h2 className="font-bold text-xl mb-2 leading-tight">{book.title}</h2>
               <div className="flex flex-wrap items-center gap-x-1.5 text-gray-600 text-sm mb-1">
-                {splitAuthors(bookAuthor).map((authorName, index, arr) => {
-                  const isUnknown = ["저자 미상", "작자 미상", "미상", "unknown", "anonymous", "저자미상", "작자미상"].includes(authorName.trim());
-                  
-                  return (
-                    <span key={authorName} className="flex items-center">
-                      {isUnknown ? (
-                        <span className="text-gray-500 font-medium">{authorName}</span>
-                      ) : (
-                        <button 
-                          onClick={() => {
-                             // 전체 DB와 동명이인 예외 리스트에서 가장 어울리는 작가 획득 (생몰연도, 대표작, 장르, 설명 분석)
-                             const richAuthor = getBestAuthorMatch(authorName, book);
-
-                             const aladinId = book.authorAladinIds?.[index] || null;
-
-                            // 2. 실제 작가 데이터가 있으면 사용, 없으면 임시 객체로 fallback
-                            const authorData = richAuthor ?? {
-                              id: aladinId ? (parseInt(aladinId) || (99999 + index)) : 0,
-                              aladinId: aladinId || undefined,
-                              name: authorName,
-                              nameEn: authorName,
-                              nationality: "미상",
-                              birth: "",
-                              genre: book.genre || ["소설"],
-                              imageUrl: undefined, // Let Wikipedia API fetch the real photo
-                              description: `${authorName} 작가의 작품들`,
-                              representative: [book.title],
-                              books: [{ title: book.title, year: book.year || 2024, publishers: (book.publishers && Array.isArray(book.publishers)) ? book.publishers.map(p => p?.name || "").filter(Boolean) : ["민음사"] }],
-                              awards: [],
-                            };
-                            onAuthorClick?.(authorData);
-                          }}
-                          className="hover:text-purple-600 hover:underline transition-colors text-left font-medium"
-                        >
-                          {authorName}
-                        </button>
-                      )}
-                      {index < arr.length - 1 && <span className="text-gray-400 select-none">,</span>}
-                    </span>
-                  );
-                })}
+                {splitAuthors(bookAuthor).map((authorName, index, arr) => (
+                  <span key={authorName} className="flex items-center">
+                    <span className="text-gray-600 font-medium">{authorName}</span>
+                    {index < arr.length - 1 && <span className="text-gray-400 select-none">,</span>}
+                  </span>
+                ))}
               </div>
               <p className="text-gray-500 text-xs mb-3">{book.publisher}</p>
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-3 text-xs sm:text-sm">
