@@ -1182,42 +1182,7 @@ export const initialAuthors: Author[] = [
   },
 ];
 
-export const specialFallbackAuthors: Author[] = [
-  // ── 교수/연구자 (정치인 동명이인과 분리) ──
-  {
-    id: 7001,
-    name: "이준석",
-    nameEn: "Lee Joon-seok (Classicist)",
-    nationality: "한국",
-    birth: "미상",
-    genre: ["인문", "고전문학"],
-    // 정치인 이준석 위키백과 페이지가 로드되지 않도록 존재하지 않는 타이틀 사용
-    wikiTitle: "이준석_(고전문학자)",
-    description: "고전문학 연구자이자 번역가. 호메로스의 『일리아스』를 현대 독자들에게 소개하는 작업으로 알려져 있으며, 하길(하룻밤의 길)과 함께 『일리아스 좋아하세요?』(창비, 2024)를 펴냈다.",
-    representative: ["일리아스 좋아하세요?"],
-    books: [
-      { title: "일리아스 좋아하세요?", year: 2024, publishers: ["창비"] },
-    ],
-    awards: [],
-  },
-  // ── 정치인 (교수/연구자 동명이인과 분리) ──
-  {
-    id: 7002,
-    name: "이준석",
-    nameEn: "Lee Jun-seok",
-    nationality: "한국",
-    birth: "1985-",
-    genre: ["정치", "사회"],
-    wikiTitle: "이준석",
-    description: "대한민국의 정치인. 제22대 국회의원(개혁신당)이자 전 국민의힘 대표를 지냈다. 저서로 『이준석의 거부할 수 없는 미래』(2023), 『공정한 경쟁』(2019) 등이 있다.",
-    representative: ["이준석의 거부할 수 없는 미래", "공정한 경쟁"],
-    books: [
-      { title: "이준석의 거부할 수 없는 미래", year: 2023, publishers: ["철수와영희"] },
-      { title: "공정한 경쟁", year: 2019, publishers: ["나무옆의자"] },
-    ],
-    awards: [],
-  },
-];
+export const specialFallbackAuthors: Author[] = [];
 
 export const AUTHOR_META: Record<string, {
   nameEn: string;
@@ -2124,20 +2089,7 @@ export function getBestAuthorMatch(authorName: string, book: any): Author | null
       score -= 500;
     }
     
-    // 4. 특정 작가 전용 키워드 매칭
-    if (author.name === "이준석") {
-      if (author.id === 7001) { // 클래식 전공
-        const classicKeywords = ["일리아스", "오디세이아", "호메로스", "그리스", "로마", "신화", "고전", "비극", "트로이"];
-        if (classicKeywords.some(kw => bookTitle.includes(kw) || bookDesc.includes(kw))) {
-          score += 100;
-        }
-      } else if (author.id === 7002) { // 정치인
-        const politicsKeywords = ["정치", "보수", "개혁", "선거", "의원", "대표", "대망론", "토론", "경쟁", "미래", "공정", "자산", "토큰", "비트코인"];
-        if (politicsKeywords.some(kw => bookTitle.includes(kw) || bookDesc.includes(kw))) {
-          score += 100;
-        }
-      }
-    }
+
     
     if (score > bestScore) {
       bestScore = score;
