@@ -20,6 +20,7 @@ interface HotVoteCardProps {
   book: Book;
   comments: number;
   onCommentClick?: () => void;
+  onBookClick?: () => void;
   onLoginRequired?: () => void;
   onVote?: (bookId: string, publisherName: string) => void;
 }
@@ -29,6 +30,7 @@ export function HotVoteCard({
   book,
   comments,
   onCommentClick,
+  onBookClick,
   onLoginRequired,
   onVote,
 }: HotVoteCardProps) {
@@ -92,7 +94,10 @@ export function HotVoteCard({
 
       <div className="p-4">
         {/* 책 표지 및 정보 */}
-        <div className="flex items-start gap-3 mb-4 p-3 bg-purple-50 rounded-xl">
+        <div 
+          onClick={onBookClick}
+          className="flex items-start gap-3 mb-4 p-3 bg-purple-50 hover:bg-purple-100/80 rounded-xl cursor-pointer transition-colors"
+        >
           <div className="w-16 h-24 flex-shrink-0">
             <BookCover 
               title={book.title} 

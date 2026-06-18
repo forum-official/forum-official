@@ -37,10 +37,12 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   const [reviews, setReviews] = useState(() => getReviews(book.id));
   const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(book.id, userId));
   const [activeCoverUrl, setActiveCoverUrl] = useState(book.coverUrl);
+  const [activePublisher, setActivePublisher] = useState(() => book.publisher || (book.publishers && book.publishers[0]?.name) || "민음사");
 
   useEffect(() => {
     setActiveCoverUrl(book.coverUrl);
-  }, [book.coverUrl, book.id]);
+    setActivePublisher(book.publisher || (book.publishers && book.publishers[0]?.name) || "민음사");
+  }, [book.coverUrl, book.publisher, book.publishers, book.id]);
 
   const getAladinLink = () => {
     const isNumeric = /^\d+$/.test(book.id);
@@ -804,30 +806,33 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
               <BookCover 
                 title={book.title} 
                 author={bookAuthor} 
-                publisherName={sortedPublishers[0]?.name}
+                publisherName={activePublisher}
                 coverUrl={activeCoverUrl} 
                 className="w-full rounded-lg shadow-md"
               />
               {book.alternativeCovers && book.alternativeCovers.length >= 2 && (
                 <div className="mt-3 bg-white rounded-xl p-2.5 border border-purple-100 shadow-sm w-full">
                   <span className="text-[10px] text-purple-600 font-bold block mb-2 text-center">다른 출판사 표지 보기</span>
-                  <div className="flex gap-2 overflow-x-auto pb-2 justify-center scrollbar-none">
+                  <div className="flex gap-2 overflow-x-auto pb-3 justify-center scrollbar-none">
                     {book.alternativeCovers.map((item: any, idx: number) => (
                       <button
                         key={idx}
-                        onClick={() => setActiveCoverUrl(item.coverUrl)}
-                        className={`flex-shrink-0 flex flex-col items-center p-1.5 rounded-lg border-2 transition-all ${
-                          activeCoverUrl === item.coverUrl
+                        onClick={() => {
+                          setActiveCoverUrl(item.coverUrl);
+                          setActivePublisher(item.publisher);
+                        }}
+                        className={`flex-shrink-0 flex flex-col items-center p-1.5 min-w-[58px] rounded-lg border-2 transition-all ${
+                          activePublisher === item.publisher
                             ? "border-purple-500 bg-purple-50"
                             : "border-transparent bg-gray-50 hover:bg-gray-100"
                         }`}
                       >
                         <img 
-                          src={item.coverUrl} 
+                          src={item.coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=200"} 
                           alt={item.publisher} 
                           className="w-9 h-12 object-cover rounded shadow-sm mb-1.5"
                         />
-                        <span className="text-[9px] font-semibold text-gray-700 max-w-[50px] truncate">
+                        <span className="text-[9px] font-semibold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
                           {item.publisher}
                         </span>
                       </button>

@@ -703,7 +703,172 @@ function AppContent() {
     // 각 큐레이션마다 다른 시드 값 생성
     return curations.map(() => Math.floor(Math.random() * 10000));
   });
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+    const [selectedBook, setSelectedBookRaw] = useState<Book | null>(null);
+
+  const getRepresentativeBookForBook = (book: Book, globalBooks: Book[]): Book => {
+    const classicTitle = getMatchingClassicTitle(book.title);
+    
+    const cleanTitle = (t: string) => {
+      let cleaned = t;
+      cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
+      cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
+      cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+      cleaned = cleaned.replace(/[-:：,;.]/g, " ");
+      return cleaned.replace(/\s+/g, " ").trim();
+    };
+
+    const cleanAuthor = (a: string) => {
+      return (a || "").replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
+    };
+
+    const targetCleanedTitle = cleanTitle(book.title).toLowerCase();
+    const authorQuery = cleanAuthor(book.author);
+
+    // 관련 도서들 수집 (클래식 매칭 우선 지원)
+    const relatedBooks = globalBooks.filter(b => {
+      if (classicTitle) {
+        const bClassic = getMatchingClassicTitle(b.title);
+        if (bClassic && bClassic.toLowerCase() === classicTitle.toLowerCase()) {
+          return true;
+        }
+      }
+      
+      const cleanAuth = cleanAuthor(b.author);
+      const isAuthorMatch = cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
+      
+      const bCleanedTitle = cleanTitle(b.title).toLowerCase();
+      const isTitleMatch = bCleanedTitle.includes(targetCleanedTitle) || targetCleanedTitle.includes(bCleanedTitle);
+      
+      return isAuthorMatch && isTitleMatch;
+    });
+
+    if (relatedBooks.length === 0) {
+      relatedBooks.push(book);
+    }
+
+    const integrateBooksLocal = (books: any[]): any[] => {
+      const sorted = [...books].sort((a, b) => {
+        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5 + (a.rating || 0) * 10;
+        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5 + (b.rating || 0) * 10;
+        return scoreB - scoreA;
+      });
+
+      const integratedMap = new Map<string, any>();
+
+      sorted.forEach(item => {
+        const cleanedTitle = cleanTitle(item.title);
+        const cleanedAuthor = cleanAuthor(item.author);
+        const uniqueKey = `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
+        
+        let existingKey = uniqueKey;
+        if (!integratedMap.has(uniqueKey)) {
+          const foundKey = Array.from(integratedMap.keys()).find(k => {
+            const [t, a] = k.split("_");
+            if (a !== cleanedAuthor) return false;
+            return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
+          });
+          if (foundKey) {
+            existingKey = foundKey;
+          }
+        }
+
+        const existing = integratedMap.get(existingKey);
+
+        if (existing) {
+          const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
+          if (!existing.publishers.some((p: any) => p.name === newPubName)) {
+            existing.publishers.push({ name: newPubName, votes: item.publishers?.[0]?.votes || 0 });
+          }
+          
+          if (!existing.alternativeCovers) {
+            existing.alternativeCovers = [];
+          }
+          if (item.coverUrl && !existing.alternativeCovers.some((c: any) => c.publisher === newPubName)) {
+            existing.alternativeCovers.push({
+              publisher: newPubName,
+              coverUrl: item.coverUrl
+            });
+          }
+        } else {
+          const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
+          const newBook = {
+            ...item,
+            title: classicTitle ? `${classicTitle} 세트 전3권` : cleanedTitle,
+            publishers: item.publishers || [{ name: newPubName, votes: 0 }],
+            alternativeCovers: [
+              {
+                publisher: newPubName,
+                coverUrl: item.coverUrl
+              }
+            ]
+          };
+          integratedMap.set(uniqueKey, newBook);
+        }
+      });
+
+      return Array.from(integratedMap.values());
+    };
+
+    const integrated = integrateBooksLocal(relatedBooks);
+    
+    let representative = integrated.find(ib => {
+      const ibCleaned = cleanTitle(ib.title).toLowerCase();
+      return ibCleaned.includes(targetCleanedTitle) || targetCleanedTitle.includes(ibCleaned);
+    });
+
+    if (!representative && integrated.length > 0) {
+      representative = integrated[0];
+    }
+
+    if (representative) {
+      if (classicTitle) {
+        const defaultPublishers = ["민음사", "문학동네", "열린책들"];
+        representative.title = `${classicTitle} 세트 전3권`;
+        
+        if (!representative.publishers) {
+          representative.publishers = [];
+        }
+        defaultPublishers.forEach(pub => {
+          if (!representative.publishers.some((p: any) => p.name === pub)) {
+            representative.publishers.push({ name: pub, votes: 0 });
+          }
+        });
+
+        if (!representative.alternativeCovers) {
+          representative.alternativeCovers = [];
+        }
+        defaultPublishers.forEach(pub => {
+          const hasCover = representative.alternativeCovers.some((c: any) => c.publisher === pub);
+          if (!hasCover) {
+            representative.alternativeCovers.push({
+              publisher: pub,
+              coverUrl: "" // BookCover가 staticCover 또는 placeholder로 자동 보강함
+            });
+          }
+        });
+      }
+      return representative;
+    }
+    
+    return book;
+  };
+
+  const setSelectedBook = (book: Book | null) => {
+    if (!book) {
+      setSelectedBookRaw(null);
+      return;
+    }
+
+    try {
+      const globalBooks = getGlobalBooks(popularBooksData);
+      const mapped = getRepresentativeBookForBook(book, globalBooks);
+      setSelectedBookRaw(mapped);
+    } catch (e) {
+      console.error("Failed to map representative book in setSelectedBook:", e);
+      setSelectedBookRaw(book);
+    }
+  };
+
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [voteDetailBook, setVoteDetailBook] = useState<Book | null>(null);
@@ -790,110 +955,10 @@ function AppContent() {
   };
 
   const handleBookClick = (book: Book) => {
-    const integrateBooksLocal = (books: any[]): any[] => {
-      const cleanTitle = (t: string) => {
-        let cleaned = t;
-        cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
-        cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-        cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
-        cleaned = cleaned.replace(/[-:：,;.]/g, " ");
-        return cleaned.replace(/\s+/g, " ").trim();
-      };
-
-      const cleanAuthor = (a: string) => {
-        return (a || "").replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
-      };
-
-      const sorted = [...books].sort((a, b) => {
-        const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5 + (a.rating || 0) * 10;
-        const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5 + (b.rating || 0) * 10;
-        return scoreB - scoreA;
-      });
-
-      const integratedMap = new Map<string, any>();
-
-      sorted.forEach(item => {
-        const cleanedTitle = cleanTitle(item.title);
-        const cleanedAuthor = cleanAuthor(item.author);
-        const uniqueKey = `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
-        
-        let existingKey = uniqueKey;
-        if (!integratedMap.has(uniqueKey)) {
-          const foundKey = Array.from(integratedMap.keys()).find(k => {
-            const [t, a] = k.split("_");
-            if (a !== cleanedAuthor) return false;
-            return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
-          });
-          if (foundKey) {
-            existingKey = foundKey;
-          }
-        }
-
-        const existing = integratedMap.get(existingKey);
-
-        if (existing) {
-          const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
-          if (!existing.publishers.some((p: any) => p.name === newPubName)) {
-            existing.publishers.push({ name: newPubName, votes: item.publishers?.[0]?.votes || 0 });
-          }
-          
-          if (!existing.alternativeCovers) {
-            existing.alternativeCovers = [];
-          }
-          if (item.coverUrl && !existing.alternativeCovers.some((c: any) => c.publisher === newPubName)) {
-            existing.alternativeCovers.push({
-              publisher: newPubName,
-              coverUrl: item.coverUrl
-            });
-          }
-        } else {
-          const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
-          const newBook = {
-            ...item,
-            title: cleanedTitle,
-            publishers: item.publishers || [{ name: newPubName, votes: 0 }],
-            alternativeCovers: [
-              {
-                publisher: newPubName,
-                coverUrl: item.coverUrl
-              }
-            ]
-          };
-          integratedMap.set(uniqueKey, newBook);
-        }
-      });
-
-      return Array.from(integratedMap.values());
-    };
-
     try {
       const globalBooks = getGlobalBooks(popularBooksData);
-      
-      const authorQuery = book.author.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
-      const relatedBooks = globalBooks.filter(b => {
-        const cleanAuth = b.author.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
-        return cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
-      });
-
-      const integrated = integrateBooksLocal(relatedBooks);
-      
-      const cleanBookTitle = (t: string) => {
-        let cleaned = t;
-        cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
-        cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-        cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
-        cleaned = cleaned.replace(/[-:：,;.]/g, " ");
-        return cleaned.replace(/\s+/g, " ").trim();
-      };
-      
-      const targetCleanedTitle = cleanBookTitle(book.title).toLowerCase();
-
-      const representativeBook = integrated.find(ib => {
-        const ibCleaned = cleanBookTitle(ib.title).toLowerCase();
-        return ibCleaned.includes(targetCleanedTitle) || targetCleanedTitle.includes(ibCleaned);
-      });
-
-      setSelectedBook(representativeBook || book);
+      const mapped = getRepresentativeBookForBook(book, globalBooks);
+      setSelectedBook(mapped);
     } catch (e) {
       console.error("Failed to map representative book in handleBookClick:", e);
       setSelectedBook(book);
@@ -1442,6 +1507,11 @@ function AppContent() {
                         ...dailyHotVote,
                         onCommentClick: () => {
                           // booksData에서 최신 상태의 책을 가져옴
+                          const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
+                          setSelectedBook(updatedBook);
+                          handleNavigate("book-detail");
+                        },
+                        onBookClick: () => {
                           const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
                           setSelectedBook(updatedBook);
                           handleNavigate("book-detail");

@@ -6,6 +6,7 @@ import { popularBooksData, type Book } from "@/app/data/booksData";
 import { getBookLikes, getBookRatingStatsWithQuick, getPublisherVotes, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor } from "@/app/utils/db";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
+import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
 function integrateBooks(books: any[]): any[] {
   const cleanTitle = (t: string) => {
@@ -14,8 +15,6 @@ function integrateBooks(books: any[]): any[] {
     cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
     
     // 2. 세트, 권수 관련 텍스트 정제 (문자열 끝부분 대상)
-    // 예: "세트", "전3권", "1권", "1", "I", "II" 등
-    // 단, "1984" 같이 전체가 숫자인 경우는 유지하기 위해 앞에 공백이 있는 경우에만 제거
     cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
     cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, ""); // 제목 끝의 권수 숫자/로마자 제거
     
@@ -37,16 +36,27 @@ function integrateBooks(books: any[]): any[] {
   const integratedMap = new Map<string, any>();
 
   sorted.forEach(book => {
+    const classicTitle = getMatchingClassicTitle(book.title);
     const cleanedTitle = cleanTitle(book.title);
     const cleanedAuthor = cleanAuthor(book.author);
-    const uniqueKey = `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
+    
+    // 클래식 매칭 성공 시 해당 클래식 대표 제목으로 고유키를 묶어 중복 병합
+    const uniqueKey = classicTitle 
+      ? `${classicTitle.toLowerCase()}_${cleanedAuthor}`
+      : `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
     
     let existingKey = uniqueKey;
     if (!integratedMap.has(uniqueKey)) {
-      // 덜 엄격한 매칭을 위해 기존 키들 중 포함 관계가 있는 게 있는지 빠르게 스캔
       const foundKey = Array.from(integratedMap.keys()).find(k => {
         const [t, a] = k.split("_");
         if (a !== cleanedAuthor) return false;
+        
+        if (classicTitle) {
+          const kClassic = getMatchingClassicTitle(t) || t;
+          return kClassic.toLowerCase().includes(classicTitle.toLowerCase()) || 
+                 classicTitle.toLowerCase().includes(kClassic.toLowerCase());
+        }
+        
         return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
       });
       if (foundKey) {
@@ -75,7 +85,7 @@ function integrateBooks(books: any[]): any[] {
       const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
       const newBook = {
         ...book,
-        title: cleanedTitle,
+        title: classicTitle ? `${classicTitle} 세트 전3권` : cleanedTitle,
         publishers: book.publishers || [{ name: newPubName, votes: 0 }],
         alternativeCovers: [
           {
@@ -84,6 +94,22 @@ function integrateBooks(books: any[]): any[] {
           }
         ]
       };
+      
+      if (classicTitle) {
+        const defaultPublishers = ["민음사", "문학동네", "열린책들"];
+        defaultPublishers.forEach(pub => {
+          if (!newBook.publishers.some((p: any) => p.name === pub)) {
+            newBook.publishers.push({ name: pub, votes: 0 });
+          }
+          if (!newBook.alternativeCovers.some((c: any) => c.publisher === pub)) {
+            newBook.alternativeCovers.push({
+              publisher: pub,
+              coverUrl: pub === newPubName ? book.coverUrl : ""
+            });
+          }
+        });
+      }
+      
       integratedMap.set(uniqueKey, newBook);
     }
   });
@@ -461,7 +487,7 @@ export function BooksScreen({
     });
   }
 
-  const processedBooks = searchQuery.trim() !== "" ? integrateBooks(mergedBooks) : mergedBooks;
+  const processedBooks = integrateBooks(mergedBooks);
   const sortedBooks = [...processedBooks].sort((a, b) => {
     if (sortBy === "likes") {
       // Sort primarily by app likes (likes) descending
