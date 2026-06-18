@@ -125,7 +125,7 @@ export function BooksScreen({
   const [isLoading, setIsLoading] = useState(false);
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [sortBy, setSortBy] = useState<"likes" | "rating">("likes");
-  const [displayCount, setDisplayCount] = useState(20);
+  const [displayCount, setDisplayCount] = useState(100);
 
 
 
@@ -496,14 +496,14 @@ export function BooksScreen({
 
   // Reset display count when category, search query, or sorting changes
   useEffect(() => {
-    setDisplayCount(20);
+    setDisplayCount(100);
   }, [selectedCategory, searchQuery, sortBy]);
 
   // Infinite scroll listener to load more books as the user scrolls down
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
-        setDisplayCount(prev => Math.min(prev + 20, sortedBooks.length));
+        setDisplayCount(prev => Math.min(prev + 50, sortedBooks.length));
       }
     };
     window.addEventListener("scroll", handleScroll);

@@ -17,6 +17,15 @@ import { BookCover } from "@/app/components/BookCover";
 import { motion } from "motion/react";
 import { getPublisherVotes, votePublisher, fetchCommentsFromCloud, saveCommentToCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, getComments, getGlobalBooks } from "@/app/utils/db";
 
+const cleanTitle = (t: string) => {
+  let cleaned = t;
+  cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
+  cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
+  cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+  cleaned = cleaned.replace(/[-:：,;.]/g, " ");
+  return cleaned.replace(/\s+/g, " ").trim();
+};
+
 interface VoteDetailScreenProps {
   onBack: () => void;
   selectedBook?: Book | null;
@@ -206,7 +215,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-6 text-white">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-1">{voteData.title}</h2>
+              <h2 className="text-2xl font-bold mb-1">{cleanTitle(voteData.title)}</h2>
               <p className="text-sm text-purple-100 mb-1">{currentBook.author}</p>
               <button
                 onClick={() => setShowBookSearch(true)}

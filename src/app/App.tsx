@@ -940,15 +940,37 @@ function AppContent() {
 
   // 화면(currentScreen)이나 탭(activeTab)이 변경될 때 스크롤 위치를 최상단으로 초기화 (타이밍 이슈 방지)
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const timer = setTimeout(() => {
-      window.scrollTo(0, 0);
-    }, 50);
-    const animationFrame = requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-    });
+    const performScrollReset = () => {
+      try {
+        window.scrollTo(0, 0);
+        if (document.documentElement) {
+          document.documentElement.scrollTop = 0;
+        }
+        if (document.body) {
+          document.body.scrollTop = 0;
+        }
+        // 혹시 레이아웃 모바일-only 컨테이너 div 스크롤바가 작동중인 경우 대비
+        const containers = document.querySelectorAll(".min-h-screen, .overflow-y-auto");
+        containers.forEach(container => {
+          container.scrollTop = 0;
+        });
+      } catch (e) {
+        console.error("Scroll reset error:", e);
+      }
+    };
+
+    performScrollReset();
+    
+    const t1 = setTimeout(performScrollReset, 10);
+    const t2 = setTimeout(performScrollReset, 50);
+    const t3 = setTimeout(performScrollReset, 150);
+    
+    const animationFrame = requestAnimationFrame(performScrollReset);
+
     return () => {
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       cancelAnimationFrame(animationFrame);
     };
   }, [currentScreen, activeTab]);

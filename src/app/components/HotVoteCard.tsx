@@ -6,6 +6,15 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import type { Book } from "@/app/data/booksData";
 import { BookCover } from "@/app/components/BookCover";
 
+const cleanTitle = (t: string) => {
+  let cleaned = t;
+  cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
+  cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
+  cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+  cleaned = cleaned.replace(/[-:：,;.]/g, " ");
+  return cleaned.replace(/\s+/g, " ").trim();
+};
+
 interface HotVoteCardProps {
   title: string;
   book: Book;
@@ -63,6 +72,9 @@ export function HotVoteCard({
   const sortedPublishers = [...publisherVotes].sort((a, b) => b.votes - a.votes);
   const topPublisher = sortedPublishers[0];
 
+  const cleanedBookTitle = cleanTitle(book.title);
+  const cleanedCardTitle = title.replace(book.title, cleanedBookTitle);
+
   return (
     <Card className="overflow-hidden shadow-lg border-2 border-purple-100">
       <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3">
@@ -75,7 +87,7 @@ export function HotVoteCard({
             ⏰ 매일 자정 변경
           </span>
         </div>
-        <h3 className="font-bold text-white text-base leading-tight mt-1">{title}</h3>
+        <h3 className="font-bold text-white text-base leading-tight mt-1">{cleanedCardTitle}</h3>
       </div>
 
       <div className="p-4">
@@ -91,7 +103,7 @@ export function HotVoteCard({
             />
           </div>
           <div className="flex-1">
-            <h4 className="font-bold text-sm mb-1">{book.title}</h4>
+            <h4 className="font-bold text-sm mb-1">{cleanedBookTitle}</h4>
             <p className="text-xs text-gray-600">{book.author}</p>
           </div>
         </div>
