@@ -125,7 +125,7 @@ export function BooksScreen({
   const [isLoading, setIsLoading] = useState(false);
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [sortBy, setSortBy] = useState<"likes" | "rating">("likes");
-  const [displayCount, setDisplayCount] = useState(100);
+  const [displayCount, setDisplayCount] = useState(40);
 
 
 
@@ -496,19 +496,25 @@ export function BooksScreen({
 
   // Reset display count when category, search query, or sorting changes
   useEffect(() => {
-    setDisplayCount(100);
+    setDisplayCount(40);
   }, [selectedCategory, searchQuery, sortBy]);
 
-  // Infinite scroll listener to load more books as the user scrolls down
+  // Intersection Observer to detect when user reaches the bottom to load more books
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
-        setDisplayCount(prev => Math.min(prev + 50, sortedBooks.length));
+    const trigger = document.getElementById("infinite-scroll-trigger");
+    if (!trigger) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setDisplayCount(prev => Math.min(prev + 40, sortedBooks.length));
       }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [sortedBooks.length]);
+    }, {
+      rootMargin: "300px",
+    });
+
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [sortedBooks.length, displayCount]);
 
   const filteredBooks = sortedBooks;
   const displayedBooks = filteredBooks.slice(0, displayCount);
@@ -620,6 +626,13 @@ export function BooksScreen({
                 onClick={() => onBookClick(book)}
               />
             ))}
+            {/* 무한 스크롤 감지 센서 */}
+            {filteredBooks.length > displayCount && (
+              <div id="infinite-scroll-trigger" className="h-12 w-full flex items-center justify-center text-purple-600 gap-2 mt-4">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-xs text-gray-400">도서를 더 불러오고 있습니다...</span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-12">
