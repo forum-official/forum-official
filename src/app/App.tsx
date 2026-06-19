@@ -479,18 +479,30 @@ function AppContent() {
   const [revealedSpoilers, setRevealedSpoilers] = useState<Record<string, boolean>>({});
   
   // 책 데이터를 state로 관리 (투표 및 신규 등록 동기화를 위해)
+  // 책 데이터를 state로 관리 (투표 및 신규 등록 동기화를 위해)
   const [booksData, setBooksData] = useState<Book[]>(() => {
     return getGlobalBooks(popularBooksData).map(book => {
       const stats = getBookRatingStatsWithQuick(book.id);
       
-      // 클래식 도서라면 기본 출판사를 민음사/문학동네로 확장해서 가져옴
+      // 클래식 도서라면 기본 출판사를 민음사/문학동네/열린책들 3사 및 기존 출판사들로 채움
       const isClassic = getMatchingClassicTitle(book.title) !== null;
-      const initialPubs = isClassic 
-        ? [
-            { name: "민음사", votes: 0 },
-            { name: "문학동네", votes: 0 }
-          ]
-        : book.publishers;
+      
+      const defaultPubs = [
+        { name: "민음사", votes: 0 },
+        { name: "문학동네", votes: 0 },
+        { name: "열린책들", votes: 0 }
+      ];
+
+      const bookPubs = book.publishers || [];
+      const mergedPubs = [...defaultPubs];
+      
+      bookPubs.forEach(bp => {
+        if (!mergedPubs.some(p => p.name === bp.name)) {
+          mergedPubs.push({ name: bp.name, votes: bp.votes || 0 });
+        }
+      });
+
+      const initialPubs = isClassic ? mergedPubs : bookPubs;
         
       const dbPublishers = getPublisherVotes(isClassic ? book.title : book.id, initialPubs);
       const likesData = getBookLikes(book.id);
@@ -505,10 +517,18 @@ function AppContent() {
   });
 
   // 스크린이 전환될 때마다 DB 데이터를 책 데이터에 리프레시하여 평점, 리뷰수, 투표수 및 신규 도서 동기화
-  // 이전 한글 인코딩 깨짐 시절에 잘못 캐싱된 Wikipedia 이미지 실패(NONE) 캐시 자동 복원 및 localStorage 내 깨진 텍스트 복구
-    // 이전 한글 인코딩 깨짐 시절에 잘못 캐싱된 Wikipedia 이미지 실패(NONE) 캐시 자동 복원 및 localStorage 내 깨진/오염된 텍스트 및 장르 정렬 복구
   useEffect(() => {
     try {
+      // 1회성 캐시 무효화 (v4) - 기존 꼬인 도서 통합 캐시를 완전히 날리고 강제 새로고침
+      const APP_CACHE_VERSION_KEY = "forum_app_cache_version_v4";
+      if (!localStorage.getItem(APP_CACHE_VERSION_KEY)) {
+        localStorage.removeItem("forum_global_books");
+        sessionStorage.clear();
+        localStorage.setItem(APP_CACHE_VERSION_KEY, "true");
+        window.location.reload();
+        return;
+      }
+
       // 1. Wikipedia 이미지 실패 및 오염 캐시 버전별 강제 초기화
       const WIKI_CACHE_VERSION = "v5"; // v5 버전으로 업데이트하여 기존 캐시 완전 강제 제거
       if (localStorage.getItem("wiki_cache_version") !== WIKI_CACHE_VERSION) {
