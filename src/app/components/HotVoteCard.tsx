@@ -113,9 +113,9 @@ export function HotVoteCard({
           </div>
         </div>
 
-        {/* 투표 옵션 - 상위 2개만 표시 */}
+        {/* 투표 옵션 - 모든 출판사 리스트업 */}
         <div className="space-y-2.5 mb-4">
-          {sortedPublishers.slice(0, 2).map((publisher, index) => {
+          {sortedPublishers.map((publisher, index) => {
             const percentage = totalVotes > 0 ? ((publisher.votes / totalVotes) * 100).toFixed(1) : "0.0";
             const isSelected = selectedPublisher === publisher.name;
             const isTop = publisher.name === topPublisher.name;
@@ -125,7 +125,7 @@ export function HotVoteCard({
                 key={publisher.name}
                 onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
                 disabled={hasVoted}
-                className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                className={`w-full text-left p-3 rounded-xl border-2 transition-all relative ${
                   isSelected
                     ? "border-purple-500 bg-purple-50 shadow-md"
                     : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
@@ -137,14 +137,14 @@ export function HotVoteCard({
                       {publisher.name}
                     </span>
                     {isTop && hasVoted && (
-                      <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full font-semibold">
+                      <span className="text-[10px] bg-purple-500 text-white px-2 py-0.5 rounded-full font-semibold">
                         1위
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-purple-600">{percentage}%</span>
-                    <span className="text-xs text-gray-500 font-medium">{publisher.votes}표</span>
+                    <span className="text-base font-bold text-purple-600">{percentage}%</span>
+                    <span className="text-[10px] text-gray-500 font-medium">{publisher.votes}표</span>
                   </div>
                 </div>
                 <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -153,62 +153,9 @@ export function HotVoteCard({
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
-                {isSelected && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
               </button>
             );
           })}
-
-          {/* 나머지 출판사들 */}
-          {sortedPublishers.length > 2 && (
-            <div className="space-y-2">
-              {sortedPublishers.slice(2).map((publisher) => {
-                const percentage = totalVotes > 0 ? ((publisher.votes / totalVotes) * 100).toFixed(1) : "0.0";
-                const isSelected = selectedPublisher === publisher.name;
-
-                return (
-                  <button
-                    key={publisher.name}
-                    onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
-                    disabled={hasVoted}
-                    className={`w-full text-left p-2.5 rounded-xl border-2 transition-all ${
-                      isSelected
-                        ? "border-purple-500 bg-purple-50 shadow-md"
-                        : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
-                    } ${hasVoted ? "cursor-not-allowed" : "cursor-pointer"}`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-semibold text-sm text-gray-700">
-                        {publisher.name}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-gray-600">{percentage}%</span>
-                        <span className="text-xs text-gray-500">{publisher.votes}표</span>
-                      </div>
-                    </div>
-                    <div className="relative h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-gray-400 to-gray-300 transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* Action Buttons */}

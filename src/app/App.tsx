@@ -717,8 +717,35 @@ function AppContent() {
       return cleaned.replace(/\s+/g, " ").trim();
     };
 
+    const getMainAuthor = (a: string) => {
+      if (!a) return "";
+      const lower = a.toLowerCase();
+      if (lower.includes("오스틴")) return "제인 오스틴";
+      if (lower.includes("톨스토이")) return "레프 톨스토이";
+      if (lower.includes("카뮈")) return "알베르 카뮈";
+      if (lower.includes("헤세")) return "헤르만 헤세";
+      if (lower.includes("오웰")) return "조지 오웰";
+      if (lower.includes("도스토")) return "피오도르 도스토옙스키";
+      if (lower.includes("카프카")) return "프란ץ 카프카";
+      if (lower.includes("생텍쥐")) return "생텍쥐페리";
+      if (lower.includes("위고")) return "빅토르 위고";
+      if (lower.includes("피츠제")) return "F. 스콧 피츠제럴드";
+      if (lower.includes("헤밍웨이")) return "어네스트 헤밍웨이";
+      if (lower.includes("조르바") || lower.includes("카잔차")) return "니코스 카잔차키스";
+      if (lower.includes("쿤데라")) return "밀란 쿤데라";
+      if (lower.includes("박경리")) return "박경리";
+      if (lower.includes("최인훈")) return "최인훈";
+      if (lower.includes("세르반")) return "미겔 데 세르반테스";
+      if (lower.includes("나관중")) return "나관중";
+      if (lower.includes("하루키")) return "무라카미 하루키";
+
+      const firstPart = a.split(/[,;\/]/)[0].trim();
+      return firstPart.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "");
+    };
+
     const cleanAuthor = (a: string) => {
-      return (a || "").replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
+      const main = getMainAuthor(a);
+      return main.replace(/\s+/g, "").toLowerCase();
     };
 
     const targetCleanedTitle = cleanTitle(book.title).toLowerCase();
@@ -734,7 +761,7 @@ function AppContent() {
       }
       
       const cleanAuth = cleanAuthor(b.author);
-      const isAuthorMatch = cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
+      const isAuthorMatch = cleanAuth === authorQuery || cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
       
       const bCleanedTitle = cleanTitle(b.title).toLowerCase();
       const isTitleMatch = bCleanedTitle.includes(targetCleanedTitle) || targetCleanedTitle.includes(bCleanedTitle);
@@ -764,7 +791,8 @@ function AppContent() {
         if (!integratedMap.has(uniqueKey)) {
           const foundKey = Array.from(integratedMap.keys()).find(k => {
             const [t, a] = k.split("_");
-            if (a !== cleanedAuthor) return false;
+            const isAuthMatch = a === cleanedAuthor || a.includes(cleanedAuthor) || cleanedAuthor.includes(a);
+            if (!isAuthMatch) return false;
             return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
           });
           if (foundKey) {

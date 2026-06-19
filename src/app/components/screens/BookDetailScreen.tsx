@@ -811,9 +811,9 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                 className="w-full rounded-lg shadow-md"
               />
               {book.alternativeCovers && book.alternativeCovers.length >= 2 && (
-                <div className="mt-3 bg-white rounded-xl p-2.5 border border-purple-100 shadow-sm w-full">
-                  <span className="text-[10px] text-purple-600 font-bold block mb-2 text-center">다른 출판사 표지 보기</span>
-                  <div className="flex gap-2 overflow-x-auto pb-3 justify-center scrollbar-none">
+                <div className="mt-3 bg-white rounded-xl p-3 border border-purple-100 shadow-sm w-full">
+                  <span className="text-[11px] text-purple-600 font-bold block mb-2 text-center uppercase tracking-wide">다른 출판사 표지 보기</span>
+                  <div className="flex gap-3 overflow-x-auto pb-2 justify-start md:justify-center scrollbar-none px-1">
                     {book.alternativeCovers.map((item: any, idx: number) => (
                       <button
                         key={idx}
@@ -821,18 +821,18 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                           setActiveCoverUrl(item.coverUrl);
                           setActivePublisher(item.publisher);
                         }}
-                        className={`flex-shrink-0 flex flex-col items-center p-1.5 min-w-[58px] rounded-lg border-2 transition-all ${
+                        className={`flex-shrink-0 flex flex-col items-center p-2 min-w-[72px] rounded-xl border-2 transition-all shadow-xs ${
                           activePublisher === item.publisher
-                            ? "border-purple-500 bg-purple-50"
-                            : "border-transparent bg-gray-50 hover:bg-gray-100"
+                            ? "border-purple-500 bg-purple-50/70 scale-105"
+                            : "border-gray-150 bg-gray-50/50 hover:bg-gray-100/70"
                         }`}
                       >
                         <img 
                           src={item.coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=200"} 
                           alt={item.publisher} 
-                          className="w-9 h-12 object-cover rounded shadow-sm mb-1.5"
+                          className="w-12 h-16 object-cover rounded-md shadow-md mb-2 transition-transform hover:scale-105"
                         />
-                        <span className="text-[9px] font-semibold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
+                        <span className="text-[10px] font-bold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
                           {item.publisher}
                         </span>
                       </button>
