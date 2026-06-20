@@ -36,11 +36,26 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   const userId = user?.userId || "guest";
   const [reviews, setReviews] = useState(() => getReviews(book.id));
   const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(book.id, userId));
-  const [activeCoverUrl, setActiveCoverUrl] = useState(book.coverUrl);
+  
+  const [activeCoverUrl, setActiveCoverUrl] = useState(() => {
+    if (book.coverUrl && !book.coverUrl.includes("unsplash.com") && !book.coverUrl.includes("openlibrary.org")) {
+      return book.coverUrl;
+    }
+    const validCover = book.alternativeCovers?.find((c: any) => c.coverUrl && !c.coverUrl.includes("unsplash.com") && c.coverUrl !== "");
+    return validCover ? validCover.coverUrl : book.coverUrl;
+  });
+  
   const [activePublisher, setActivePublisher] = useState(() => book.publisher || (book.publishers && book.publishers[0]?.name) || "민음사");
 
   useEffect(() => {
-    setActiveCoverUrl(book.coverUrl);
+    let initialCover = book.coverUrl;
+    if (!initialCover || initialCover.includes("unsplash.com") || initialCover.includes("openlibrary.org")) {
+      const validCover = book.alternativeCovers?.find((c: any) => c.coverUrl && !c.coverUrl.includes("unsplash.com") && c.coverUrl !== "");
+      if (validCover) {
+        initialCover = validCover.coverUrl;
+      }
+    }
+    setActiveCoverUrl(initialCover);
     setActivePublisher(book.publisher || (book.publishers && book.publishers[0]?.name) || "민음사");
   }, [book.coverUrl, book.publisher, book.publishers, book.id]);
 
@@ -55,12 +70,20 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   };
 
   const isClassic = getMatchingClassicTitle(book.title) !== null;
-  const initialPubs = isClassic 
-    ? [
-        { name: "민음사", votes: 0 },
-        { name: "문학동네", votes: 0 }
-      ]
-    : book.publishers;
+  const defaultPubs = [
+    { name: "민음사", votes: 0 },
+    { name: "문학동네", votes: 0 },
+    { name: "열린책들", votes: 0 }
+  ];
+  const bookPubs = book.publishers || [];
+  const mergedPubs = [...defaultPubs];
+  bookPubs.forEach(bp => {
+    if (!mergedPubs.some(p => p.name === bp.name)) {
+      mergedPubs.push({ name: bp.name, votes: bp.votes || 0 });
+    }
+  });
+
+  const initialPubs = isClassic ? mergedPubs : bookPubs;
   const dbKey = isClassic ? book.title : book.id;
 
   const [publisherVotes, setPublisherVotes] = useState(() => getPublisherVotes(dbKey, initialPubs));
@@ -80,12 +103,19 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
     syncRealtimeReviews();
     
     const isClassicBook = getMatchingClassicTitle(book.title) !== null;
-    const currentInitialPubs = isClassicBook 
-      ? [
-          { name: "민음사", votes: 0 },
-          { name: "문학동네", votes: 0 }
-        ]
-      : book.publishers;
+    const currentBookPubs = book.publishers || [];
+    const currentMergedPubs = [
+      { name: "민음사", votes: 0 },
+      { name: "문학동네", votes: 0 },
+      { name: "열린책들", votes: 0 }
+    ];
+    currentBookPubs.forEach(bp => {
+      if (!currentMergedPubs.some(p => p.name === bp.name)) {
+        currentMergedPubs.push({ name: bp.name, votes: bp.votes || 0 });
+      }
+    });
+
+    const currentInitialPubs = isClassicBook ? currentMergedPubs : currentBookPubs;
     const currentDbKey = isClassicBook ? book.title : book.id;
     
     setPublisherVotes(getPublisherVotes(currentDbKey, currentInitialPubs));
@@ -818,7 +848,15 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                       <button
                         key={idx}
                         onClick={() => {
-                          setActiveCoverUrl(item.coverUrl);
+                          // 캐싱된 진짜 이미지 URL이 있는지 로컬스토리지에서 정밀 확인
+                          const cacheKey = `cover_${book.title}_${bookAuthor}_${item.publisher}`;
+                          const cachedUrl = localStorage.getItem(cacheKey);
+                          
+                          const targetCoverUrl = (cachedUrl && cachedUrl !== "NO_COVER_FOUND") 
+                            ? cachedUrl 
+                            : (item.coverUrl || "");
+                            
+                          setActiveCoverUrl(targetCoverUrl);
                           setActivePublisher(item.publisher);
                         }}
                         className={`flex-shrink-0 flex flex-col items-center p-2 min-w-[72px] rounded-xl border-2 transition-all shadow-xs ${
@@ -827,11 +865,17 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                             : "border-gray-150 bg-gray-50/50 hover:bg-gray-100/70"
                         }`}
                       >
-                        <img 
-                          src={item.coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=200"} 
-                          alt={item.publisher} 
-                          className="w-12 h-16 object-cover rounded-md shadow-md mb-2 transition-transform hover:scale-105"
-                        />
+                        <div className="w-12 h-16 pointer-events-none mb-1 flex-shrink-0">
+                          <BookCover 
+                            title={book.title} 
+                            author={bookAuthor} 
+                            publisherName={item.publisher} 
+                            coverUrl={item.coverUrl} 
+                            className="w-full h-full object-cover rounded-md shadow-md"
+                            allowPublisherFallback={false}
+                            allowDynamicFetch={true}
+                          />
+                        </div>
                         <span className="text-[10px] font-bold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
                           {item.publisher}
                         </span>

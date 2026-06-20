@@ -519,8 +519,8 @@ function AppContent() {
   // 스크린이 전환될 때마다 DB 데이터를 책 데이터에 리프레시하여 평점, 리뷰수, 투표수 및 신규 도서 동기화
   useEffect(() => {
     try {
-      // 1회성 캐시 무효화 (v4) - 기존 꼬인 도서 통합 캐시를 완전히 날리고 강제 새로고침
-      const APP_CACHE_VERSION_KEY = "forum_app_cache_version_v4";
+      // 1회성 캐시 무효화 (v5) - 기존 꼬인 도서 통합 캐시를 완전히 날리고 강제 새로고침
+      const APP_CACHE_VERSION_KEY = "forum_app_cache_version_v5";
       if (!localStorage.getItem(APP_CACHE_VERSION_KEY)) {
         localStorage.removeItem("forum_global_books");
         sessionStorage.clear();
