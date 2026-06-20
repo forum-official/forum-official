@@ -11,14 +11,15 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { getReviews, saveReview, deleteReview, getPublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud } from "@/app/utils/db";
+import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud } from "@/app/utils/db";
+import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
-import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
 
 interface BookDetailScreenProps {
   book: Book;
+  workKey?: string;
   onBack: () => void;
   onUserClick?: (username: string, userInitial: string) => void;
   onLoginRequired?: () => void;
@@ -26,16 +27,20 @@ interface BookDetailScreenProps {
   onDiscussionClick?: (discussion: any) => void;
   debateTopics?: any[];
   onDebateClick?: (debate: any) => void;
-  onVote?: (bookId: string, publisherName: string) => void;
+  onVote?: (bookId: string, publisherName: string, pubBookId?: string) => void;
   onAuthorClick?: (authorData: any) => void;
   isForcedMobile?: boolean;
 }
 
-export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, discussions, onDiscussionClick, debateTopics, onDebateClick, onVote, onAuthorClick, isForcedMobile = false }: BookDetailScreenProps) {
+export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserClick, onLoginRequired, discussions, onDiscussionClick, debateTopics, onDebateClick, onVote, onAuthorClick, isForcedMobile = false }: BookDetailScreenProps) {
   const { isAuthenticated, user } = useAuth();
   const userId = user?.userId || "guest";
-  const [reviews, setReviews] = useState(() => getReviews(book.id));
-  const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(book.id, userId));
+  
+  // 작품의 공유 키 (전달받은 키 우선, 없으면 제목+저자 결합 키 생성)
+  const workKey = propsWorkKey || getWorkKey(book.title, book.author);
+
+  const [reviews, setReviews] = useState(() => getReviews(workKey));
+  const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(workKey, userId));
   
   const [activeCoverUrl, setActiveCoverUrl] = useState(() => {
     if (book.coverUrl && !book.coverUrl.includes("unsplash.com") && !book.coverUrl.includes("openlibrary.org")) {
@@ -69,7 +74,9 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
     }
   };
 
-  const isClassic = getMatchingClassicTitle(book.title) !== null;
+  // 고전 클래식 분류 및 원작 고전 작가인지를 교차 검증하여 동명이작 버그 완전 방지
+  const isClassic = isClassicBook(book.title, book.author);
+
   const defaultPubs = [
     { name: "민음사", votes: 0 },
     { name: "문학동네", votes: 0 },
@@ -84,66 +91,62 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   });
 
   const initialPubs = isClassic ? mergedPubs : bookPubs;
-  const dbKey = isClassic ? book.title : book.id;
 
-  const [publisherVotes, setPublisherVotes] = useState(() => getPublisherVotes(dbKey, initialPubs));
+  const getPubVotesList = () => {
+    return initialPubs.map((pub: any) => {
+      const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === pub.name);
+      const pubBookId = coverInfo?.bookId || `${book.id}_${pub.name}`;
+      return {
+        name: pub.name,
+        votes: getSinglePublisherVotes(pubBookId)
+      };
+    });
+  };
+
+  const [publisherVotes, setPublisherVotes] = useState(getPubVotesList);
   
   // 컴포넌트 마운트 시 스크롤을 최상단으로 이동
   useEffect(() => {
     window.scrollTo(0, 0);
     // 1. 로컬 캐시 데이터를 즉시 띄워 속도 최적화
-    setReviews(getReviews(book.id));
-    setMyQuickRating(getQuickRating(book.id, userId));
+    setReviews(getReviews(workKey));
+    setMyQuickRating(getQuickRating(workKey, userId));
     
     // 2. 백엔드 클라우드와 실시간 리뷰 동기화
     const syncRealtimeReviews = async () => {
-      const cloudReviews = await fetchReviewsFromCloud(book.id);
+      const cloudReviews = await fetchReviewsFromCloud(workKey);
       setReviews(cloudReviews);
     };
     syncRealtimeReviews();
     
-    const isClassicBook = getMatchingClassicTitle(book.title) !== null;
-    const currentBookPubs = book.publishers || [];
-    const currentMergedPubs = [
-      { name: "민음사", votes: 0 },
-      { name: "문학동네", votes: 0 },
-      { name: "열린책들", votes: 0 }
-    ];
-    currentBookPubs.forEach(bp => {
-      if (!currentMergedPubs.some(p => p.name === bp.name)) {
-        currentMergedPubs.push({ name: bp.name, votes: bp.votes || 0 });
-      }
-    });
+    // 투표수 최신화
+    setPublisherVotes(getPubVotesList());
 
-    const currentInitialPubs = isClassicBook ? currentMergedPubs : currentBookPubs;
-    const currentDbKey = isClassicBook ? book.title : book.id;
-    
-    setPublisherVotes(getPublisherVotes(currentDbKey, currentInitialPubs));
-    const likesStats = getBookLikes(book.id);
+    const likesStats = getBookLikes(workKey);
     setLiked(likesStats.isLiked);
     setLikeCount(likesStats.likesCount);
-  }, [book.id, userId]); // book.id or userId가 변경될 때마다 실행
+  }, [book.id, userId, book.title]); // book.id or userId가 변경될 때마다 실행
   
-  // localStorage에서 투표 여부 및 투표한 출판사 확인
+  // localStorage에서 투표 여부 및 투표한 출판사 확인 (작품 공유 키 workKey 기준)
   const [hasVoted, setHasVoted] = useState(() => {
     const myVotes = JSON.parse(localStorage.getItem('myPublisherVotes_' + userId) || '{}');
-    return book.id in myVotes;
+    return workKey in myVotes;
   });
   
   const [selectedPublisher, setSelectedPublisher] = useState<string | null>(() => {
     const myVotes = JSON.parse(localStorage.getItem('myPublisherVotes_' + userId) || '{}');
-    return myVotes[book.id] || null;
+    return myVotes[workKey] || null;
   });
 
   // Refresh vote status when book ID or user changes
   useEffect(() => {
     const myVotes = JSON.parse(localStorage.getItem('myPublisherVotes_' + userId) || '{}');
-    setHasVoted(book.id in myVotes);
-    setSelectedPublisher(myVotes[book.id] || null);
-  }, [book.id, userId]);
+    setHasVoted(workKey in myVotes);
+    setSelectedPublisher(myVotes[workKey] || null);
+  }, [book.id, userId, book.title]);
   
-  const [liked, setLiked] = useState(() => getBookLikes(book.id).isLiked);
-  const [likeCount, setLikeCount] = useState(() => getBookLikes(book.id).likesCount);
+  const [liked, setLiked] = useState(() => getBookLikes(workKey).isLiked);
+  const [likeCount, setLikeCount] = useState(() => getBookLikes(workKey).likesCount);
   const [showCreateReviewModal, setShowCreateReviewModal] = useState(false);
   const [showReviewsScreen, setShowReviewsScreen] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -613,6 +616,10 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
     
     if (hasVoted || !selectedPublisher) return;
 
+    const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === selectedPublisher);
+    const pubBookId = coverInfo?.bookId || `${book.id}_${selectedPublisher}`;
+
+    // 1. 내부 상태 리액티브하게 즉각 증가
     setPublisherVotes(prev =>
       prev.map(pub =>
         pub.name === selectedPublisher
@@ -621,11 +628,14 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
       )
     );
     setHasVoted(true);
-    // localStorage에 투표한 출판사 저장
+
+    // 2. 로컬스토리지에 투표 완료 저장 (작품 공유 키 workKey 기준)
     const myVotes = JSON.parse(localStorage.getItem('myPublisherVotes_' + userId) || '{}');
-    myVotes[book.id] = selectedPublisher;
+    myVotes[workKey] = selectedPublisher;
     localStorage.setItem('myPublisherVotes_' + userId, JSON.stringify(myVotes));
-    onVote?.(book.id, selectedPublisher);
+
+    // 3. 부모 컴포넌트에 고유 ID 전달 및 DB 저장 요청
+    onVote?.(book.id, selectedPublisher, pubBookId);
   };
 
   const handleLike = async () => {
@@ -634,9 +644,9 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
       return;
     }
     
-    // Toggle like in database & Cloud
-    await toggleBookLikeInCloud(book.id, userId);
-    const result = getBookLikes(book.id);
+    // Toggle like in database & Cloud (작품 공유 키 workKey 기준)
+    await toggleBookLikeInCloud(workKey, userId);
+    const result = getBookLikes(workKey);
     setLiked(result.isLiked);
     setLikeCount(result.likesCount);
   };
@@ -671,15 +681,14 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
     
     if (myQuickRating === rating) {
       // Toggle off
-      saveQuickRating(book.id, userId, 0);
+      saveQuickRating(workKey, userId, 0);
       setMyQuickRating(0);
       toast.success("평가가 취소되었습니다.");
     } else {
-      saveQuickRating(book.id, userId, rating);
+      saveQuickRating(workKey, userId, rating);
       setMyQuickRating(rating);
       
       if (myReview) {
-        // If they already have a review, update that review's rating to match
         const updatedReview = {
           ...myReview,
           rating: rating
@@ -688,23 +697,23 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
       }
       toast.success(`평점이 ${rating}점으로 등록되었습니다.`);
     }
-    setReviews(getReviews(book.id));
+    setReviews(getReviews(workKey));
   };
 
   const handleCreateReview = async (review: any) => {
     const reviewWithBookId = {
       ...review,
-      bookId: book.id,
+      bookId: workKey, // 작품 키로 저장
       userId: userId // Store user ID inside review
     };
     // Save to database & Cloud
     await saveReviewToCloud(reviewWithBookId);
     
     // Sync quick rating with the review rating
-    saveQuickRating(book.id, userId, review.rating);
+    saveQuickRating(workKey, userId, review.rating);
     setMyQuickRating(review.rating);
 
-    setReviews(getReviews(book.id));
+    setReviews(getReviews(workKey));
   };
 
   const handleReport = (reason: string) => {
@@ -720,8 +729,8 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   const confirmDeleteReview = async () => {
     if (reviewToDelete) {
       // Delete from database & Cloud
-      await deleteReviewFromCloud(reviewToDelete, book.id);
-      setReviews(getReviews(book.id));
+      await deleteReviewFromCloud(reviewToDelete, workKey);
+      setReviews(getReviews(workKey));
     }
     setShowDeleteConfirm(false);
     setReviewToDelete(null);
@@ -731,8 +740,8 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
   const sortedPublishers = [...publisherVotes].sort((a, b) => b.votes - a.votes);
   const topPublisher = sortedPublishers[0];
 
-  // 평균 평점 계산 (별점 단독 평가 포함)
-  const combinedStats = getBookRatingStatsWithQuick(book.id);
+  // 평균 평점 계산 (별점 단독 평가 포함 - 작품 공유 키 workKey 기준)
+  const combinedStats = getBookRatingStatsWithQuick(workKey);
   const averageRating = (combinedStats.reviewsCount + combinedStats.quickCount) > 0
     ? combinedStats.rating.toFixed(1)
     : "0.0";
@@ -740,26 +749,31 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
 
   // 관련 토론 필터링
   const relatedDiscussions = discussions?.filter((discussion) => {
-    // 1. 관련 도서 ID가 지정되어 있는 경우 ID로 일치 검사
+    // 1. 관련 도서 ID가 지정되어 있는 경우 ID로 일치 검사 (workKey도 호환되도록 비교 대상 확장)
     if (discussion.relatedBookId) {
-      return discussion.relatedBookId === book.id;
+      return discussion.relatedBookId === book.id || discussion.relatedBookId === workKey;
     }
     // 2. 도서 ID가 지정되어 있지 않은 경우 차선책으로 텍스트 포함 여부 검사
     const bookTitle = book.title.toLowerCase();
+    const workTitle = workKey.toLowerCase();
     const cleanAuthor = bookAuthor.toLowerCase();
     const discussionText = `${discussion.title} ${discussion.description}`.toLowerCase();
     const discussionOptions = discussion.options.map((opt: any) => opt.text.toLowerCase()).join(' ');
     
     return discussionText.includes(bookTitle) || 
+           discussionText.includes(workTitle) ||
            discussionText.includes(cleanAuthor) ||
-           discussionOptions.includes(bookTitle);
+           discussionOptions.includes(bookTitle) ||
+           discussionOptions.includes(workTitle);
   }) || [];
 
   // 찬반토론 필터링
   const relatedDebates = (debateTopics?.filter((debate) => {
     const cleanBook = book.title.replace(/\s+/g, "").toLowerCase();
+    const cleanWork = workKey.replace(/\s+/g, "").toLowerCase();
     const cleanDebate = debate.bookTitle.replace(/\s+/g, "").toLowerCase();
-    return cleanDebate.includes(cleanBook) || cleanBook.includes(cleanDebate);
+    return cleanDebate.includes(cleanBook) || cleanBook.includes(cleanDebate) ||
+           cleanDebate.includes(cleanWork) || cleanWork.includes(cleanDebate);
   }) || []).map(debate => {
     const votes = getDebateVotes(debate.bookTitle);
     const opinions = getDebateOpinions(debate.bookTitle);
@@ -840,50 +854,6 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
                 coverUrl={activeCoverUrl} 
                 className="w-full rounded-lg shadow-md"
               />
-              {book.alternativeCovers && book.alternativeCovers.length >= 2 && (
-                <div className="mt-3 bg-white rounded-xl p-3 border border-purple-100 shadow-sm w-full">
-                  <span className="text-[11px] text-purple-600 font-bold block mb-2 text-center uppercase tracking-wide">다른 출판사 표지 보기</span>
-                  <div className="flex gap-3 overflow-x-auto pb-2 justify-start md:justify-center scrollbar-none px-1">
-                    {book.alternativeCovers.map((item: any, idx: number) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          // 캐싱된 진짜 이미지 URL이 있는지 로컬스토리지에서 정밀 확인
-                          const cacheKey = `cover_${book.title}_${bookAuthor}_${item.publisher}`;
-                          const cachedUrl = localStorage.getItem(cacheKey);
-                          
-                          const targetCoverUrl = (cachedUrl && cachedUrl !== "NO_COVER_FOUND") 
-                            ? cachedUrl 
-                            : (item.coverUrl || "");
-                            
-                          setActiveCoverUrl(targetCoverUrl);
-                          setActivePublisher(item.publisher);
-                        }}
-                        className={`flex-shrink-0 flex flex-col items-center p-2 min-w-[72px] rounded-xl border-2 transition-all shadow-xs ${
-                          activePublisher === item.publisher
-                            ? "border-purple-500 bg-purple-50/70 scale-105"
-                            : "border-gray-150 bg-gray-50/50 hover:bg-gray-100/70"
-                        }`}
-                      >
-                        <div className="w-12 h-16 pointer-events-none mb-1 flex-shrink-0">
-                          <BookCover 
-                            title={book.title} 
-                            author={bookAuthor} 
-                            publisherName={item.publisher} 
-                            coverUrl={item.coverUrl} 
-                            className="w-full h-full object-cover rounded-md shadow-md"
-                            allowPublisherFallback={false}
-                            allowDynamicFetch={true}
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
-                          {item.publisher}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
             <div className="flex-1">
               <h2 className="font-bold text-xl mb-2 leading-tight">{book.title}</h2>
@@ -928,6 +898,64 @@ export function BookDetailScreen({ book, onBack, onUserClick, onLoginRequired, d
               </div>
             </div>
           </div>
+
+          {/* 다른 출판사 표지 보기 */}
+          {book.alternativeCovers && book.alternativeCovers.length >= 2 && (
+            <div className="mt-2 bg-white rounded-xl p-3 border border-purple-100 shadow-sm w-full mb-4">
+              <span className="text-[11px] text-purple-600 font-bold block mb-2 text-center uppercase tracking-wide">다른 출판사 표지 보기</span>
+              <div 
+                className="flex gap-3 overflow-x-auto pb-2 justify-start md:justify-center px-1 [&::-webkit-scrollbar]:hidden"
+                style={{
+                  display: "flex",
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none"
+                }}
+              >
+                {book.alternativeCovers.map((item: any, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      // 캐싱된 진짜 이미지 URL이 있는지 로컬스토리지에서 정밀 확인
+                      const cacheKey = `cover_${book.title}_${bookAuthor}_${item.publisher}`;
+                      const cachedUrl = localStorage.getItem(cacheKey);
+                      
+                      const targetCoverUrl = (cachedUrl && cachedUrl !== "NO_COVER_FOUND") 
+                        ? cachedUrl 
+                        : (item.coverUrl || "");
+                        
+                      setActiveCoverUrl(targetCoverUrl);
+                      setActivePublisher(item.publisher);
+                    }}
+                    className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all shadow-xs ${
+                      activePublisher === item.publisher
+                        ? "border-purple-500 bg-purple-50/70 scale-105"
+                        : "border-gray-150 bg-gray-50/50 hover:bg-gray-100/70"
+                    }`}
+                    style={{
+                      flexShrink: 0,
+                      width: "80px"
+                    }}
+                  >
+                    <div className="w-12 h-16 pointer-events-none mb-1 flex-shrink-0">
+                      <BookCover 
+                        title={book.title} 
+                        author={bookAuthor} 
+                        publisherName={item.publisher} 
+                        coverUrl={item.coverUrl} 
+                        className="w-full h-full object-cover rounded-md shadow-md"
+                        allowPublisherFallback={false}
+                        allowDynamicFetch={true}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
+                      {item.publisher}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm text-gray-600">

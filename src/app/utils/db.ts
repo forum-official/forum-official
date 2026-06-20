@@ -1204,6 +1204,31 @@ export function deleteComment(commentId: string): void {
 }
 
 // 3. Publisher Votes
+export function getSinglePublisherVotes(pubBookId: string): number {
+  const data = localStorage.getItem("forum_publisher_votes_v2");
+  if (!data) return 0;
+  try {
+    const votesRecord = JSON.parse(data);
+    return votesRecord[pubBookId] || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function voteSinglePublisher(pubBookId: string): void {
+  const data = localStorage.getItem("forum_publisher_votes_v2");
+  let votesRecord: Record<string, number> = {};
+  if (data) {
+    try {
+      votesRecord = JSON.parse(data);
+    } catch {
+      votesRecord = {};
+    }
+  }
+  votesRecord[pubBookId] = (votesRecord[pubBookId] || 0) + 1;
+  localStorage.setItem("forum_publisher_votes_v2", JSON.stringify(votesRecord));
+}
+
 export function getPublisherVotes(bookId: string, initialPublishers: { name: string; votes: number }[]): { name: string; votes: number }[] {
   const data = localStorage.getItem("forum_publisher_votes");
   let votesRecord: Record<string, Record<string, number>> = {};

@@ -41,7 +41,7 @@ import { DiscussionDetailModal } from "@/app/components/DiscussionDetailModal";
 import { OtherUserProfileScreen } from "@/app/components/screens/OtherUserProfileScreen";
 import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked } from "@/app/utils/db";
 import { debateTopics } from "@/app/data/debateTopics";
-import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 // 작가 데이터는 src/app/data/authorsData.ts에서 관리 및 동적 생성됩니다.
 
 
@@ -482,10 +482,11 @@ function AppContent() {
   // 책 데이터를 state로 관리 (투표 및 신규 등록 동기화를 위해)
   const [booksData, setBooksData] = useState<Book[]>(() => {
     return getGlobalBooks(popularBooksData).map(book => {
-      const stats = getBookRatingStatsWithQuick(book.id);
+      const workKey = getWorkKey(book.title, book.author);
+      const stats = getBookRatingStatsWithQuick(workKey);
       
       // 클래식 도서라면 기본 출판사를 민음사/문학동네/열린책들 3사 및 기존 출판사들로 채움
-      const isClassic = getMatchingClassicTitle(book.title) !== null;
+      const isClassic = isClassicBook(book.title, book.author);
       
       const defaultPubs = [
         { name: "민음사", votes: 0 },
@@ -503,9 +504,19 @@ function AppContent() {
       });
 
       const initialPubs = isClassic ? mergedPubs : bookPubs;
-        
-      const dbPublishers = getPublisherVotes(isClassic ? book.title : book.id, initialPubs);
-      const likesData = getBookLikes(book.id);
+      
+      // 개별 출판사 고유 ID 기준으로 로컬 투표수 조회
+      const dbPublishers = initialPubs.map((pub: any) => {
+        const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === pub.name);
+        const pubBookId = coverInfo?.bookId || `${book.id}_${pub.name}`;
+        const votes = getSinglePublisherVotes(pubBookId);
+        return {
+          ...pub,
+          votes: votes
+        };
+      });
+
+      const likesData = getBookLikes(workKey);
       return {
         ...book,
         rating: (stats.reviewsCount + stats.quickCount) > 0 ? stats.rating : 0.0,
@@ -515,6 +526,7 @@ function AppContent() {
       };
     });
   });
+
 
   // 스크린이 전환될 때마다 DB 데이터를 책 데이터에 리프레시하여 평점, 리뷰수, 투표수 및 신규 도서 동기화
   useEffect(() => {
@@ -610,17 +622,38 @@ function AppContent() {
       getGlobalBooks(popularBooksData).filter(Boolean).map(book => {
         const bookId = book.id || "";
         const bookTitle = book.title || "";
-        const stats = getBookRatingStatsWithQuick(bookId);
-        const isClassic = getMatchingClassicTitle(bookTitle) !== null;
-        const initialPubs = isClassic 
-          ? [
-              { name: "민음사", votes: 0 },
-              { name: "문학동네", votes: 0 }
-            ]
-          : (book.publishers && Array.isArray(book.publishers)) ? book.publishers : [{ name: "민음사", votes: 0 }];
+        const workKey = getWorkKey(bookTitle, book.author || "");
+        const stats = getBookRatingStatsWithQuick(workKey);
+        const isClassic = isClassicBook(bookTitle, book.author || "");
+        
+        const defaultPubs = [
+          { name: "민음사", votes: 0 },
+          { name: "문학동네", votes: 0 },
+          { name: "열린책들", votes: 0 }
+        ];
+
+        const bookPubs = book.publishers || [];
+        const mergedPubs = [...defaultPubs];
+        
+        bookPubs.forEach(bp => {
+          if (!mergedPubs.some(p => p.name === bp.name)) {
+            mergedPubs.push({ name: bp.name, votes: bp.votes || 0 });
+          }
+        });
+
+        const initialPubs = isClassic ? mergedPubs : bookPubs;
           
-        const dbPublishers = getPublisherVotes(isClassic ? bookTitle : bookId, initialPubs);
-        const likesData = getBookLikes(bookId);
+        const dbPublishers = initialPubs.map((pub: any) => {
+          const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === pub.name);
+          const pubBookId = coverInfo?.bookId || `${bookId}_${pub.name}`;
+          const votes = getSinglePublisherVotes(pubBookId);
+          return {
+            ...pub,
+            votes: votes
+          };
+        });
+
+        const likesData = getBookLikes(workKey);
         return {
           ...book,
           rating: (stats.reviewsCount + stats.quickCount) > 0 ? stats.rating : 0.0,
@@ -666,57 +699,71 @@ function AppContent() {
   });
   
   // 투표 핸들러
-  const handlePublisherVote = (bookId: string, publisherName: string) => {
-    // 만약 이 책이 클래식 작품인 경우, votePublisher의 키를 ID대신 title로 처리하여 판본 토론 화면과 투표수 동기화!
+  const handlePublisherVote = (bookId: string, publisherName: string, pubBookId?: string) => {
     const targetBook = booksData.find(b => b.id === bookId);
-    const dbKey = (targetBook && getMatchingClassicTitle(targetBook.title) !== null) 
-      ? targetBook.title 
-      : bookId;
+    if (!targetBook) return;
 
-    // 1. DB에 투표 저장
-    votePublisher(dbKey, publisherName);
+    // 작품의 공유 키 (제목 + 저자 조합)
+    const workKey = getWorkKey(targetBook.title, targetBook.author);
 
-    // 2. State 갱신 (로컬 DB로부터 최신 투표 현황을 읽어와서 반영)
+    // 투표 대상의 고유 ID 결정
+    let actualPubBookId = pubBookId;
+    if (!actualPubBookId) {
+      const targetCover = targetBook.alternativeCovers?.find((c: any) => c.publisher === publisherName);
+      actualPubBookId = targetCover?.bookId || `${bookId}_${publisherName}`;
+    }
+
+    // 1. DB에 단독 투표 저장
+    voteSinglePublisher(actualPubBookId);
+
+    // 2. State 갱신
     setBooksData(prevBooks => 
       prevBooks.map(book => {
-        if (book.id === bookId) {
-          const isClassic = getMatchingClassicTitle(book.title) !== null;
-          const initialPubs = isClassic 
-            ? [
-                { name: "민음사", votes: 0 },
-                { name: "문학동네", votes: 0 }
-              ]
-            : book.publishers;
-            
-          const dbPublishers = getPublisherVotes(isClassic ? book.title : book.id, initialPubs);
+        const bookWorkKey = getWorkKey(book.title, book.author);
+        if (bookWorkKey === workKey) {
+          const updatedPublishers = book.publishers.map((pub: any) => {
+            const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === pub.name);
+            const pId = coverInfo?.bookId || `${book.id}_${pub.name}`;
+            const votes = getSinglePublisherVotes(pId);
+            return {
+              ...pub,
+              votes: votes
+            };
+          });
           return {
             ...book,
-            publishers: dbPublishers,
+            publishers: updatedPublishers
           };
         }
         return book;
       })
     );
     
-    // 3. 사용자 투표 정보 저장 (사용자 고유 키 사용)
+    // 3. 사용자 투표 정보 저장 (작품 공유 키 workKey 기준)
     const currentUserId = user?.userId || "";
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-    myVotes[bookId] = publisherName;
+    myVotes[workKey] = publisherName;
     localStorage.setItem(`myPublisherVotes_${currentUserId}`, JSON.stringify(myVotes));
   };
   
   // 투표 여부 확인 함수
   const hasVotedForBook = (bookId: string) => {
     const currentUserId = user?.userId || "";
+    const targetBook = booksData.find(b => b.id === bookId);
+    if (!targetBook) return false;
+    const workKey = getWorkKey(targetBook.title, targetBook.author);
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-    return bookId in myVotes;
+    return workKey in myVotes;
   };
   
   // 투표한 출판사 확인 함수
   const getMyVotedPublisher = (bookId: string) => {
     const currentUserId = user?.userId || "";
+    const targetBook = booksData.find(b => b.id === bookId);
+    if (!targetBook) return null;
+    const workKey = getWorkKey(targetBook.title, targetBook.author);
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-    return myVotes[bookId] || null;
+    return myVotes[workKey] || null;
   };
   
   const [curationSeeds, setCurationSeeds] = useState(() => {
@@ -726,7 +773,7 @@ function AppContent() {
     const [selectedBook, setSelectedBookRaw] = useState<Book | null>(null);
 
   const getRepresentativeBookForBook = (book: Book, globalBooks: Book[]): Book => {
-    const classicTitle = getMatchingClassicTitle(book.title);
+    const classicTitle = isClassicBook(book.title, book.author) ? getMatchingClassicTitle(book.title) : null;
     
     const cleanTitle = (t: string) => {
       let cleaned = t;
@@ -773,15 +820,15 @@ function AppContent() {
 
     // 관련 도서들 수집 (클래식 매칭 우선 지원)
     const relatedBooks = globalBooks.filter(b => {
+      const cleanAuth = cleanAuthor(b.author);
+      const isAuthorMatch = cleanAuth === authorQuery || cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
+
       if (classicTitle) {
-        const bClassic = getMatchingClassicTitle(b.title);
-        if (bClassic && bClassic.toLowerCase() === classicTitle.toLowerCase()) {
+        const bClassic = isClassicBook(b.title, b.author) ? getMatchingClassicTitle(b.title) : null;
+        if (bClassic && bClassic.toLowerCase() === classicTitle.toLowerCase() && isAuthorMatch) {
           return true;
         }
       }
-      
-      const cleanAuth = cleanAuthor(b.author);
-      const isAuthorMatch = cleanAuth === authorQuery || cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
       
       const bCleanedTitle = cleanTitle(b.title).toLowerCase();
       const isTitleMatch = bCleanedTitle.includes(targetCleanedTitle) || targetCleanedTitle.includes(bCleanedTitle);
@@ -834,7 +881,8 @@ function AppContent() {
           if (item.coverUrl && !existing.alternativeCovers.some((c: any) => c.publisher === newPubName)) {
             existing.alternativeCovers.push({
               publisher: newPubName,
-              coverUrl: item.coverUrl
+              coverUrl: item.coverUrl,
+              bookId: item.id
             });
           }
         } else {
@@ -846,7 +894,8 @@ function AppContent() {
             alternativeCovers: [
               {
                 publisher: newPubName,
-                coverUrl: item.coverUrl
+                coverUrl: item.coverUrl,
+                bookId: item.id
               }
             ]
           };
@@ -888,13 +937,33 @@ function AppContent() {
         defaultPublishers.forEach(pub => {
           const hasCover = representative.alternativeCovers.some((c: any) => c.publisher === pub);
           if (!hasCover) {
+            const foundBook = relatedBooks.find(rb => {
+              const pubName = rb.publisher || rb.publishers?.[0]?.name;
+              return pubName === pub;
+            });
             representative.alternativeCovers.push({
               publisher: pub,
-              coverUrl: "" // BookCover가 staticCover 또는 placeholder로 자동 보강함
+              coverUrl: "",
+              bookId: foundBook ? foundBook.id : `${representative.id}_${pub}`
             });
           }
         });
       }
+
+      // Ensure all alternative covers have bookId populated
+      representative.alternativeCovers = representative.alternativeCovers.map((c: any) => {
+        if (!c.bookId) {
+          const foundBook = relatedBooks.find(rb => {
+            const pubName = rb.publisher || rb.publishers?.[0]?.name;
+            return pubName === c.publisher;
+          });
+          return {
+            ...c,
+            bookId: foundBook ? foundBook.id : `${representative.id}_${c.publisher}`
+          };
+        }
+        return c;
+      });
       return representative;
     }
     
@@ -1421,6 +1490,7 @@ function AppContent() {
       {currentScreen === "book-detail" && selectedBook && (
         <BookDetailScreen 
           book={selectedBook} 
+          workKey={getWorkKey(selectedBook.title, selectedBook.author)}
           onBack={handleBack}
           discussions={discussionsList}
           debateTopics={debateTopicsData}
