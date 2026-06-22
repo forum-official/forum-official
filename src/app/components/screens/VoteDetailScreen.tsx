@@ -8,20 +8,20 @@ import { toast } from "sonner";
 import { popularBooksData, type Book } from "@/app/data/booksData";
 import { translationCovers } from "@/app/data/translationCovers";
 import { translatorInfo } from "@/app/data/translatorInfo";
-import { getMatchingClassicTitle, isClassicBook } from "@/app/utils/titleHelper";
+import { getMatchingClassicTitle, isClassicBook, getWorkKey } from "@/app/utils/titleHelper";
 import { commentSkins, getSelectedSkin } from "@/app/data/commentSkins";
 import { ReportModal } from "@/app/components/ReportModal";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
 import { BookSearchModal } from "@/app/components/BookSearchModal";
 import { BookCover } from "@/app/components/BookCover";
 import { motion } from "motion/react";
-import { getPublisherVotes, votePublisher, fetchCommentsFromCloud, saveCommentToCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, getComments, getGlobalBooks } from "@/app/utils/db";
+import { getWorkPublisherVotes, voteWorkPublisher, fetchCommentsFromCloud, saveCommentToCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, getComments, getGlobalBooks } from "@/app/utils/db";
 
 const cleanTitle = (t: string) => {
   let cleaned = t;
   cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
   cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-  cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+  cleaned = cleaned.replace(/\s+(?!(?:1984|1q84|1Q84)\b)[\dIVXLC]+$/gi, "");
   cleaned = cleaned.replace(/[-:：,;.]/g, " ");
   return cleaned.replace(/\s+/g, " ").trim();
 };
@@ -80,10 +80,12 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
   };
 
   const initialPubs = getInitialPublishers(currentBook.title, currentBook.author);
-  const initialPubVotes = getPublisherVotes(currentBook.title, initialPubs);
-  const [votesA, setVotesA] = useState(() => initialPubVotes[0].votes);
-  const [votesB, setVotesB] = useState(() => initialPubVotes[1].votes);
-  const [totalVotes, setTotalVotes] = useState(() => initialPubVotes[0].votes + initialPubVotes[1].votes);
+  
+  const workKey = getWorkKey(currentBook.title, currentBook.author || "");
+
+  const [votesA, setVotesA] = useState(() => getWorkPublisherVotes(workKey, initialPubs[0].name));
+  const [votesB, setVotesB] = useState(() => getWorkPublisherVotes(workKey, initialPubs[1].name));
+  const [totalVotes, setTotalVotes] = useState(() => getWorkPublisherVotes(workKey, initialPubs[0].name) + getWorkPublisherVotes(workKey, initialPubs[1].name));
   
   const [selectedOption, setSelectedOption] = useState<number | null>(() => {
     const currentUserId = user?.userId || "";
@@ -126,11 +128,15 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
   const [comments, setComments] = useState<any[]>(() => getComments(currentBook.title));
 
   useEffect(() => {
-    const pubs = getInitialPublishers(currentBook.title);
-    const pubVotes = getPublisherVotes(currentBook.title, pubs);
-    setVotesA(pubVotes[0].votes);
-    setVotesB(pubVotes[1].votes);
-    setTotalVotes(pubVotes[0].votes + pubVotes[1].votes);
+    const pubs = getInitialPublishers(currentBook.title, currentBook.author);
+    const currentWorkKey = getWorkKey(currentBook.title, currentBook.author || "");
+    
+    const vA = getWorkPublisherVotes(currentWorkKey, pubs[0].name);
+    const vB = getWorkPublisherVotes(currentWorkKey, pubs[1].name);
+    
+    setVotesA(vA);
+    setVotesB(vB);
+    setTotalVotes(vA + vB);
     
     const currentUserId = user?.userId || "";
     async function loadComments() {
@@ -433,12 +439,13 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                 onLoginRequired?.();
                 return;
               }
+              
               if (selectedOption === 1) {
                 setVotesA(votesA + 1);
-                votePublisher(currentBook.title, "민음사");
+                voteWorkPublisher(workKey, initialPubs[0].name);
               } else if (selectedOption === 2) {
                 setVotesB(votesB + 1);
-                votePublisher(currentBook.title, "문학동네");
+                voteWorkPublisher(workKey, initialPubs[1].name);
               }
               setTotalVotes(totalVotes + 1);
               setHasVoted(true);

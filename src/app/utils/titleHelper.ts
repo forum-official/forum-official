@@ -45,6 +45,8 @@ const classicNormalizationTable: Record<string, string> = {
   "프랑켄슈타인": "프랑켄슈타인",
   "몬테크리스토백작": "몬테크리스토 백작",
   "몽테크리스토백작": "몬테크리스토 백작",
+  "보바리부인": "마담 보바리",
+  "마담보바리": "마담 보바리",
   "1984": "1984"
 };
 
@@ -108,6 +110,49 @@ export function getMatchingClassicTitle(title: string): string | null {
   return null;
 }
 
+interface MasterInfo {
+  originalTitle: string;
+  originalAuthor: string;
+}
+
+export const classicMasterMap: Record<string, MasterInfo> = {
+  "데미안": { originalTitle: "Demian", originalAuthor: "HermannHesse" },
+  "싯다르타": { originalTitle: "Siddhartha", originalAuthor: "HermannHesse" },
+  "수레바퀴 아래서": { originalTitle: "BeneathTheWheel", originalAuthor: "HermannHesse" },
+  "오만과 편견": { originalTitle: "PrideAndPrejudice", originalAuthor: "JaneAusten" },
+  "안나 카레니나": { originalTitle: "AnnaKarenina", originalAuthor: "LeoTolstoy" },
+  "전쟁과 평화": { originalTitle: "WarAndPeace", originalAuthor: "LeoTolstoy" },
+  "호밀밭의 파수꾼": { originalTitle: "TheCatcherInTheRye", originalAuthor: "JDSalinger" },
+  "죄와 벌": { originalTitle: "CrimeAndPunishment", originalAuthor: "FyodorDostoevsky" },
+  "카라마조프가의 형제들": { originalTitle: "TheBrothersKaramazov", originalAuthor: "FyodorDostoevsky" },
+  "이방인": { originalTitle: "TheStranger", originalAuthor: "AlbertCamus" },
+  "페스트": { originalTitle: "ThePlague", originalAuthor: "AlbertCamus" },
+  "멋진 신세계": { originalTitle: "BraveNewWorld", originalAuthor: "AldousHuxley" },
+  "동물농장": { originalTitle: "AnimalFarm", originalAuthor: "GeorgeOrwell" },
+  "1984": { originalTitle: "NineteenEightyFour", originalAuthor: "GeorgeOrwell" },
+  "변신": { originalTitle: "TheMetamorphosis", originalAuthor: "FranzKafka" },
+  "젊은 베르테르의 슬픔": { originalTitle: "TheSorrowsOfYoungWerther", originalAuthor: "JohannWolfgangVonGoethe" },
+  "파우스트": { originalTitle: "Faust", originalAuthor: "JohannWolfgangVonGoethe" },
+  "돈키호테": { originalTitle: "DonQuixote", originalAuthor: "MiguelDeCervantes" },
+  "제인 에어": { originalTitle: "JaneEyre", originalAuthor: "CharlotteBronte" },
+  "폭풍의 언덕": { originalTitle: "WutheringHeights", originalAuthor: "EmilyBronte" },
+  "위대한 개츠비": { originalTitle: "TheGreatGatsby", originalAuthor: "FScottFitzgerald" },
+  "노인과 바다": { originalTitle: "TheOldManAndTheSea", originalAuthor: "ErnestHemingway" },
+  "무기여 잘 있거라": { originalTitle: "AFarewellToArms", originalAuthor: "ErnestHemingway" },
+  "종은 누구를 위하여 울리나": { originalTitle: "ForWhomTheBellTolls", originalAuthor: "ErnestHemingway" },
+  "태양은 다시 떠오른다": { originalTitle: "TheSunAlsoRises", originalAuthor: "ErnestHemingway" },
+  "백년 동안의 고독": { originalTitle: "OneHundredYearsOfSolitude", originalAuthor: "GabrielGarciaMarquez" },
+  "참을 수 없는 존재의 가벼움": { originalTitle: "TheUnbearableLightnessOfBeing", originalAuthor: "MilanKundera" },
+  "그리스인 조르바": { originalTitle: "ZorbaTheGreek", originalAuthor: "NikosKazantzakis" },
+  "앵무새 죽이기": { originalTitle: "ToKillAMockingbird", originalAuthor: "HarperLee" },
+  "오이디푸스 왕": { originalTitle: "OedipusRex", originalAuthor: "Sophocles" },
+  "어린 왕자": { originalTitle: "TheLittlePrince", originalAuthor: "AntoineDeSaintExupery" },
+  "몬테크리스토 백작": { originalTitle: "TheCountOfMonteCristo", originalAuthor: "AlexandreDumas" },
+  "레 미제라블": { originalTitle: "LesMiserables", originalAuthor: "VictorHugo" },
+  "마담 보바리": { originalTitle: "MadameBovary", originalAuthor: "GustaveFlaubert" },
+  "보바리 부인": { originalTitle: "MadameBovary", originalAuthor: "GustaveFlaubert" },
+};
+
 export function getWorkKey(title: string, author: string): string {
   if (!title) return "unknown_unknown";
   
@@ -130,6 +175,11 @@ export function getWorkKey(title: string, author: string): string {
   };
 
   const classicTitle = isClassicBook(title, author) ? getMatchingClassicTitle(title) : null;
+  if (classicTitle && classicMasterMap[classicTitle]) {
+    const master = classicMasterMap[classicTitle];
+    return `${master.originalTitle}_${master.originalAuthor}`;
+  }
+
   const cleanTitle = cleanTitleName(classicTitle || title);
   const cleanAuthor = cleanAuthorName(author);
   return `${cleanTitle}_${cleanAuthor}`;
@@ -212,6 +262,9 @@ export function isClassicBook(title: string, author: string): boolean {
   if (lowerTitle.includes("레 미제라블") || lowerTitle.includes("레미제라블")) {
     return lowerAuthor.includes("위고") || lowerAuthor.includes("hugo");
   }
+  if (lowerTitle.includes("보바리") || lowerTitle.includes("마담")) {
+    return lowerAuthor.includes("플로베르") || lowerAuthor.includes("flaubert");
+  }
   
   const classicAuthors = [
     "오스틴", "austen", "톨스토이", "tolstoy", "헤세", "hesse", "샐린저", "salinger",
@@ -219,7 +272,7 @@ export function isClassicBook(title: string, author: string): boolean {
     "카프카", "kafka", "괴테", "goethe", "세르반", "cervantes", "브론테", "bronte",
     "피츠제", "fitzgerald", "헤밍웨이", "hemingway", "마르케스", "marquez", "쿤데라", "kundera",
     "카잔차", "kazantzakis", "하퍼", "harper", "소포클레스", "sophocles", "생텍쥐", "exupery",
-    "뒤마", "dumas", "위고", "hugo"
+    "뒤마", "dumas", "위고", "hugo", "플로베르", "flaubert"
   ];
   return classicAuthors.some(ca => lowerAuthor.includes(ca));
 }

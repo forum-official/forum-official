@@ -6,54 +6,9 @@ import { popularBooksData, type Book } from "@/app/data/booksData";
 import { getBookLikes, getBookRatingStatsWithQuick, getPublisherVotes, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor } from "@/app/utils/db";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { getMatchingClassicTitle, isClassicBook } from "@/app/utils/titleHelper";
+import { getMatchingClassicTitle, isClassicBook, getWorkKey } from "@/app/utils/titleHelper";
 
 function integrateBooks(books: any[]): any[] {
-  const cleanTitle = (t: string) => {
-    let cleaned = t;
-    // 1. 특정 출판사 괄호 및 일반 괄호 제거 (예: (민음사), (무선), (10주년 특별판) 등)
-    cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
-    
-    // 2. 세트, 권수 관련 텍스트 정제 (문자열 끝부분 대상)
-    cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-    cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, ""); // 제목 끝의 권수 숫자/로마자 제거
-    
-    // 3. 문장부호 제거 및 공백 정제
-    cleaned = cleaned.replace(/[-:：,;.]/g, " ");
-    return cleaned.replace(/\s+/g, " ").trim();
-  };
-
-  const getMainAuthor = (a: string) => {
-    if (!a) return "";
-    const lower = a.toLowerCase();
-    if (lower.includes("오스틴")) return "제인 오스틴";
-    if (lower.includes("톨스토이")) return "레프 톨스토이";
-    if (lower.includes("카뮈")) return "알베르 카뮈";
-    if (lower.includes("헤세")) return "헤르만 헤세";
-    if (lower.includes("오웰")) return "조지 오웰";
-    if (lower.includes("도스토")) return "피오도르 도스토옙스키";
-    if (lower.includes("카프카")) return "프란ץ 카프카";
-    if (lower.includes("생텍쥐")) return "생텍쥐페리";
-    if (lower.includes("위고")) return "빅토르 위고";
-    if (lower.includes("피츠제")) return "F. 스콧 피츠제럴드";
-    if (lower.includes("헤밍웨이")) return "어네스트 헤밍웨이";
-    if (lower.includes("조르바") || lower.includes("카잔차")) return "니코스 카잔차키스";
-    if (lower.includes("쿤데라")) return "밀란 쿤데라";
-    if (lower.includes("박경리")) return "박경리";
-    if (lower.includes("최인훈")) return "최인훈";
-    if (lower.includes("세르반")) return "미겔 데 세르반테스";
-    if (lower.includes("나관중")) return "나관중";
-    if (lower.includes("하루키")) return "무라카미 하루키";
-
-    const firstPart = a.split(/[,;\/]/)[0].trim();
-    return firstPart.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "");
-  };
-
-  const cleanAuthor = (a: string) => {
-    const main = getMainAuthor(a);
-    return main.replace(/\s+/g, "").toLowerCase();
-  };
-
   const sorted = [...books].sort((a, b) => {
     const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5 + (a.rating || 0) * 10;
     const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5 + (b.rating || 0) * 10;
@@ -63,38 +18,8 @@ function integrateBooks(books: any[]): any[] {
   const integratedMap = new Map<string, any>();
 
   sorted.forEach(book => {
-    const classicTitle = isClassicBook(book.title, book.author) ? getMatchingClassicTitle(book.title) : null;
-    const cleanedTitle = cleanTitle(book.title);
-    const cleanedAuthor = cleanAuthor(book.author);
-    
-    // 클래식 매칭 성공 시 해당 클래식 대표 제목으로 고유키를 묶어 중복 병합
-    const uniqueKey = classicTitle 
-      ? `${classicTitle.toLowerCase()}_${cleanedAuthor}`
-      : `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
-    
-    let existingKey = uniqueKey;
-    if (!integratedMap.has(uniqueKey)) {
-      const foundKey = Array.from(integratedMap.keys()).find(k => {
-        const [t, a] = k.split("_");
-        
-        // 저자 일치 조건 완화: 번역자가 다르게 붙더라도 원작자가 동일하면 일치 처리
-        const isAuthMatch = a === cleanedAuthor || a.includes(cleanedAuthor) || cleanedAuthor.includes(a);
-        if (!isAuthMatch) return false;
-        
-        if (classicTitle) {
-          const kClassic = getMatchingClassicTitle(t) || t;
-          return kClassic.toLowerCase().includes(classicTitle.toLowerCase()) || 
-                 classicTitle.toLowerCase().includes(kClassic.toLowerCase());
-        }
-        
-        return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
-      });
-      if (foundKey) {
-        existingKey = foundKey;
-      }
-    }
-
-    const existing = integratedMap.get(existingKey);
+    const uniqueKey = getWorkKey(book.title, book.author);
+    const existing = integratedMap.get(uniqueKey);
 
     if (existing) {
       const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
@@ -113,9 +38,10 @@ function integrateBooks(books: any[]): any[] {
       }
     } else {
       const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
+      const classicTitle = isClassicBook(book.title, book.author) ? getMatchingClassicTitle(book.title) : null;
       const newBook = {
         ...book,
-        title: classicTitle ? `${classicTitle} 세트 전3권` : cleanedTitle,
+        title: classicTitle ? `${classicTitle} 세트 전3권` : book.title,
         publishers: book.publishers || [{ name: newPubName, votes: 0 }],
         alternativeCovers: [
           {
@@ -124,7 +50,7 @@ function integrateBooks(books: any[]): any[] {
           }
         ]
       };
-      
+
       if (classicTitle) {
         const defaultPublishers = ["민음사", "문학동네", "열린책들"];
         defaultPublishers.forEach(pub => {

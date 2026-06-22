@@ -1,6 +1,51 @@
 import { useState, useEffect } from "react";
 import { translationCovers } from "../data/translationCovers";
-import { getMatchingClassicTitle, isClassicBook } from "../utils/titleHelper";
+import { getMatchingClassicTitle, isClassicBook, getWorkKey } from "../utils/titleHelper";
+import { getGlobalBooks } from "../utils/db";
+import { popularBooksData } from "../data/booksData";
+
+export function isInvalidCoverUrl(url: string | null | undefined): boolean {
+  if (!url) return true;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes("no_cover") ||
+    lower.includes("nocover") ||
+    lower.includes("no-cover") ||
+    lower.includes("noimage") ||
+    lower.includes("no_image") ||
+    lower.includes("noimg") ||
+    lower.includes("unsplash.com") ||
+    lower.includes("openlibrary.org") ||
+    lower.includes("no_img")
+  );
+}
+
+export function findAlternativeWorkCover(title: string, author: string): string {
+  const workKey = getWorkKey(title, author);
+  const allBooks = getGlobalBooks(popularBooksData);
+  
+  for (const b of allBooks) {
+    if (getWorkKey(b.title, b.author) === workKey) {
+      if (b.coverUrl && !isInvalidCoverUrl(b.coverUrl)) {
+        return b.coverUrl;
+      }
+    }
+  }
+  
+  for (const b of allBooks) {
+    if (getWorkKey(b.title, b.author) === workKey) {
+      if (b.alternativeCovers) {
+        for (const c of b.alternativeCovers) {
+          if (c.coverUrl && !isInvalidCoverUrl(c.coverUrl)) {
+            return c.coverUrl;
+          }
+        }
+      }
+    }
+  }
+  
+  return "";
+}
 
 interface BookCoverProps {
   title: string;
@@ -237,6 +282,9 @@ async function fetchAladinCoverUrl(title: string, author: string, publisherName?
     fetchedCover = fetchedCover.replace("cover150", "cover500");
   }
 
+  if (isInvalidCoverUrl(fetchedCover)) {
+    return "";
+  }
   return fetchedCover;
 }
 
@@ -289,39 +337,59 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
       return;
     }
 
-    if (cached && !cached.includes("openlibrary.org") && !cached.includes("unsplash.com")) {
+    if (cached && !cached.includes("openlibrary.org") && !cached.includes("unsplash.com") && !isInvalidCoverUrl(cached)) {
       setResolvedCover(cached);
       return;
     }
 
     // 3. 유효한 URL이 있으면 우선 표출 (Yes24 포함 — img onError가 자동으로 처리)
-    if (coverUrl && coverUrl.startsWith("http")) {
-      setResolvedCover(coverUrl);
+    let finalCoverUrl = coverUrl;
+    if (isInvalidCoverUrl(finalCoverUrl)) {
+      const altCover = findAlternativeWorkCover(title, author);
+      if (altCover) {
+        finalCoverUrl = altCover;
+      }
+    }
+
+    if (finalCoverUrl && finalCoverUrl.startsWith("http") && !isInvalidCoverUrl(finalCoverUrl)) {
+      setResolvedCover(finalCoverUrl);
     } else {
       setResolvedCover("");
     }
 
     // 4. 언스플래시나 오픈라이브러리 같은 임시 표지이거나 표지가 아예 없는 경우 백그라운드에서 실시간 수집
-    const isTempPlaceholder = !coverUrl || coverUrl.includes("unsplash.com") || coverUrl.includes("openlibrary.org");
+    const isTempPlaceholder = !finalCoverUrl || isInvalidCoverUrl(finalCoverUrl);
     
     if (isTempPlaceholder && allowDynamicFetch) {
       const fetchCover = async () => {
-        if (!coverUrl) {
+        if (!finalCoverUrl) {
           setIsFetching(true);
         }
         try {
           const fetchedCover = await fetchAladinCoverUrl(title, author, publisherName, allowPublisherFallback);
-          if (fetchedCover) {
+          if (fetchedCover && !isInvalidCoverUrl(fetchedCover)) {
             localStorage.setItem(cacheKey, fetchedCover);
             setResolvedCover(fetchedCover);
+          } else {
+            const altCover = findAlternativeWorkCover(title, author);
+            if (altCover) {
+              localStorage.setItem(cacheKey, altCover);
+              setResolvedCover(altCover);
+            } else {
+              localStorage.setItem(cacheKey, "NO_COVER_FOUND");
+              setResolvedCover("");
+            }
+          }
+        } catch (e) {
+          console.error("Failed to dynamically fetch cover from Aladin:", e);
+          const altCover = findAlternativeWorkCover(title, author);
+          if (altCover) {
+            localStorage.setItem(cacheKey, altCover);
+            setResolvedCover(altCover);
           } else {
             localStorage.setItem(cacheKey, "NO_COVER_FOUND");
             setResolvedCover("");
           }
-        } catch (e) {
-          console.error("Failed to dynamically fetch cover from Aladin:", e);
-          localStorage.setItem(cacheKey, "NO_COVER_FOUND");
-          setResolvedCover("");
         } finally {
           setIsFetching(false);
         }
@@ -343,17 +411,31 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
     try {
       setIsFetching(true);
       const fetchedCover = await fetchAladinCoverUrl(title, author, publisherName, allowPublisherFallback);
-      if (fetchedCover && fetchedCover !== resolvedCover) {
+      if (fetchedCover && fetchedCover !== resolvedCover && !isInvalidCoverUrl(fetchedCover)) {
         localStorage.setItem(cacheKey, fetchedCover);
         setResolvedCover(fetchedCover);
+        setImgError(false);
+      } else {
+        const altCover = findAlternativeWorkCover(title, author);
+        if (altCover && altCover !== resolvedCover) {
+          localStorage.setItem(cacheKey, altCover);
+          setResolvedCover(altCover);
+          setImgError(false);
+        } else {
+          setResolvedCover("");
+          localStorage.setItem(cacheKey, "NO_COVER_FOUND");
+        }
+      }
+    } catch {
+      const altCover = findAlternativeWorkCover(title, author);
+      if (altCover && altCover !== resolvedCover) {
+        localStorage.setItem(cacheKey, altCover);
+        setResolvedCover(altCover);
         setImgError(false);
       } else {
         setResolvedCover("");
         localStorage.setItem(cacheKey, "NO_COVER_FOUND");
       }
-    } catch {
-      setResolvedCover("");
-      localStorage.setItem(cacheKey, "NO_COVER_FOUND");
     } finally {
       setIsFetching(false);
     }

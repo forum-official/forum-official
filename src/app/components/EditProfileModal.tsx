@@ -14,6 +14,8 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
   const [nickname, setNickname] = useState(user?.nickname || "");
   const [bio, setBio] = useState(user?.bio || "");
   const [profileImage, setProfileImage] = useState(user?.profileImage || "");
+  const [favAuthors, setFavAuthors] = useState(() => (user?.favAuthors || []).join(", "));
+  const [favPublishers, setFavPublishers] = useState(() => (user?.favPublishers || []).join(", "));
   const [isSaving, setIsSaving] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,10 +82,24 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
       }
     }
 
+    const parsedAuthors = favAuthors
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "")
+      .slice(0, 3);
+
+    const parsedPublishers = favPublishers
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s !== "")
+      .slice(0, 3);
+
     updateProfile({
       nickname: trimmed,
       bio: bio.trim(),
       profileImage: profileImage,
+      favAuthors: parsedAuthors,
+      favPublishers: parsedPublishers,
     });
     toast.success("프로필이 수정되었습니다");
     onClose();
@@ -168,6 +184,30 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
               maxLength={150}
             />
             <p className="text-xs text-gray-500 mt-1">{bio.length}/150</p>
+          </div>
+
+          {/* 인생 작가 */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">인생 작가</label>
+            <input
+              type="text"
+              value={favAuthors}
+              onChange={(e) => setFavAuthors(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="인생 작가들을 쉼표(,)로 구분해 입력 (최대 3개)"
+            />
+          </div>
+
+          {/* 최애 출판사 */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">최애 출판사</label>
+            <input
+              type="text"
+              value={favPublishers}
+              onChange={(e) => setFavPublishers(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="최애 출판사들을 쉼표(,)로 구분해 입력 (최대 3개)"
+            />
           </div>
 
           {/* Account Info */}

@@ -19,6 +19,8 @@ export interface Book {
   salesPoint?: number;
   authorAladinIds?: string[];
   alternativeCovers?: { publisher: string; coverUrl: string }[];
+  originalTitle?: string;
+  originalAuthor?: string;
 }
 
 export const popularBooksData: Book[] = [
@@ -318,7 +320,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 490000
+    "salesPoint": 490000,
+    "originalTitle": "ThePlague",
+    "originalAuthor": "AlbertCamus"
   },
   {
     "id": "wanderers",
@@ -423,7 +427,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 580000
+    "salesPoint": 580000,
+    "originalTitle": "CrimeAndPunishment",
+    "originalAuthor": "FyodorDostoevsky"
   },
   {
     "id": "brothers-karamazov",
@@ -444,7 +450,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 540000
+    "salesPoint": 540000,
+    "originalTitle": "TheBrothersKaramazov",
+    "originalAuthor": "FyodorDostoevsky"
   },
   {
     "id": "don-quixote",
@@ -465,7 +473,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 460000
+    "salesPoint": 460000,
+    "originalTitle": "DonQuixote",
+    "originalAuthor": "MiguelDeCervantes"
   },
   {
     "id": "les-miserables",
@@ -486,7 +496,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 610000
+    "salesPoint": 610000,
+    "originalTitle": "LesMiserables",
+    "originalAuthor": "VictorHugo"
   },
   {
     "id": "great-gatsby",
@@ -507,7 +519,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 520000
+    "salesPoint": 520000,
+    "originalTitle": "TheGreatGatsby",
+    "originalAuthor": "FScottFitzgerald"
   },
   {
     "id": "hamlet",
@@ -549,7 +563,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 750000
+    "salesPoint": 750000,
+    "originalTitle": "TheLittlePrince",
+    "originalAuthor": "AntoineDeSaintExupery"
   },
   {
     "id": "alchemist",
@@ -969,7 +985,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "문학"
     ],
-    "salesPoint": 560000
+    "salesPoint": 560000,
+    "originalTitle": "TheMetamorphosis",
+    "originalAuthor": "FranzKafka"
   },
   {
     "id": "siddhartha",
@@ -989,7 +1007,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "Siddhartha",
+    "originalAuthor": "HermannHesse"
   },
   {
     "id": "270454373",
@@ -1290,7 +1310,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "Demian",
+    "originalAuthor": "HermannHesse"
   },
   {
     "id": "392449096",
@@ -1390,7 +1412,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "PrideAndPrejudice",
+    "originalAuthor": "JaneAusten"
   },
   {
     "id": "491611",
@@ -1470,7 +1494,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "NineteenEightyFour",
+    "originalAuthor": "GeorgeOrwell"
   },
   {
     "id": "391198878",
@@ -1530,7 +1556,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheStranger",
+    "originalAuthor": "AlbertCamus"
   },
   {
     "id": "393084069",
@@ -1631,7 +1659,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "AnimalFarm",
+    "originalAuthor": "GeorgeOrwell"
   },
   {
     "id": "237763",
@@ -1772,7 +1802,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheUnbearableLightnessOfBeing",
+    "originalAuthor": "MilanKundera"
   },
   {
     "id": "388570776",
@@ -1812,7 +1844,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheSorrowsOfYoungWerther",
+    "originalAuthor": "JohannWolfgangVonGoethe"
   },
   {
     "id": "394033155",
@@ -1915,7 +1949,7 @@ export const popularBooksData: Book[] = [
     ]
   },
   {
-    "id": "demian",
+    "id": "98718",
     "coverUrl": "https://image.aladin.co.kr/product/9871/8/cover500/k042535550_2.jpg",
     "title": "데미안 (오리지널 초판본 표지디자인)",
     "author": "헤르만 헤세, 김선형",
@@ -1932,7 +1966,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "Demian",
+    "originalAuthor": "HermannHesse"
   },
   {
     "id": "386006888",
@@ -2195,7 +2231,7 @@ export const popularBooksData: Book[] = [
     ]
   },
   {
-    "id": "norwegian-wood",
+    "id": "norwegian-wood-2",
     "coverUrl": "https://image.aladin.co.kr/product/11561/49/cover500/8937434482_1.jpg",
     "title": "노르웨이의 숲",
     "author": "무라카미 하루키",
@@ -2272,7 +2308,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheOldManAndTheSea",
+    "originalAuthor": "ErnestHemingway"
   },
   {
     "id": "388044595",
@@ -2312,7 +2350,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheCatcherInTheRye",
+    "originalAuthor": "JDSalinger"
   },
   {
     "id": "391700890",
@@ -2712,7 +2752,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "WutheringHeights",
+    "originalAuthor": "EmilyBronte"
   },
   {
     "id": "526152",
@@ -2755,7 +2797,7 @@ export const popularBooksData: Book[] = [
     ]
   },
   {
-    "id": "1984",
+    "id": "2455531",
     "coverUrl": "https://image.aladin.co.kr/product/24555/31/cover500/s642937439_1.jpg",
     "title": "1984 (오리지널 초판본 표지 디자인)",
     "author": "조지 오웰, 박경서",
@@ -2772,7 +2814,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "NineteenEightyFour",
+    "originalAuthor": "GeorgeOrwell"
   },
   {
     "id": "379665189",
@@ -2812,7 +2856,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheLittlePrince",
+    "originalAuthor": "AntoineDeSaintExupery"
   },
   {
     "id": "358031573",
@@ -2832,7 +2878,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "Siddhartha",
+    "originalAuthor": "HermannHesse"
   },
   {
     "id": "393824022",
@@ -2892,7 +2940,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "BeneathTheWheel",
+    "originalAuthor": "HermannHesse"
   },
   {
     "id": "224531764",
@@ -2915,7 +2965,7 @@ export const popularBooksData: Book[] = [
     ]
   },
   {
-    "id": "unbearable-lightness",
+    "id": "unbearable-lightness-recover",
     "coverUrl": "https://image.aladin.co.kr/product/34797/80/cover500/8937437562_1.jpg",
     "title": "참을 수 없는 존재의 가벼움 (리커버)",
     "author": "밀란 쿤데라",
@@ -2932,7 +2982,9 @@ export const popularBooksData: Book[] = [
     "year": 2024,
     "genre": [
       "문학"
-    ]
+    ],
+    "originalTitle": "TheUnbearableLightnessOfBeing",
+    "originalAuthor": "MilanKundera"
   },
   {
     "id": "388297059",
@@ -29065,7 +29117,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "인문"
     ],
-    "salesPoint": 5000
+    "salesPoint": 5000,
+    "originalTitle": "TheLittlePrince",
+    "originalAuthor": "AntoineDeSaintExupery"
   },
   {
     "id": "yes24_118534489",
@@ -37234,7 +37288,9 @@ export const popularBooksData: Book[] = [
     "genre": [
       "자기계발"
     ],
-    "salesPoint": 5000
+    "salesPoint": 5000,
+    "originalTitle": "TheLittlePrince",
+    "originalAuthor": "AntoineDeSaintExupery"
   },
   {
     "id": "yes24_137440608",

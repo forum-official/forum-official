@@ -10,7 +10,7 @@ const cleanTitle = (t: string) => {
   let cleaned = t;
   cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
   cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-  cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+  cleaned = cleaned.replace(/\s+(?!(?:1984|1q84|1Q84)\b)[\dIVXLC]+$/gi, "");
   cleaned = cleaned.replace(/[-:：,;.]/g, " ");
   return cleaned.replace(/\s+/g, " ").trim();
 };

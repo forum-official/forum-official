@@ -8,7 +8,7 @@ import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { saveGlobalBook, getBookRatingStatsWithQuick, getGlobalBooks } from "@/app/utils/db";
 import { cleanAladinAuthors, splitAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
-import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { useLockBodyScroll } from "@/app/utils/useLockBodyScroll";
 
 export function hasDebateTopic(title: string): boolean {
@@ -31,24 +31,6 @@ export function hasTranslationInfo(book: any): boolean {
 
 
 export function integrateBooks(books: any[]): any[] {
-  const cleanTitle = (t: string) => {
-    let cleaned = t;
-    // 1. 특정 출판사 괄호 및 일반 괄호 제거 (예: (민음사), (무선), (10주년 특별판) 등)
-    cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
-    
-    // 2. 세트, 권수 관련 텍스트 정제 (문자열 끝부분 대상)
-    cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-    cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
-    
-    // 3. 문장부호 제거 및 공백 정제
-    cleaned = cleaned.replace(/[-:：,;.]/g, " ");
-    return cleaned.replace(/\s+/g, " ").trim();
-  };
-
-  const cleanAuthor = (a: string) => {
-    return (a || "").replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "").toLowerCase();
-  };
-
   const sorted = [...books].sort((a, b) => {
     const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5 + (a.rating || 0) * 10;
     const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5 + (b.rating || 0) * 10;
@@ -58,23 +40,8 @@ export function integrateBooks(books: any[]): any[] {
   const integratedMap = new Map<string, any>();
 
   sorted.forEach(book => {
-    const cleanedTitle = cleanTitle(book.title);
-    const cleanedAuthor = cleanAuthor(book.author);
-    const uniqueKey = `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
-    
-    let existingKey = uniqueKey;
-    if (!integratedMap.has(uniqueKey)) {
-      const foundKey = Array.from(integratedMap.keys()).find(k => {
-        const [t, a] = k.split("_");
-        if (a !== cleanedAuthor) return false;
-        return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
-      });
-      if (foundKey) {
-        existingKey = foundKey;
-      }
-    }
-
-    const existing = integratedMap.get(existingKey);
+    const uniqueKey = getWorkKey(book.title, book.author);
+    const existing = integratedMap.get(uniqueKey);
 
     if (existing) {
       const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
@@ -93,9 +60,10 @@ export function integrateBooks(books: any[]): any[] {
       }
     } else {
       const newPubName = book.publisher || book.publishers?.[0]?.name || "민음사";
+      const classicTitle = isClassicBook(book.title, book.author) ? getMatchingClassicTitle(book.title) : null;
       const newBook = {
         ...book,
-        title: cleanedTitle,
+        title: classicTitle ? `${classicTitle} 세트 전3권` : book.title,
         publishers: book.publishers || [{ name: newPubName, votes: 0 }],
         alternativeCovers: [
           {

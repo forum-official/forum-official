@@ -39,7 +39,7 @@ import { CreateReviewModal } from "@/app/components/CreateReviewModal";
 import { ReportModal } from "@/app/components/ReportModal";
 import { DiscussionDetailModal } from "@/app/components/DiscussionDetailModal";
 import { OtherUserProfileScreen } from "@/app/components/screens/OtherUserProfileScreen";
-import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked, getSinglePublisherVotes } from "@/app/utils/db";
+import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked, getSinglePublisherVotes, voteSinglePublisher, getWorkPublisherVotes, voteWorkPublisher } from "@/app/utils/db";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 // 작가 데이터는 src/app/data/authorsData.ts에서 관리 및 동적 생성됩니다.
@@ -703,18 +703,11 @@ function AppContent() {
     const targetBook = booksData.find(b => b.id === bookId);
     if (!targetBook) return;
 
-    // 작품의 공유 키 (제목 + 저자 조합)
+    // 작품의 공유 키 (원제 또는 한글+작가 조합)
     const workKey = getWorkKey(targetBook.title, targetBook.author);
 
-    // 투표 대상의 고유 ID 결정
-    let actualPubBookId = pubBookId;
-    if (!actualPubBookId) {
-      const targetCover = targetBook.alternativeCovers?.find((c: any) => c.publisher === publisherName);
-      actualPubBookId = targetCover?.bookId || `${bookId}_${publisherName}`;
-    }
-
-    // 1. DB에 단독 투표 저장
-    voteSinglePublisher(actualPubBookId);
+    // 1. DB에 작품-출판사 매핑 기준 투표 저장
+    voteWorkPublisher(workKey, publisherName);
 
     // 2. State 갱신
     setBooksData(prevBooks => 
@@ -722,9 +715,7 @@ function AppContent() {
         const bookWorkKey = getWorkKey(book.title, book.author);
         if (bookWorkKey === workKey) {
           const updatedPublishers = book.publishers.map((pub: any) => {
-            const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === pub.name);
-            const pId = coverInfo?.bookId || `${book.id}_${pub.name}`;
-            const votes = getSinglePublisherVotes(pId);
+            const votes = getWorkPublisherVotes(bookWorkKey, pub.name);
             return {
               ...pub,
               votes: votes
@@ -738,6 +729,23 @@ function AppContent() {
         return book;
       })
     );
+
+    // 2.5 상세페이지 도서 상태(selectedBook)도 실시간 투표 갱신 반영
+    if (selectedBook) {
+      const bookWorkKey = getWorkKey(selectedBook.title, selectedBook.author);
+      if (bookWorkKey === workKey) {
+        const updatedPublishers = selectedBook.publishers.map((pub: any) => {
+          return {
+            ...pub,
+            votes: getWorkPublisherVotes(bookWorkKey, pub.name)
+          };
+        });
+        setSelectedBookRaw({
+          ...selectedBook,
+          publishers: updatedPublishers
+        });
+      }
+    }
     
     // 3. 사용자 투표 정보 저장 (작품 공유 키 workKey 기준)
     const currentUserId = user?.userId || "";
@@ -779,7 +787,7 @@ function AppContent() {
       let cleaned = t;
       cleaned = cleaned.replace(/\s*\([^)]*\)/g, "");
       cleaned = cleaned.replace(/\s+(?:세트|합본|완역판|개정판|특별판|[\d]+\s*권|전\s*[\d]+\s*권)\b/gi, "");
-      cleaned = cleaned.replace(/\s+[\dIVXLC]+$/gi, "");
+      cleaned = cleaned.replace(/\s+(?!(?:1984|1q84|1Q84)\b)[\dIVXLC]+$/gi, "");
       cleaned = cleaned.replace(/[-:：,;.]/g, " ");
       return cleaned.replace(/\s+/g, " ").trim();
     };
@@ -836,6 +844,12 @@ function AppContent() {
       return isAuthorMatch && isTitleMatch;
     });
 
+    // 클릭된 도서 자체가 relatedBooks 목록에 포함되어 있지 않다면 수동으로 추가
+    const hasCurrentBook = relatedBooks.some(rb => rb.id === book.id);
+    if (!hasCurrentBook) {
+      relatedBooks.push(book);
+    }
+
     if (relatedBooks.length === 0) {
       relatedBooks.push(book);
     }
@@ -850,24 +864,9 @@ function AppContent() {
       const integratedMap = new Map<string, any>();
 
       sorted.forEach(item => {
-        const cleanedTitle = cleanTitle(item.title);
-        const cleanedAuthor = cleanAuthor(item.author);
-        const uniqueKey = `${cleanedTitle.toLowerCase()}_${cleanedAuthor}`;
+        const uniqueKey = getWorkKey(item.title, item.author);
         
-        let existingKey = uniqueKey;
-        if (!integratedMap.has(uniqueKey)) {
-          const foundKey = Array.from(integratedMap.keys()).find(k => {
-            const [t, a] = k.split("_");
-            const isAuthMatch = a === cleanedAuthor || a.includes(cleanedAuthor) || cleanedAuthor.includes(a);
-            if (!isAuthMatch) return false;
-            return t.includes(cleanedTitle.toLowerCase()) || cleanedTitle.toLowerCase().includes(t);
-          });
-          if (foundKey) {
-            existingKey = foundKey;
-          }
-        }
-
-        const existing = integratedMap.get(existingKey);
+        const existing = integratedMap.get(uniqueKey);
 
         if (existing) {
           const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
@@ -889,7 +888,7 @@ function AppContent() {
           const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
           const newBook = {
             ...item,
-            title: classicTitle ? `${classicTitle} 세트 전3권` : cleanedTitle,
+            title: classicTitle ? `${classicTitle} 세트 전3권` : item.title,
             publishers: item.publishers || [{ name: newPubName, votes: 0 }],
             alternativeCovers: [
               {
@@ -1959,6 +1958,7 @@ function AppContent() {
               <ProfileTab 
                 onLoginClick={() => setShowAuthModal(true)} 
                 onNavigate={handleNavigate}
+                onBookClick={handleBookClick}
               />
             )}
           </main>

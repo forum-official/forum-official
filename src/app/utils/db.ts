@@ -2,6 +2,7 @@ import { Book, popularBooksData } from "@/app/data/booksData";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
 import { supabase, isSupabaseConfigured } from "@/app/utils/supabaseClient";
+import { getWorkKey } from "./titleHelper";
 
 
 
@@ -1229,6 +1230,62 @@ export function voteSinglePublisher(pubBookId: string): void {
   localStorage.setItem("forum_publisher_votes_v2", JSON.stringify(votesRecord));
 }
 
+function getInitialWorkPublisherVotes(workKey: string, publisherName: string): number {
+  const books = getGlobalBooks(popularBooksData);
+  let maxVotes = 0;
+  let found = false;
+  for (const book of books) {
+    if (getWorkKey(book.title, book.author) === workKey) {
+      if (book.publishers) {
+        const pub = book.publishers.find(p => p.name === publisherName);
+        if (pub) {
+          maxVotes = Math.max(maxVotes, pub.votes || 0);
+          found = true;
+        }
+      }
+    }
+  }
+  return found ? maxVotes : 0;
+}
+
+// 3.5 Work & Publisher unit Votes (v3)
+export function getWorkPublisherVotes(workKey: string, publisherName: string): number {
+  const data = localStorage.getItem("forum_work_publisher_votes_v3");
+  if (!data) {
+    return getInitialWorkPublisherVotes(workKey, publisherName);
+  }
+  try {
+    const votesRecord = JSON.parse(data);
+    const key = `${workKey}_${publisherName}`;
+    if (votesRecord[key] !== undefined) {
+      return votesRecord[key];
+    }
+    return getInitialWorkPublisherVotes(workKey, publisherName);
+  } catch {
+    return getInitialWorkPublisherVotes(workKey, publisherName);
+  }
+}
+
+export function voteWorkPublisher(workKey: string, publisherName: string): void {
+  const data = localStorage.getItem("forum_work_publisher_votes_v3");
+  let votesRecord: Record<string, number> = {};
+  if (data) {
+    try {
+      votesRecord = JSON.parse(data);
+    } catch {
+      votesRecord = {};
+    }
+  }
+  const key = `${workKey}_${publisherName}`;
+  if (votesRecord[key] === undefined) {
+    const initialVotes = getInitialWorkPublisherVotes(workKey, publisherName);
+    votesRecord[key] = initialVotes + 1;
+  } else {
+    votesRecord[key] = votesRecord[key] + 1;
+  }
+  localStorage.setItem("forum_work_publisher_votes_v3", JSON.stringify(votesRecord));
+}
+
 export function getPublisherVotes(bookId: string, initialPublishers: { name: string; votes: number }[]): { name: string; votes: number }[] {
   const data = localStorage.getItem("forum_publisher_votes");
   let votesRecord: Record<string, Record<string, number>> = {};
@@ -1268,18 +1325,53 @@ export function votePublisher(bookId: string, publisherName: string): void {
   localStorage.setItem("forum_publisher_votes", JSON.stringify(votesRecord));
 }
 
+function getInitialDebateVotes(bookTitle: string): { agreeCount: number; disagreeCount: number } {
+  const standardVotes: Record<string, { agree: number; disagree: number }> = {
+    "1984": { agree: 1247, disagree: 893 },
+    "호밀밭의 파수꾼": { agree: 892, disagree: 1104 },
+    "이방인": { agree: 1056, disagree: 967 },
+    "죄와 벌": { agree: 567, disagree: 1834 },
+    "카라마조프 가의 형제들": { agree: 1123, disagree: 1456 },
+    "노르웨이의 숲": { agree: 1678, disagree: 923 },
+    "노인과 바다": { agree: 1923, disagree: 456 },
+    "햄릿": { agree: 1345, disagree: 1089 },
+    "전쟁과 평화": { agree: 789, disagree: 1567 },
+    "채식주의자": { agree: 1834, disagree: 678 },
+  };
+
+  if (standardVotes[bookTitle]) {
+    return {
+      agreeCount: standardVotes[bookTitle].agree,
+      disagreeCount: standardVotes[bookTitle].disagree
+    };
+  }
+
+  // 나머지 도서들은 제목 해시 기반의 유니크하고 자연스러운 투표수 생성
+  let hash = 0;
+  for (let i = 0; i < bookTitle.length; i++) {
+    hash = bookTitle.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const seed = Math.abs(hash);
+  const agreeCount = 100 + (seed % 400);
+  const disagreeCount = 80 + (seed % 300);
+  return { agreeCount, disagreeCount };
+}
+
 // 4. Monthly Debates (Agree/Disagree Votes and Opinions)
 export function getDebateVotes(bookTitle: string): { agreeCount: number; disagreeCount: number } {
   const data = localStorage.getItem("forum_debate_votes");
-  let votesRecord: Record<string, { agreeCount: number; disagreeCount: number }> = {};
-  if (data) {
-    try {
-      votesRecord = JSON.parse(data);
-    } catch {
-      votesRecord = {};
-    }
+  if (!data) {
+    return getInitialDebateVotes(bookTitle);
   }
-  return votesRecord[bookTitle] || { agreeCount: 0, disagreeCount: 0 }; // Initialize to 0!
+  try {
+    const votesRecord = JSON.parse(data);
+    if (votesRecord[bookTitle] !== undefined) {
+      return votesRecord[bookTitle];
+    }
+    return getInitialDebateVotes(bookTitle);
+  } catch {
+    return getInitialDebateVotes(bookTitle);
+  }
 }
 
 export function voteDebate(bookTitle: string, stance: "agree" | "disagree"): void {
@@ -1293,13 +1385,15 @@ export function voteDebate(bookTitle: string, stance: "agree" | "disagree"): voi
     }
   }
 
-  const currentVotes = votesRecord[bookTitle] || { agreeCount: 0, disagreeCount: 0 };
-  if (stance === "agree") {
-    currentVotes.agreeCount += 1;
-  } else {
-    currentVotes.disagreeCount += 1;
+  if (votesRecord[bookTitle] === undefined) {
+    votesRecord[bookTitle] = getInitialDebateVotes(bookTitle);
   }
-  votesRecord[bookTitle] = currentVotes;
+
+  if (stance === "agree") {
+    votesRecord[bookTitle].agreeCount += 1;
+  } else {
+    votesRecord[bookTitle].disagreeCount += 1;
+  }
 
   localStorage.setItem("forum_debate_votes", JSON.stringify(votesRecord));
 }
@@ -2945,6 +3039,170 @@ export async function fetchBookDetailAggregateFromCloud(
       isLiked: likesStats.isLiked
     };
   }
+}
+
+export async function getUserActivityStats(userId: string, nickname: string): Promise<{ reviews: number; likes: number; comments: number }> {
+  let reviewsCount = 0;
+  let commentsCount = 0;
+  let likesCount = 0;
+
+  // 1. Local Storage fallback counts
+  // Reviews
+  let localReviews: any[] = [];
+  try {
+    const data = localStorage.getItem("forum_reviews");
+    if (data) localReviews = JSON.parse(data);
+  } catch {}
+  const myLocalReviews = localReviews.filter((r: any) => r.author === nickname);
+  
+  // Author Opinions
+  let localAuthorOpinions: any[] = [];
+  try {
+    const data = localStorage.getItem("forum_author_opinions");
+    if (data) localAuthorOpinions = JSON.parse(data);
+  } catch {}
+  const myLocalAuthorOpinions = localAuthorOpinions.filter((o: any) => o.author === nickname);
+
+  // Comments (review / discussion comments)
+  let localComments: any[] = [];
+  try {
+    const data = localStorage.getItem("forum_comments");
+    if (data) localComments = JSON.parse(data);
+  } catch {}
+  const myLocalComments = localComments.filter((c: any) => c.author === nickname);
+
+  // Debate Opinions
+  let localDebateOpinions: any[] = [];
+  try {
+    const data = localStorage.getItem("forum_debate_opinions");
+    if (data) localDebateOpinions = JSON.parse(data);
+  } catch {}
+  const myLocalDebateOpinions = localDebateOpinions.filter((o: any) => o.author === nickname);
+
+  // Calculate local counts
+  reviewsCount = myLocalReviews.length + myLocalAuthorOpinions.length;
+  commentsCount = myLocalComments.length + myLocalDebateOpinions.length;
+
+  // Likes received (likes on my reviews + comments + debate opinions + author opinions)
+  const reviewLikesSum = myLocalReviews.reduce((sum, r) => sum + (r.likes || 0), 0);
+  const commentLikesSum = myLocalComments.reduce((sum, c) => sum + (c.likes || 0), 0);
+  const debateOpinionLikesSum = myLocalDebateOpinions.reduce((sum, o) => sum + (o.likes || 0), 0);
+  const authorOpinionLikesSum = myLocalAuthorOpinions.reduce((sum, o) => sum + (o.likes || 0), 0);
+  likesCount = reviewLikesSum + commentLikesSum + debateOpinionLikesSum + authorOpinionLikesSum;
+
+  // 2. If Supabase is configured, fetch from cloud and merge
+  if (isSupabaseConfigured) {
+    try {
+      // Query cloud reviews count
+      const reviewsRes = await fetch(`${supabase.supabaseUrl}/rest/v1/reviews?author=eq.${encodeURIComponent(nickname)}&select=id,likes`, {
+        headers: {
+          "apikey": supabase.supabaseKey,
+          "Authorization": `Bearer ${supabase.supabaseKey}`
+        }
+      });
+      if (reviewsRes.ok) {
+        const cloudReviews = await reviewsRes.json();
+        if (Array.isArray(cloudReviews)) {
+          reviewsCount = cloudReviews.length + myLocalAuthorOpinions.length;
+          likesCount = cloudReviews.reduce((sum, r) => sum + (r.likes || 0), 0);
+        }
+      }
+
+      // Query cloud comments count
+      const commentsRes = await fetch(`${supabase.supabaseUrl}/rest/v1/comments?author=eq.${encodeURIComponent(nickname)}&select=id,likes`, {
+        headers: {
+          "apikey": supabase.supabaseKey,
+          "Authorization": `Bearer ${supabase.supabaseKey}`
+        }
+      });
+      let cloudCommentsCount = myLocalComments.length;
+      let cloudCommentLikes = commentLikesSum;
+      if (commentsRes.ok) {
+        const cloudComments = await commentsRes.json();
+        if (Array.isArray(cloudComments)) {
+          cloudCommentsCount = cloudComments.length;
+          cloudCommentLikes = cloudComments.reduce((sum, c) => sum + (c.likes || 0), 0);
+        }
+      }
+
+      // Query cloud debate opinions count
+      const debateOpsRes = await fetch(`${supabase.supabaseUrl}/rest/v1/debate_opinions?author=eq.${encodeURIComponent(nickname)}&select=id,likes`, {
+        headers: {
+          "apikey": supabase.supabaseKey,
+          "Authorization": `Bearer ${supabase.supabaseKey}`
+        }
+      });
+      let cloudDebateCount = myLocalDebateOpinions.length;
+      let cloudDebateLikes = debateOpinionLikesSum;
+      if (debateOpsRes.ok) {
+        const cloudDebates = await debateOpsRes.json();
+        if (Array.isArray(cloudDebates)) {
+          cloudDebateCount = cloudDebates.length;
+          cloudDebateLikes = cloudDebates.reduce((sum, o) => sum + (o.likes || 0), 0);
+        }
+      }
+
+      commentsCount = cloudCommentsCount + cloudDebateCount;
+      likesCount += cloudCommentLikes + cloudDebateLikes + authorOpinionLikesSum;
+    } catch (e) {
+      console.error("Failed to fetch activity stats from Supabase:", e);
+    }
+  }
+
+  return {
+    reviews: reviewsCount,
+    likes: likesCount,
+    comments: commentsCount
+  };
+}
+
+export function getUserRecentBooks(userId: string): Book[] {
+  if (!userId || userId === "guest") return [];
+  
+  const ratedBookIds = new Set<string>();
+  const likedBookIds = new Set<string>();
+  
+  // 1. Check quick ratings
+  try {
+    const data = localStorage.getItem("forum_quick_ratings");
+    if (data) {
+      const allRatings: Record<string, Record<string, number>> = JSON.parse(data);
+      for (const [bookId, userRatings] of Object.entries(allRatings)) {
+        if (userRatings[userId] !== undefined && userRatings[userId] > 0) {
+          ratedBookIds.add(bookId);
+        }
+      }
+    }
+  } catch {}
+
+  // 2. Check book likes
+  try {
+    const data = localStorage.getItem("forum_book_likes");
+    if (data) {
+      const allLikes: Record<string, { count: number; users: string[] }> = JSON.parse(data);
+      for (const [bookId, record] of Object.entries(allLikes)) {
+        if (record.users && record.users.includes(userId)) {
+          likedBookIds.add(bookId);
+        }
+      }
+    }
+  } catch {}
+
+  // Merge them (rated first or liked, up to 4 books)
+  const combinedIds = Array.from(new Set([...Array.from(ratedBookIds), ...Array.from(likedBookIds)]));
+  
+  // Look up books from popularBooksData and global books
+  const allBooks = getGlobalBooks(popularBooksData);
+  const matchedBooks: Book[] = [];
+  
+  for (const bookId of combinedIds) {
+    const book = allBooks.find(b => b.id === bookId);
+    if (book) {
+      matchedBooks.push(book);
+    }
+  }
+  
+  return matchedBooks.slice(0, 4); // return up to 4 books
 }
 
 

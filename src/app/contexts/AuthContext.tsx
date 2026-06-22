@@ -12,6 +12,9 @@ interface User {
   isSocial?: boolean;
   isPrivate?: boolean;
   nicknameSet?: boolean;
+  favAuthors?: string[];
+  favPublishers?: string[];
+  pushEnabled?: boolean;
 }
 
 interface AuthContextType {
@@ -21,7 +24,7 @@ interface AuthContextType {
   loginWithOAuth: (provider: "google" | "kakao", profile?: { nickname: string; email: string; profileImage: string }) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
-  updateProfile: (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean }) => void;
+  updateProfile: (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean; favAuthors?: string[]; favPublishers?: string[]; pushEnabled?: boolean }) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   withdraw: () => Promise<{ success: boolean; error?: string }>;
 }
@@ -96,6 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isSocial,
           isPrivate: meta.isPrivate || false,
           nicknameSet: meta.nickname_set || false,
+          favAuthors: meta.favAuthors || [],
+          favPublishers: meta.favPublishers || [],
+          pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
         };
 
         // Resolve duplicates before using nickname
@@ -129,6 +135,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               profile_image: finalUser.profileImage,
               bio: finalUser.bio,
               is_private: finalUser.isPrivate,
+              fav_authors: finalUser.favAuthors,
+              fav_publishers: finalUser.favPublishers,
+              push_enabled: finalUser.pushEnabled !== undefined ? finalUser.pushEnabled : true,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "id" }
@@ -164,6 +173,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isSocial,
           isPrivate: meta.isPrivate || false,
           nicknameSet: meta.nickname_set || false,
+          favAuthors: meta.favAuthors || [],
+          favPublishers: meta.favPublishers || [],
+          pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
         };
         await resolveDuplicateNicknames();
         const usersData = localStorage.getItem("forum_users");
@@ -192,6 +204,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               profile_image: finalUser.profileImage,
               bio: finalUser.bio,
               is_private: finalUser.isPrivate,
+              fav_authors: finalUser.favAuthors,
+              fav_publishers: finalUser.favPublishers,
+              push_enabled: finalUser.pushEnabled !== undefined ? finalUser.pushEnabled : true,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "id" }
@@ -358,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 프로필 정보 업데이트
-  const updateProfile = async (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean }) => {
+  const updateProfile = async (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean; favAuthors?: string[]; favPublishers?: string[]; pushEnabled?: boolean }) => {
     if (!user) return;
     const oldNickname = user.nickname;
     const newNickname = updates.nickname;
@@ -386,6 +401,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             profileImage: updates.profileImage || user.profileImage,
             isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
             nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
+            favAuthors: updates.favAuthors || user.favAuthors,
+            favPublishers: updates.favPublishers || user.favPublishers,
+            pushEnabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
           }
         });
         // 2. Profiles DB 테이블 갱신
@@ -396,6 +414,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             bio: updates.bio || user.bio,
             profile_image: updates.profileImage || user.profileImage,
             is_private: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
+            fav_authors: updates.favAuthors || user.favAuthors,
+            fav_publishers: updates.favPublishers || user.favPublishers,
+            push_enabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
             updated_at: new Date().toISOString()
           }).eq("id", sessionUser.id);
         }

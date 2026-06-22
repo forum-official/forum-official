@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Bell, Lock, Eye, HelpCircle, FileText, Shield, ChevronRight } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { toast } from "sonner";
@@ -18,15 +18,17 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { user, updateProfile, withdraw } = useAuth();
   const userId = user?.userId || "guest";
 
-  const [pushNotifications, setPushNotifications] = useState(() => {
-    return localStorage.getItem(`settings_push_notifications_${userId}`) !== "false";
-  });
-  const [emailNotifications, setEmailNotifications] = useState(() => {
-    return localStorage.getItem(`settings_email_notifications_${userId}`) !== "false";
-  });
+  const [pushNotifications, setPushNotifications] = useState(false);
   const [privateProfile, setPrivateProfile] = useState(() => {
     return localStorage.getItem(`settings_private_profile_${userId}`) === "true";
   });
+
+  useEffect(() => {
+    const hasPermission = "Notification" in window && Notification.permission === "granted";
+    const storedPushSetting = localStorage.getItem(`settings_push_notifications_${userId}`) !== "false";
+    const userPushSetting = user?.pushEnabled !== undefined ? user.pushEnabled : storedPushSetting;
+    setPushNotifications(hasPermission && userPushSetting);
+  }, [userId, user?.pushEnabled]);
 
   const [isChangePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [isBlockListModalOpen, setBlockListModalOpen] = useState(false);
@@ -44,16 +46,36 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     }
   };
 
-  const handleTogglePush = (checked: boolean) => {
-    setPushNotifications(checked);
-    localStorage.setItem(`settings_push_notifications_${userId}`, checked.toString());
-    toast.success(checked ? "푸시 알림이 활성화되었습니다." : "푸시 알림이 비활성화되었습니다.");
-  };
+  const handleTogglePush = async (checked: boolean) => {
+    if (!("Notification" in window)) {
+      toast.error("이 브라우저는 알림 기능을 지원하지 않습니다.");
+      return;
+    }
 
-  const handleToggleEmail = (checked: boolean) => {
-    setEmailNotifications(checked);
-    localStorage.setItem(`settings_email_notifications_${userId}`, checked.toString());
-    toast.success(checked ? "이메일 알림이 활성화되었습니다." : "이메일 알림이 비활성화되었습니다.");
+    if (checked) {
+      if (Notification.permission === "denied") {
+        toast.error("알림 권한이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해주세요.");
+        return;
+      }
+
+      if (Notification.permission === "default") {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          toast.error("알림 권한이 거부되었습니다.");
+          return;
+        }
+      }
+
+      setPushNotifications(true);
+      localStorage.setItem(`settings_push_notifications_${userId}`, "true");
+      updateProfile({ pushEnabled: true });
+      toast.success("푸시 알림이 활성화되었습니다.");
+    } else {
+      setPushNotifications(false);
+      localStorage.setItem(`settings_push_notifications_${userId}`, "false");
+      updateProfile({ pushEnabled: false });
+      toast.success("푸시 알림이 비활성화되었습니다.");
+    }
   };
 
   const handleTogglePrivate = (checked: boolean) => {
@@ -100,21 +122,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                     type="checkbox"
                     checked={pushNotifications}
                     onChange={(e) => handleTogglePush(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">이메일 알림</p>
-                  <p className="text-xs text-gray-500">주간 활동 요약 수신</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={emailNotifications}
-                    onChange={(e) => handleToggleEmail(e.target.checked)}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
