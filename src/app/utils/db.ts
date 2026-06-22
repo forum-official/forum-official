@@ -3210,6 +3210,50 @@ export function getUserRecentBooks(userId: string): Book[] {
   return matchedBooks.slice(0, 4); // return up to 4 books
 }
 
+// 테스트/임의 추가 데이터 자동 정화 (일회성 & 신규 토론 예외 보정)
+(function autoCleanupTestData() {
+  if (typeof window === "undefined") return;
+
+  // 1. 찬반토론 투표 중 잘못 들어간(수백표) 데이터 보정
+  try {
+    const debateData = localStorage.getItem("forum_debate_votes");
+    if (debateData) {
+      const votes = JSON.parse(debateData);
+      let changed = false;
+      for (const title in votes) {
+        if (!debateTopics[title]) {
+          votes[title] = { agreeCount: 0, disagreeCount: 0 };
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem("forum_debate_votes", JSON.stringify(votes));
+      }
+    }
+  } catch (e) {
+    console.error("Failed to sync invalid local debates count:", e);
+  }
+
+  // 2. 임의로 추가된 평점, 찜, 투표 데이터 일회성 리셋 (Vercel 배포 시 기존 테스트 데이터 정화용)
+  try {
+    const hasCleaned = localStorage.getItem("forum_test_data_cleaned_v2");
+    if (!hasCleaned) {
+      localStorage.removeItem("forum_quick_ratings");
+      localStorage.removeItem("forum_book_likes");
+      localStorage.removeItem("forum_publisher_votes");
+      localStorage.removeItem("forum_reviews");
+      localStorage.removeItem("forum_comments");
+      localStorage.removeItem("forum_debate_opinions");
+      localStorage.removeItem("forum_author_opinions");
+      localStorage.removeItem("forum_debate_votes");
+      
+      localStorage.setItem("forum_test_data_cleaned_v2", "true");
+    }
+  } catch (e) {
+    console.error("Failed to cleanup test data:", e);
+  }
+})();
+
 
 
 

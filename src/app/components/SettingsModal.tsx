@@ -33,7 +33,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const [isChangePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [isBlockListModalOpen, setBlockListModalOpen] = useState(false);
   const [isWithdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
-  const [isResetDataConfirmOpen, setResetDataConfirmOpen] = useState(false);
   const [infoModalType, setInfoModalType] = useState<string | null>(null);
 
   const handleWithdraw = async () => {
@@ -45,28 +44,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     } else {
       toast.error(result.error || "탈퇴 처리 중 오류가 발생했습니다.");
     }
-  };
-
-  const handleResetData = () => {
-    setResetDataConfirmOpen(false);
-    
-    // 로컬 스토리지에 임의 저장된 테스트 데이터 초기화
-    localStorage.removeItem("forum_debate_votes");
-    localStorage.removeItem("forum_publisher_votes");
-    localStorage.removeItem("forum_reviews");
-    localStorage.removeItem("forum_comments");
-    localStorage.removeItem("forum_debate_opinions");
-    localStorage.removeItem("forum_quick_ratings");
-    localStorage.removeItem("forum_book_likes");
-    localStorage.removeItem("forum_author_opinions");
-    localStorage.removeItem(`forum_likes_${userId}`);
-    
-    toast.success("모든 로컬 테스트 데이터가 초기화되었습니다.");
-    
-    // 즉시 반영을 위해 1초 뒤 페이지 새로고침
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
   };
 
   const handleTogglePush = async (checked: boolean) => {
@@ -187,13 +164,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <span className="text-sm font-medium">회원 탈퇴</span>
                 <ChevronRight className="size-4 text-red-400" />
               </button>
-              <button
-                className="w-full flex items-center justify-between p-3 hover:bg-orange-50 text-orange-600 rounded-xl transition-colors"
-                onClick={() => setResetDataConfirmOpen(true)}
-              >
-                <span className="text-sm font-medium">테스트 데이터 초기화</span>
-                <ChevronRight className="size-4 text-orange-400" />
-              </button>
             </div>
           </div>
 
@@ -286,17 +256,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           onConfirm={handleWithdraw}
           onCancel={() => setWithdrawConfirmOpen(false)}
           confirmColor="red"
-        />
-      )}
-      {isResetDataConfirmOpen && (
-        <ConfirmDialog
-          title="테스트 데이터 초기화"
-          message="지금까지 앱에 임의로 추가된 모든 평점, 리뷰, 투표, 댓글 등의 테스트 데이터가 로컬 저장소에서 전부 삭제되고 초기화됩니다. 계속하시겠습니까?"
-          confirmText="초기화하기"
-          cancelText="취소"
-          onConfirm={handleResetData}
-          onCancel={() => setResetDataConfirmOpen(false)}
-          confirmColor="orange"
         />
       )}
       {infoModalType && (

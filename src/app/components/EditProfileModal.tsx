@@ -12,13 +12,17 @@ interface EditProfileModalProps {
 
 const availableAuthors = Array.from(
   new Set(
-    popularBooksData.map(b => b.author.split(",")[0].trim())
+    popularBooksData
+      .filter(b => b && typeof b.author === 'string')
+      .map(b => b.author.split(",")[0].trim())
   )
 ).filter(Boolean);
 
 const availablePublishers = Array.from(
   new Set(
-    popularBooksData.map(b => b.publisher.trim())
+    popularBooksData
+      .filter(b => b && typeof b.publisher === 'string')
+      .map(b => b.publisher.trim())
   )
 ).filter(Boolean);
 
