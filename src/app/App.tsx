@@ -19,6 +19,7 @@ import { AuthModal } from "@/app/components/AuthModal";
 import { NicknameSetupModal } from "@/app/components/NicknameSetupModal";
 import { CreateDiscussionModal } from "@/app/components/CreateDiscussionModal";
 import { VoteDetailScreen } from "@/app/components/screens/VoteDetailScreen";
+import { EditionDebateListScreen } from "@/app/components/screens/EditionDebateListScreen";
 import { PublisherRatingScreen } from "@/app/components/screens/PublisherRatingScreen";
 import { MyLibraryScreen } from "@/app/components/screens/MyLibraryScreen";
 import { ReadingClubScreen } from "@/app/components/screens/ReadingClubScreen";
@@ -89,50 +90,7 @@ function getDailyHotVote(books: Book[]) {
 
 const discussions: any[] = [];
 
-// 찬반토론 데이터 (debateTopics.ts의 190여 개 주제를 기반으로 동적 생성)
-const debateTopicsData = Object.entries(debateTopics).map(([title, topic]) => {
-  let agreeCount = 0;
-  let disagreeCount = 0;
-  let totalComments = 0;
-  
-  // 기준이 되는 인기 도서의 최초 투표수 보존
-  const standardVotes: Record<string, { agree: number; disagree: number; comments: number }> = {
-    "1984": { agree: 1247, disagree: 893, comments: 156 },
-    "호밀밭의 파수꾼": { agree: 892, disagree: 1104, comments: 203 },
-    "이방인": { agree: 1056, disagree: 967, comments: 189 },
-    "죄와 벌": { agree: 567, disagree: 1834, comments: 278 },
-    "카라마조프 가의 형제들": { agree: 1123, disagree: 1456, comments: 312 },
-    "노르웨이의 숲": { agree: 1678, disagree: 923, comments: 245 },
-    "노인과 바다": { agree: 1923, disagree: 456, comments: 167 },
-    "햄릿": { agree: 1345, disagree: 1089, comments: 223 },
-    "전쟁과 평화": { agree: 789, disagree: 1567, comments: 198 },
-    "채식주의자": { agree: 1834, disagree: 678, comments: 289 },
-  };
-
-  if (standardVotes[title]) {
-    agreeCount = standardVotes[title].agree;
-    disagreeCount = standardVotes[title].disagree;
-    totalComments = standardVotes[title].comments;
-  } else {
-    // 나머지 도서들은 제목 해시 기반의 유니크하고 자연스러운 투표수 생성
-    let hash = 0;
-    for (let i = 0; i < title.length; i++) {
-      hash = title.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const seed = Math.abs(hash);
-    agreeCount = 100 + (seed % 400);
-    disagreeCount = 80 + (seed % 300);
-    totalComments = 10 + (seed % 50);
-  }
-
-  return {
-    bookTitle: title,
-    topic,
-    agreeCount,
-    disagreeCount,
-    totalComments,
-  };
-});
+// 찬반토론 데이터 목업 제거 (실시간 실제 집계로 변경됨)
 
 const publishers = [
   {
@@ -335,6 +293,18 @@ const curations = [
 
 function AppContent() {
   const { isAuthenticated, user } = useAuth();
+
+  const debateTopicsData = Object.entries(debateTopics).map(([title, topic]) => {
+    const votes = getDebateVotes(title);
+    const actualOpinions = getDebateOpinions(title);
+    return {
+      bookTitle: title,
+      topic,
+      agreeCount: votes.agreeCount,
+      disagreeCount: votes.disagreeCount,
+      totalComments: actualOpinions.length,
+    };
+  });
 
   // 소셜 로그인 후 닉네임 미설정 시 자동으로 모달 표시
   const showNicknameSetup = !!user?.isSocial && user?.nicknameSet === false;
@@ -1007,10 +977,8 @@ function AppContent() {
       return;
     }
     
-    // 카테고리에서 판본 토론 직접 진입 시 랜덤 책이 나오도록 voteDetailBook 초기화
-    if (screen === "vote-detail") {
-      setVoteDetailBook(null);
-    }
+    // 카테고리에서 판본 토론 진입 시 목록 화면(edition-debate-list)을 먼저 거치게 되므로,
+    // 상세 화면 vote-detail 진입 시에 voteDetailBook을 보존합니다.
 
 
 
@@ -1289,6 +1257,16 @@ function AppContent() {
           `}</style>
       
       {/* Show specific screens */}
+      {currentScreen === "edition-debate-list" && (
+        <EditionDebateListScreen 
+          onBack={handleBack}
+          onBookSelect={(book) => {
+            setVoteDetailBook(book);
+            handleNavigate("vote-detail");
+          }}
+        />
+      )}
+
       {currentScreen === "vote-detail" && (
         <VoteDetailScreen 
           onBack={handleBack}

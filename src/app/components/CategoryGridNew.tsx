@@ -32,7 +32,7 @@ interface CategoryGridNewProps {
 
 export function CategoryGridNew({ onNavigate }: CategoryGridNewProps) {
   const categories = [
-    { imageSrc: "/assets/icons/discussion_icon.png", label: "판본토론", screen: "vote-detail" },
+    { imageSrc: "/assets/icons/discussion_icon.png", label: "판본토론", screen: "edition-debate-list" },
     { imageSrc: "/assets/icons/publisher_rating_icon.png", label: "출판사별 평점", screen: "publisher-rating" },
     { imageSrc: "/assets/icons/author_info_icon.png", label: "작가정보", screen: "author-archive" },
     { imageSrc: "/assets/icons/my_library_icon.png", label: "나의서재", screen: "my-library" },

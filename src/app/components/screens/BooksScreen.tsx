@@ -9,7 +9,15 @@ import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getMatchingClassicTitle, isClassicBook, getWorkKey } from "@/app/utils/titleHelper";
 
 function integrateBooks(books: any[]): any[] {
-  const sorted = [...books].sort((a, b) => {
+  // 출판사가 없거나 무효한 출판사인 책 필터링
+  const filteredBooks = books.filter(book => {
+    const pub = (book.publisher || book.publishers?.[0]?.name || "").trim();
+    if (!pub) return false;
+    const invalidPublishers = ["출판사 미상", "출판사미상", "미상", "unknown", "none", "null", "undefined"];
+    return !invalidPublishers.includes(pub.toLowerCase());
+  });
+
+  const sorted = [...filteredBooks].sort((a, b) => {
     const scoreA = (a.salesPoint || 0) + (a.likes || 0) * 5 + (a.rating || 0) * 10;
     const scoreB = (b.salesPoint || 0) + (b.likes || 0) * 5 + (b.rating || 0) * 10;
     return scoreB - scoreA;

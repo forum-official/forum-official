@@ -1231,21 +1231,7 @@ export function voteSinglePublisher(pubBookId: string): void {
 }
 
 function getInitialWorkPublisherVotes(workKey: string, publisherName: string): number {
-  const books = getGlobalBooks(popularBooksData);
-  let maxVotes = 0;
-  let found = false;
-  for (const book of books) {
-    if (getWorkKey(book.title, book.author) === workKey) {
-      if (book.publishers) {
-        const pub = book.publishers.find(p => p.name === publisherName);
-        if (pub) {
-          maxVotes = Math.max(maxVotes, pub.votes || 0);
-          found = true;
-        }
-      }
-    }
-  }
-  return found ? maxVotes : 0;
+  return 0;
 }
 
 // 3.5 Work & Publisher unit Votes (v3)
@@ -1326,40 +1312,7 @@ export function votePublisher(bookId: string, publisherName: string): void {
 }
 
 function getInitialDebateVotes(bookTitle: string): { agreeCount: number; disagreeCount: number } {
-  const standardVotes: Record<string, { agree: number; disagree: number }> = {
-    "1984": { agree: 1247, disagree: 893 },
-    "호밀밭의 파수꾼": { agree: 892, disagree: 1104 },
-    "이방인": { agree: 1056, disagree: 967 },
-    "죄와 벌": { agree: 567, disagree: 1834 },
-    "카라마조프 가의 형제들": { agree: 1123, disagree: 1456 },
-    "노르웨이의 숲": { agree: 1678, disagree: 923 },
-    "노인과 바다": { agree: 1923, disagree: 456 },
-    "햄릿": { agree: 1345, disagree: 1089 },
-    "전쟁과 평화": { agree: 789, disagree: 1567 },
-    "채식주의자": { agree: 1834, disagree: 678 },
-  };
-
-  if (standardVotes[bookTitle]) {
-    return {
-      agreeCount: standardVotes[bookTitle].agree,
-      disagreeCount: standardVotes[bookTitle].disagree
-    };
-  }
-
-  // static debateTopics 목록에 없는 책(사용자가 새로 등록한 토론)은 0표부터 시작
-  if (!debateTopics[bookTitle]) {
-    return { agreeCount: 0, disagreeCount: 0 };
-  }
-
-  // 나머지 기본 도서들은 제목 해시 기반의 유니크하고 자연스러운 투표수 생성
-  let hash = 0;
-  for (let i = 0; i < bookTitle.length; i++) {
-    hash = bookTitle.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const seed = Math.abs(hash);
-  const agreeCount = 100 + (seed % 400);
-  const disagreeCount = 80 + (seed % 300);
-  return { agreeCount, disagreeCount };
+  return { agreeCount: 0, disagreeCount: 0 };
 }
 
 // 4. Monthly Debates (Agree/Disagree Votes and Opinions)

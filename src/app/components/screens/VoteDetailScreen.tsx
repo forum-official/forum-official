@@ -119,10 +119,10 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
   });
   
   // 장단점 state
-  const [prosA, setProsA] = useState(["정확한 번역", "원문의 뉘앙스 살림", "깔끔한 편집"]);
-  const [consA, setConsA] = useState(["다소 딱딱한 표현", "읽기 어려울 수 있음"]);
-  const [prosB, setProsB] = useState(["현대적 감각", "읽기 쉬운 문체", "독자 친화적"]);
-  const [consB, setConsB] = useState(["의역이 많음", "원문과 차이가 있음"]);
+  const [prosA, setProsA] = useState<string[]>([]);
+  const [consA, setConsA] = useState<string[]>([]);
+  const [prosB, setProsB] = useState<string[]>([]);
+  const [consB, setConsB] = useState<string[]>([]);
   
   // 댓글 state
   const [comments, setComments] = useState<any[]>(() => getComments(currentBook.title));
@@ -181,13 +181,24 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     }));
   };
 
+  const getPublisherCover = (title: string, publisher: string, defaultCover: string) => {
+    const matchingTitle = getMatchingClassicTitle(title) || title;
+    if (translationCovers[matchingTitle] && translationCovers[matchingTitle][publisher]) {
+      return translationCovers[matchingTitle][publisher];
+    }
+    if (translationCovers[title] && translationCovers[title][publisher]) {
+      return translationCovers[title][publisher];
+    }
+    return defaultCover;
+  };
+
   const voteData = {
     title: currentBook.title,
     question: "어떤 번역본이 더 나을까요?",
     optionA: {
       publisher: initialPubs[0].name,
       translator: translatorA,
-      coverUrl: currentBook.coverUrl,
+      coverUrl: getPublisherCover(currentBook.title, initialPubs[0].name, currentBook.coverUrl),
       votes: votesA,
       pros: prosA,
       cons: consA,
@@ -195,7 +206,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     optionB: {
       publisher: initialPubs[1].name,
       translator: translatorB,
-      coverUrl: currentBook.coverUrl,
+      coverUrl: getPublisherCover(currentBook.title, initialPubs[1].name, currentBook.coverUrl),
       votes: votesB,
       pros: prosB,
       cons: consB,
@@ -316,17 +327,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                     title={currentBook.title} 
                     author={currentBook.author} 
                     publisherName={voteData.optionA.publisher} 
-                    coverUrl={
-                      (() => {
-                        const isClassic = isClassicBook(currentBook.title, currentBook.author);
-                        const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
-                        return isClassic 
-                          ? (translationCovers[matchingTitle]?.[voteData.optionA.publisher] || 
-                             translationCovers[currentBook.title]?.[voteData.optionA.publisher] || 
-                             (voteData.optionA.publisher === "민음사" ? currentBook.coverUrl : undefined))
-                          : (voteData.optionA.publisher === "민음사" ? currentBook.coverUrl : undefined);
-                      })()
-                    }
+                    coverUrl={voteData.optionA.coverUrl}
                     allowPublisherFallback={false}
                     className="w-full h-full object-cover" 
                   />
@@ -345,22 +346,32 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                 </div>
                 <p className="text-sm text-gray-600 mb-3">번역: {voteData.optionA.translator}</p>
                 <div className="space-y-2">
-                  <div>
-                    <Badge className="bg-green-100 text-green-700 text-xs mb-1">장점</Badge>
-                    <ul className="text-xs text-gray-600 space-y-0.5">
-                      {voteData.optionA.pros.map((pro, idx) => (
-                        <li key={idx}>• {pro}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <Badge className="bg-red-100 text-red-700 text-xs mb-1">단점</Badge>
-                    <ul className="text-xs text-gray-600 space-y-0.5">
-                      {voteData.optionA.cons.map((con, idx) => (
-                        <li key={idx}>• {con}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {voteData.optionA.pros.length > 0 || voteData.optionA.cons.length > 0 ? (
+                    <>
+                      {voteData.optionA.pros.length > 0 && (
+                        <div>
+                          <Badge className="bg-green-100 text-green-700 text-xs mb-1">장점</Badge>
+                          <ul className="text-xs text-gray-600 space-y-0.5">
+                            {voteData.optionA.pros.map((pro, idx) => (
+                              <li key={idx}>• {pro}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {voteData.optionA.cons.length > 0 && (
+                        <div>
+                          <Badge className="bg-red-100 text-red-700 text-xs mb-1">단점</Badge>
+                          <ul className="text-xs text-gray-600 space-y-0.5">
+                            {voteData.optionA.cons.map((con, idx) => (
+                              <li key={idx}>• {con}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic py-1">아직 등록된 의견/장단점이 없습니다</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -380,17 +391,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                     title={currentBook.title} 
                     author={currentBook.author} 
                     publisherName={voteData.optionB.publisher} 
-                    coverUrl={
-                      (() => {
-                        const isClassic = isClassicBook(currentBook.title, currentBook.author);
-                        const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
-                        return isClassic 
-                          ? (translationCovers[matchingTitle]?.[voteData.optionB.publisher] || 
-                             translationCovers[currentBook.title]?.[voteData.optionB.publisher] || 
-                             (voteData.optionB.publisher === "민음사" ? currentBook.coverUrl : undefined))
-                          : (voteData.optionB.publisher === "민음사" ? currentBook.coverUrl : undefined);
-                      })()
-                    }
+                    coverUrl={voteData.optionB.coverUrl}
                     allowPublisherFallback={false}
                     className="w-full h-full object-cover" 
                   />
@@ -409,22 +410,32 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                 </div>
                 <p className="text-sm text-gray-600 mb-3">번역: {voteData.optionB.translator}</p>
                 <div className="space-y-2">
-                  <div>
-                    <Badge className="bg-green-100 text-green-700 text-xs mb-1">장점</Badge>
-                    <ul className="text-xs text-gray-600 space-y-0.5">
-                      {voteData.optionB.pros.map((pro, idx) => (
-                        <li key={idx}>• {pro}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <Badge className="bg-red-100 text-red-700 text-xs mb-1">단점</Badge>
-                    <ul className="text-xs text-gray-600 space-y-0.5">
-                      {voteData.optionB.cons.map((con, idx) => (
-                        <li key={idx}>• {con}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {voteData.optionB.pros.length > 0 || voteData.optionB.cons.length > 0 ? (
+                    <>
+                      {voteData.optionB.pros.length > 0 && (
+                        <div>
+                          <Badge className="bg-green-100 text-green-700 text-xs mb-1">장점</Badge>
+                          <ul className="text-xs text-gray-600 space-y-0.5">
+                            {voteData.optionB.pros.map((pro, idx) => (
+                              <li key={idx}>• {pro}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {voteData.optionB.cons.length > 0 && (
+                        <div>
+                          <Badge className="bg-red-100 text-red-700 text-xs mb-1">단점</Badge>
+                          <ul className="text-xs text-gray-600 space-y-0.5">
+                            {voteData.optionB.cons.map((con, idx) => (
+                              <li key={idx}>• {con}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic py-1">아직 등록된 의견/장단점이 없습니다</p>
+                  )}
                 </div>
               </div>
             </div>
