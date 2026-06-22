@@ -89,13 +89,16 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
   
   const [selectedOption, setSelectedOption] = useState<number | null>(() => {
     const currentUserId = user?.userId || "";
-    const myDebateVotes = JSON.parse(localStorage.getItem(`myTranslationVotes_${currentUserId}`) || '{}');
-    return myDebateVotes[currentBook.title] || null;
+    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
+    const votedPub = myVotes[workKey];
+    if (votedPub === initialPubs[0].name) return 1;
+    if (votedPub === initialPubs[1].name) return 2;
+    return null;
   });
   const [hasVoted, setHasVoted] = useState(() => {
     const currentUserId = user?.userId || "";
-    const myDebateVotes = JSON.parse(localStorage.getItem(`myTranslationVotes_${currentUserId}`) || '{}');
-    return currentBook.title in myDebateVotes;
+    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
+    return workKey in myVotes;
   });
   const [comment, setComment] = useState("");
   const [showComments, setShowComments] = useState(true);
@@ -148,9 +151,17 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     }
     loadComments();
     
-    const myDebateVotes = JSON.parse(localStorage.getItem(`myTranslationVotes_${currentUserId}`) || '{}');
-    setHasVoted(currentBook.title in myDebateVotes);
-    setSelectedOption(myDebateVotes[currentBook.title] || null);
+    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
+    const votedPub = myVotes[currentWorkKey];
+    const userHasVoted = currentWorkKey in myVotes;
+    setHasVoted(userHasVoted);
+    if (userHasVoted) {
+      if (votedPub === pubs[0].name) setSelectedOption(1);
+      else if (votedPub === pubs[1].name) setSelectedOption(2);
+      else setSelectedOption(null);
+    } else {
+      setSelectedOption(null);
+    }
 
     const isClassic = isClassicBook(currentBook.title, currentBook.author);
     const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
@@ -461,9 +472,10 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
               setTotalVotes(totalVotes + 1);
               setHasVoted(true);
               const currentUserId = user?.userId || "";
-              const myDebateVotes = JSON.parse(localStorage.getItem(`myTranslationVotes_${currentUserId}`) || '{}');
-              myDebateVotes[currentBook.title] = selectedOption;
-              localStorage.setItem(`myTranslationVotes_${currentUserId}`, JSON.stringify(myDebateVotes));
+              const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
+              const votedPubName = selectedOption === 1 ? initialPubs[0].name : initialPubs[1].name;
+              myVotes[workKey] = votedPubName;
+              localStorage.setItem(`myPublisherVotes_${currentUserId}`, JSON.stringify(myVotes));
               toast.success("투표가 완료되었습니다!");
             }}
           >

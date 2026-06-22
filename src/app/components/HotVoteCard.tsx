@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/contexts/AuthContext";
 import type { Book } from "@/app/data/booksData";
 import { BookCover } from "@/app/components/BookCover";
+import { getWorkKey } from "@/app/utils/titleHelper";
 
 const cleanTitle = (t: string) => {
   let cleaned = t;
@@ -36,23 +37,24 @@ export function HotVoteCard({
 }: HotVoteCardProps) {
   const { isAuthenticated, user } = useAuth();
   const userId = user?.userId || "";
+  const workKey = getWorkKey(book.title, book.author);
   
-  // localStorage에서 투표 여부 및 투표한 출판사 확인
+  // localStorage에서 투표 여부 및 투표한 출판사 확인 (workKey 기준)
   const [hasVoted, setHasVoted] = useState(() => {
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${userId}`) || '{}');
-    return book.id in myVotes;
+    return workKey in myVotes;
   });
   
   const [selectedPublisher, setSelectedPublisher] = useState<string | null>(() => {
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${userId}`) || '{}');
-    return myVotes[book.id] || null;
+    return myVotes[workKey] || null;
   });
 
   useEffect(() => {
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${userId}`) || '{}');
-    setHasVoted(book.id in myVotes);
-    setSelectedPublisher(myVotes[book.id] || null);
-  }, [book.id, userId]);
+    setHasVoted(workKey in myVotes);
+    setSelectedPublisher(myVotes[workKey] || null);
+  }, [workKey, userId]);
 
   const publisherVotes = book.publishers;
   const totalVotes = publisherVotes.reduce((sum, pub) => sum + pub.votes, 0);
