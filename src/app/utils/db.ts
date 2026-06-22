@@ -1346,7 +1346,12 @@ function getInitialDebateVotes(bookTitle: string): { agreeCount: number; disagre
     };
   }
 
-  // 나머지 도서들은 제목 해시 기반의 유니크하고 자연스러운 투표수 생성
+  // static debateTopics 목록에 없는 책(사용자가 새로 등록한 토론)은 0표부터 시작
+  if (!debateTopics[bookTitle]) {
+    return { agreeCount: 0, disagreeCount: 0 };
+  }
+
+  // 나머지 기본 도서들은 제목 해시 기반의 유니크하고 자연스러운 투표수 생성
   let hash = 0;
   for (let i = 0; i < bookTitle.length; i++) {
     hash = bookTitle.charCodeAt(i) + ((hash << 5) - hash);

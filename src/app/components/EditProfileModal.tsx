@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { popularBooksData } from "@/app/data/booksData";
 import { X, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/contexts/AuthContext";
@@ -9,14 +10,94 @@ interface EditProfileModalProps {
   onClose: () => void;
 }
 
+const availableAuthors = Array.from(
+  new Set(
+    popularBooksData.map(b => b.author.split(",")[0].trim())
+  )
+).filter(Boolean);
+
+const availablePublishers = Array.from(
+  new Set(
+    popularBooksData.map(b => b.publisher.trim())
+  )
+).filter(Boolean);
+
 export function EditProfileModal({ onClose }: EditProfileModalProps) {
   const { user, updateProfile } = useAuth();
   const [nickname, setNickname] = useState(user?.nickname || "");
   const [bio, setBio] = useState(user?.bio || "");
   const [profileImage, setProfileImage] = useState(user?.profileImage || "");
-  const [favAuthors, setFavAuthors] = useState(() => (user?.favAuthors || []).join(", "));
-  const [favPublishers, setFavPublishers] = useState(() => (user?.favPublishers || []).join(", "));
+  const [favAuthors, setFavAuthors] = useState<string[]>(() => user?.favAuthors || []);
+  const [favPublishers, setFavPublishers] = useState<string[]>(() => user?.favPublishers || []);
+  const [authorInput, setAuthorInput] = useState("");
+  const [publisherInput, setPublisherInput] = useState("");
+  const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
+  const [showPublisherDropdown, setShowPublisherDropdown] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const filteredAuthors = authorInput.trim()
+    ? availableAuthors.filter(a => 
+        a.toLowerCase().includes(authorInput.toLowerCase().trim()) && 
+        !favAuthors.includes(a)
+      ).slice(0, 5)
+    : [];
+
+  const filteredPublishers = publisherInput.trim()
+    ? availablePublishers.filter(p => 
+        p.toLowerCase().includes(publisherInput.toLowerCase().trim()) && 
+        !favPublishers.includes(p)
+      ).slice(0, 5)
+    : [];
+
+  const handleAddAuthor = (author: string) => {
+    const trimmed = author.trim();
+    if (!trimmed) return;
+    if (favAuthors.includes(trimmed)) {
+      toast.error("이미 추가된 작가입니다");
+      return;
+    }
+    if (favAuthors.length >= 3) {
+      toast.error("인생 작가는 최대 3개까지 설정할 수 있습니다");
+      return;
+    }
+    setFavAuthors([...favAuthors, trimmed]);
+    setAuthorInput("");
+    setShowAuthorDropdown(false);
+  };
+
+  const handleAddPublisher = (publisher: string) => {
+    const trimmed = publisher.trim();
+    if (!trimmed) return;
+    if (favPublishers.includes(trimmed)) {
+      toast.error("이미 추가된 출판사입니다");
+      return;
+    }
+    if (favPublishers.length >= 3) {
+      toast.error("최애 출판사는 최대 3개까지 설정할 수 있습니다");
+      return;
+    }
+    setFavPublishers([...favPublishers, trimmed]);
+    setPublisherInput("");
+    setShowPublisherDropdown(false);
+  };
+
+  const handleAuthorKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (authorInput.trim()) {
+        handleAddAuthor(authorInput);
+      }
+    }
+  };
+
+  const handlePublisherKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (publisherInput.trim()) {
+        handleAddPublisher(publisherInput);
+      }
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,24 +163,12 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
       }
     }
 
-    const parsedAuthors = favAuthors
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s !== "")
-      .slice(0, 3);
-
-    const parsedPublishers = favPublishers
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s !== "")
-      .slice(0, 3);
-
     updateProfile({
       nickname: trimmed,
       bio: bio.trim(),
       profileImage: profileImage,
-      favAuthors: parsedAuthors,
-      favPublishers: parsedPublishers,
+      favAuthors: favAuthors.slice(0, 3),
+      favPublishers: favPublishers.slice(0, 3),
     });
     toast.success("프로필이 수정되었습니다");
     onClose();
@@ -187,27 +256,123 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
           </div>
 
           {/* 인생 작가 */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">인생 작가</label>
-            <input
-              type="text"
-              value={favAuthors}
-              onChange={(e) => setFavAuthors(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="인생 작가들을 쉼표(,)로 구분해 입력 (최대 3개)"
-            />
+          <div className="relative">
+            <label className="block text-sm font-semibold mb-2">인생 작가 (최대 3개)</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {favAuthors.map((author, index) => (
+                <span 
+                  key={index} 
+                  className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-purple-200"
+                >
+                  {author}
+                  <button 
+                    type="button"
+                    onClick={() => setFavAuthors(favAuthors.filter(a => a !== author))}
+                    className="hover:text-purple-900 focus:outline-none"
+                  >
+                    <X className="size-3 text-purple-600" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={authorInput}
+                onChange={(e) => {
+                  setAuthorInput(e.target.value);
+                  setShowAuthorDropdown(true);
+                }}
+                onKeyDown={handleAuthorKeyDown}
+                onFocus={() => setShowAuthorDropdown(true)}
+                onBlur={() => setTimeout(() => setShowAuthorDropdown(false), 200)}
+                disabled={favAuthors.length >= 3}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-50 disabled:text-gray-400"
+                placeholder={favAuthors.length >= 3 ? "최대 개수를 초과했습니다" : "작가 검색 또는 직접 입력 후 Enter"}
+              />
+              
+              {showAuthorDropdown && authorInput.trim() && (
+                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto">
+                  {filteredAuthors.map((author, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleAddAuthor(author)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-sm transition-colors border-b border-gray-50 last:border-0"
+                    >
+                      {author}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleAddAuthor(authorInput)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-sm text-purple-600 font-medium transition-colors"
+                  >
+                    "{authorInput}" 직접 추가
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 최애 출판사 */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">최애 출판사</label>
-            <input
-              type="text"
-              value={favPublishers}
-              onChange={(e) => setFavPublishers(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="최애 출판사들을 쉼표(,)로 구분해 입력 (최대 3개)"
-            />
+          <div className="relative">
+            <label className="block text-sm font-semibold mb-2">최애 출판사 (최대 3개)</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {favPublishers.map((pub, index) => (
+                <span 
+                  key={index} 
+                  className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-purple-200"
+                >
+                  {pub}
+                  <button 
+                    type="button"
+                    onClick={() => setFavPublishers(favPublishers.filter(p => p !== pub))}
+                    className="hover:text-purple-900 focus:outline-none"
+                  >
+                    <X className="size-3 text-purple-600" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={publisherInput}
+                onChange={(e) => {
+                  setPublisherInput(e.target.value);
+                  setShowPublisherDropdown(true);
+                }}
+                onKeyDown={handlePublisherKeyDown}
+                onFocus={() => setShowPublisherDropdown(true)}
+                onBlur={() => setTimeout(() => setShowPublisherDropdown(false), 200)}
+                disabled={favPublishers.length >= 3}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-50 disabled:text-gray-400"
+                placeholder={favPublishers.length >= 3 ? "최대 개수를 초과했습니다" : "출판사 검색 또는 직접 입력 후 Enter"}
+              />
+              
+              {showPublisherDropdown && publisherInput.trim() && (
+                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-lg max-h-48 overflow-y-auto">
+                  {filteredPublishers.map((pub, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleAddPublisher(pub)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-sm transition-colors border-b border-gray-50 last:border-0"
+                    >
+                      {pub}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleAddPublisher(publisherInput)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-purple-50 text-sm text-purple-600 font-medium transition-colors"
+                  >
+                    "{publisherInput}" 직접 추가
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Account Info */}
