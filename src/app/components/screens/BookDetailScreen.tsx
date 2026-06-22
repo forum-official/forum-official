@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud } from "@/app/utils/db";
+import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud, fetchBookDetailAggregateFromCloud } from "@/app/utils/db";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
@@ -112,19 +112,17 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
     setReviews(getReviews(workKey));
     setMyQuickRating(getQuickRating(workKey, userId));
     
-    // 2. 백엔드 클라우드와 실시간 리뷰 동기화
-    const syncRealtimeReviews = async () => {
-      const cloudReviews = await fetchReviewsFromCloud(workKey);
-      setReviews(cloudReviews);
-    };
-    syncRealtimeReviews();
-    
     // 투표수 최신화
     setPublisherVotes(getPubVotesList());
 
-    const likesStats = getBookLikes(workKey);
-    setLiked(likesStats.isLiked);
-    setLikeCount(likesStats.likesCount);
+    // 2. 백엔드 클라우드 데이터 일체(리뷰, 찜 등)를 단일 통합 API 호출로 동기화 (네트워크 Latency 및 커넥션 절감)
+    const syncCloudData = async () => {
+      const aggregate = await fetchBookDetailAggregateFromCloud(workKey, userId);
+      setReviews(aggregate.reviews);
+      setLiked(aggregate.isLiked);
+      setLikeCount(aggregate.likesCount);
+    };
+    syncCloudData();
   }, [book.id, userId, book.title]); // book.id or userId가 변경될 때마다 실행
   
   // localStorage에서 투표 여부 및 투표한 출판사 확인 (작품 공유 키 workKey 기준)

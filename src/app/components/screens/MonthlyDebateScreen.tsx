@@ -89,6 +89,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
   const [agreeCount, setAgreeCount] = useState(0);
   const [disagreeCount, setDisagreeCount] = useState(0);
   const [opinionsList, setOpinionsList] = useState<any[]>([]);
+  const [visibleCount, setVisibleCount] = useState(10);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -129,6 +130,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
   useEffect(() => {
     if (!currentBook.title) return;
     
+    setVisibleCount(10);
     const votes = getDebateVotes(currentBook.title);
     setAgreeCount(votes.agreeCount);
     setDisagreeCount(votes.disagreeCount);
@@ -728,7 +730,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                   </button>
                 </div>
               </div>
-              {sortedOpinions.map((opinion) => {
+              {sortedOpinions.slice(0, visibleCount).map((opinion) => {
                 const skin = commentSkins.find((s) => s.id === opinion.skinId) || commentSkins[0];
                 const isBest = bestOpinion && opinion.id === bestOpinion.id && opinion.likes >= 20;
                 
@@ -810,6 +812,18 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                   </Card>
                 );
               })}
+              
+              {sortedOpinions.length > visibleCount && (
+                <div className="pt-2 pb-4 flex justify-center">
+                  <Button 
+                    onClick={() => setVisibleCount(prev => prev + 10)}
+                    variant="outline" 
+                    className="w-full border-purple-200 text-purple-600 hover:bg-purple-50/50 rounded-xl"
+                  >
+                    의견 더보기 ({sortedOpinions.length - visibleCount}개 남음)
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

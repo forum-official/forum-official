@@ -2844,6 +2844,95 @@ async function updateUserNicknameInCloud(oldNickname: string, newNickname: strin
   }
 }
 
+/**
+ * 2. [비용 최적화 및 쿼리 단일화]
+ * 단일 책 상세 페이지에서 필요한 리뷰, 찜 수, 로그인한 유저의 찜 여부 데이터를
+ * 단 1회의 네트워크 호출로 병렬 처리하여 Supabase 커넥션 비용과 왕복 지연 시간(Round Trip Latency)을 최적화합니다.
+ */
+export async function fetchBookDetailAggregateFromCloud(
+  workKey: string, 
+  userId: string
+): Promise<{
+  reviews: DbReview[];
+  likesCount: number;
+  isLiked: boolean;
+}> {
+  if (!isCloudEnabled) {
+    const reviews = getReviews(workKey);
+    const likesStats = getBookLikes(workKey);
+    return {
+      reviews,
+      likesCount: likesStats.likesCount,
+      isLiked: likesStats.isLiked
+    };
+  }
+
+  try {
+    const [reviewsRes, likesCountRes, userLikeRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/reviews?bookId=eq.${encodeURIComponent(workKey)}&select=*`, {
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }),
+      fetch(`${SUPABASE_URL}/rest/v1/likes?targetId=eq.${encodeURIComponent(workKey)}&targetType=eq.book&select=id`, {
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "Prefer": "count=exact"
+        }
+      }),
+      userId && userId !== "guest" ? fetch(`${SUPABASE_URL}/rest/v1/likes?userId=eq.${userId}&targetId=eq.${encodeURIComponent(workKey)}&targetType=eq.book&select=id`, {
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      }) : Promise.resolve(null)
+    ]);
+
+    let reviews: DbReview[] = [];
+    if (reviewsRes.ok) {
+      reviews = await reviewsRes.json();
+      syncLocalReviews(workKey, reviews);
+    }
+
+    let likesCount = 0;
+    if (likesCountRes.ok) {
+      const contentRange = likesCountRes.headers.get("content-range");
+      if (contentRange) {
+        const parts = contentRange.split("/");
+        likesCount = parseInt(parts[1] || "0", 10);
+      } else {
+        const likesList = await likesCountRes.json();
+        likesCount = likesList.length;
+      }
+    }
+
+    let isLiked = false;
+    if (userLikeRes && userLikeRes.ok) {
+      const userLikes = await userLikeRes.json();
+      isLiked = userLikes.length > 0;
+    }
+
+    return {
+      reviews,
+      likesCount,
+      isLiked
+    };
+  } catch (e) {
+    console.error("Failed to fetch aggregate book details from Supabase:", e);
+    const reviews = getReviews(workKey);
+    const likesStats = getBookLikes(workKey);
+    return {
+      reviews,
+      likesCount: likesStats.likesCount,
+      isLiked: likesStats.isLiked
+    };
+  }
+}
+
+
 
 
 

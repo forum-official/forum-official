@@ -47,6 +47,7 @@ export function BookReviewsScreen({
     }))
   );
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
+  const [visibleCount, setVisibleCount] = useState(10);
   const [showSkinShop, setShowSkinShop] = useState(false);
   const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
 
@@ -172,84 +173,98 @@ export function BookReviewsScreen({
             <Button onClick={onCreateReview}>첫 리뷰 작성하기</Button>
           </div>
         ) : (
-          sortedReviews.map((review) => {
-            const skin = commentSkins.find((s) => s.id === review.skinId) || commentSkins[0];
-            
-            return (
-            <div key={review.id} className="bg-white rounded-xl p-4 shadow-sm">
-              {/* Author Info */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-purple-600">
-                      {review.authorInitial}
-                    </span>
+          <>
+            {sortedReviews.slice(0, visibleCount).map((review) => {
+              const skin = commentSkins.find((s) => s.id === review.skinId) || commentSkins[0];
+              
+              return (
+                <div key={review.id} className="bg-white rounded-xl p-4 shadow-sm">
+                  {/* Author Info */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-purple-600">
+                          {review.authorInitial}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <p className="font-medium text-sm">{review.author}</p>
+                          {skin.badgeEmoji && skin.id !== "default" && (
+                            <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`size-3 ${
+                                i < review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onReport(review.id)}
+                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    >
+                      <Flag className="size-4 text-gray-400" />
+                    </button>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <p className="font-medium text-sm">{review.author}</p>
-                      {skin.badgeEmoji && skin.id !== "default" && (
-                        <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
+
+                  {/* Content with Skin */}
+                  <div className={`p-3 rounded-xl mb-3 ${skin.bubbleClass}`}>
+                    <p className={`text-sm leading-relaxed ${skin.textClass}`}>
+                      {review.content}
+                    </p>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{review.date}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleLike(review.id)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-50 transition-colors ${
+                          review.isLiked ? "text-purple-600" : ""
+                        }`}
+                      >
+                        <ThumbsUp
+                          className={`size-3.5 ${review.isLiked ? "fill-purple-600" : ""}`}
+                        />
+                        <span>{review.likes}</span>
+                      </button>
+                      {user && user.nickname === review.author && (
+                        <button
+                          onClick={() => handleDeleteReview(review.id)}
+                          className="p-1 hover:bg-red-50 rounded transition-colors group"
+                          title="리뷰 삭제"
+                        >
+                          <Trash2 className="size-4 text-gray-400 group-hover:text-red-500" />
+                        </button>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`size-3 ${
-                            i < review.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => onReport(review.id)}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+              );
+            })}
+            
+            {sortedReviews.length > visibleCount && (
+              <div className="pt-2 pb-6 flex justify-center">
+                <Button 
+                  onClick={() => setVisibleCount(prev => prev + 10)}
+                  variant="outline" 
+                  className="w-full max-w-xs border-purple-200 text-purple-600 hover:bg-purple-50/50 rounded-xl"
                 >
-                  <Flag className="size-4 text-gray-400" />
-                </button>
+                  리뷰 더보기 ({sortedReviews.length - visibleCount}개 남음)
+                </Button>
               </div>
-
-              {/* Content with Skin */}
-              <div className={`p-3 rounded-xl mb-3 ${skin.bubbleClass}`}>
-                <p className={`text-sm leading-relaxed ${skin.textClass}`}>
-                  {review.content}
-                </p>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>{review.date}</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleLike(review.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-50 transition-colors ${
-                      review.isLiked ? "text-purple-600" : ""
-                    }`}
-                  >
-                    <ThumbsUp
-                      className={`size-3.5 ${review.isLiked ? "fill-purple-600" : ""}`}
-                    />
-                    <span>{review.likes}</span>
-                  </button>
-                  {user && user.nickname === review.author && (
-                    <button
-                      onClick={() => handleDeleteReview(review.id)}
-                      className="p-1 hover:bg-red-50 rounded transition-colors group"
-                      title="리뷰 삭제"
-                    >
-                      <Trash2 className="size-4 text-gray-400 group-hover:text-red-500" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
