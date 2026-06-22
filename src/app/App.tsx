@@ -39,7 +39,7 @@ import { CreateReviewModal } from "@/app/components/CreateReviewModal";
 import { ReportModal } from "@/app/components/ReportModal";
 import { DiscussionDetailModal } from "@/app/components/DiscussionDetailModal";
 import { OtherUserProfileScreen } from "@/app/components/screens/OtherUserProfileScreen";
-import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked } from "@/app/utils/db";
+import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked, getSinglePublisherVotes } from "@/app/utils/db";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 // 작가 데이터는 src/app/data/authorsData.ts에서 관리 및 동적 생성됩니다.
