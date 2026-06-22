@@ -129,7 +129,7 @@ export function getWorkKey(title: string, author: string): string {
     return primaryAuthor.replace(/[\s\(\)\[\]\-\:\,\;\.\?\!\'\"\“\”\’\‘]/g, "");
   };
 
-  const classicTitle = getMatchingClassicTitle(title);
+  const classicTitle = isClassicBook(title, author) ? getMatchingClassicTitle(title) : null;
   const cleanTitle = cleanTitleName(classicTitle || title);
   const cleanAuthor = cleanAuthorName(author);
   return `${cleanTitle}_${cleanAuthor}`;

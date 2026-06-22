@@ -902,7 +902,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
             <div className="mt-2 bg-white rounded-xl p-3 border border-purple-100 shadow-sm w-full mb-4">
               <span className="text-[11px] text-purple-600 font-bold block mb-2 text-center uppercase tracking-wide">다른 출판사 표지 보기</span>
               <div 
-                className="flex gap-3 overflow-x-auto pb-2 justify-start md:justify-center px-1 [&::-webkit-scrollbar]:hidden"
+                className="flex gap-3.5 overflow-x-auto pb-2 px-4 -mx-3 scrollbar-none justify-start md:justify-center"
                 style={{
                   display: "flex",
                   overflowX: "auto",

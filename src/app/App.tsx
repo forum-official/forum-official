@@ -60,7 +60,7 @@ function getDailyRandomBook(books: Book[]) {
 // 오늘의 뜨거운 투표 데이터 생성
 function getDailyHotVote(books: Book[]) {
   // 1. 우선적으로 출판사 번역비교 정보(translatorInfo)가 있는 고전 문학 작품 필터링 (출판사가 중요한 문학)
-  let filtered = books.filter(b => getMatchingClassicTitle(b.title) !== null);
+  let filtered = books.filter(b => isClassicBook(b.title, b.author));
   
   // 2. 만약 없다면 일반 문학 중 출판사가 2개 이상인 도서 필터링
   if (filtered.length === 0) {

@@ -6,7 +6,7 @@ import { popularBooksData, type Book } from "@/app/data/booksData";
 import { getBookLikes, getBookRatingStatsWithQuick, getPublisherVotes, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor } from "@/app/utils/db";
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+import { getMatchingClassicTitle, isClassicBook } from "@/app/utils/titleHelper";
 
 function integrateBooks(books: any[]): any[] {
   const cleanTitle = (t: string) => {
@@ -63,7 +63,7 @@ function integrateBooks(books: any[]): any[] {
   const integratedMap = new Map<string, any>();
 
   sorted.forEach(book => {
-    const classicTitle = getMatchingClassicTitle(book.title);
+    const classicTitle = isClassicBook(book.title, book.author) ? getMatchingClassicTitle(book.title) : null;
     const cleanedTitle = cleanTitle(book.title);
     const cleanedAuthor = cleanAuthor(book.author);
     

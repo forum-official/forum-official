@@ -2545,13 +2545,28 @@ export function getGlobalBooks(initialBooks: Book[]): Book[] {
     
     // Clean and sanitize book authors and covers to heal localStorage data
     const cleanedBooks = storedBooks.map(book => {
+      const originalTitle = book.title || "";
       const originalAuthor = book.author || "";
       const originalCover = book.coverUrl || "";
       const originalDesc = book.description || "";
       const pubName = book.publisher || (book.publishers && book.publishers[0]?.name) || "출판사 미상";
+      let cleanedTitle = originalTitle;
       let cleanedAuthor = sanitizeAuthorName(originalAuthor, pubName);
       let cleanedCover = originalCover;
       let cleanedDesc = originalDesc;
+
+      // Self-healing contaminated localStorage data (e.g. 1Q84 or 1984 Choi Dong Won mapped to 1984)
+      const cleanTitleStr = (originalTitle || "").replace(/\s+/g, "").toLowerCase();
+      const cleanAuthorStr = (originalAuthor || "").replace(/\s+/g, "").toLowerCase();
+      if (cleanAuthorStr.includes("하루키") || cleanAuthorStr.includes("murakami")) {
+        if (cleanTitleStr === "1984" || cleanTitleStr === "1984세트전3권") {
+          cleanedTitle = "1Q84";
+        }
+      } else if (cleanAuthorStr.includes("김태유")) {
+        if (cleanTitleStr === "1984" || cleanTitleStr === "1984세트전3권") {
+          cleanedTitle = "1984 최동원";
+        }
+      }
       
       // If book is a popular book, heal its coverUrl if empty or different
       const staticBook = popularBooksData.find(b => b.id === book.id);
@@ -2579,9 +2594,9 @@ export function getGlobalBooks(initialBooks: Book[]): Book[] {
         cleanedDesc = "";
       }
       
-      if (cleanedAuthor !== originalAuthor || cleanedCover !== originalCover || cleanedDesc !== originalDesc) {
+      if (cleanedTitle !== originalTitle || cleanedAuthor !== originalAuthor || cleanedCover !== originalCover || cleanedDesc !== originalDesc) {
         hasCorrupted = true;
-        return { ...book, author: cleanedAuthor, coverUrl: cleanedCover, description: cleanedDesc };
+        return { ...book, title: cleanedTitle, author: cleanedAuthor, coverUrl: cleanedCover, description: cleanedDesc };
       }
       return book;
     });

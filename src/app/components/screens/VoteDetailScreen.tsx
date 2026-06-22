@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { popularBooksData, type Book } from "@/app/data/booksData";
 import { translationCovers } from "@/app/data/translationCovers";
 import { translatorInfo } from "@/app/data/translatorInfo";
-import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+import { getMatchingClassicTitle, isClassicBook } from "@/app/utils/titleHelper";
 import { commentSkins, getSelectedSkin } from "@/app/data/commentSkins";
 import { ReportModal } from "@/app/components/ReportModal";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
@@ -48,7 +48,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     // 번역 정보가 있는 도서 또는 출판사가 2개 이상인 도서만 필터링 (출판사가 하나인 책은 제외)
     const globalBooks = getGlobalBooks(popularBooksData);
     const filtered = globalBooks.filter(b => 
-      getMatchingClassicTitle(b.title) !== null || 
+      isClassicBook(b.title, b.author) || 
       (b.publishers && b.publishers.length >= 2)
     );
     const targetBooks = filtered.length > 0 ? filtered : globalBooks;
@@ -60,8 +60,8 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     };
   });
 
-  const getInitialPublishers = (title: string) => {
-    const isClassic = getMatchingClassicTitle(title) !== null;
+  const getInitialPublishers = (title: string, author?: string) => {
+    const isClassic = author ? isClassicBook(title, author) : (getMatchingClassicTitle(title) !== null);
     if (isClassic) {
       return [
         { name: "민음사", votes: 0 },
@@ -79,7 +79,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     ];
   };
 
-  const initialPubs = getInitialPublishers(currentBook.title);
+  const initialPubs = getInitialPublishers(currentBook.title, currentBook.author);
   const initialPubVotes = getPublisherVotes(currentBook.title, initialPubs);
   const [votesA, setVotesA] = useState(() => initialPubVotes[0].votes);
   const [votesB, setVotesB] = useState(() => initialPubVotes[1].votes);
@@ -104,13 +104,15 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
   
   // 번역가 정보 state
   const [translatorA, setTranslatorA] = useState(() => {
-    const matchingTitle = getMatchingClassicTitle(currentBook.title) || currentBook.title;
-    const translators = translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" };
+    const isClassic = isClassicBook(currentBook.title, currentBook.author);
+    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
+    const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
     return translators.minumsa;
   });
   const [translatorB, setTranslatorB] = useState(() => {
-    const matchingTitle = getMatchingClassicTitle(currentBook.title) || currentBook.title;
-    const translators = translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" };
+    const isClassic = isClassicBook(currentBook.title, currentBook.author);
+    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
+    const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
     return translators.moonhak;
   });
   
@@ -144,11 +146,12 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
     setHasVoted(currentBook.title in myDebateVotes);
     setSelectedOption(myDebateVotes[currentBook.title] || null);
 
-    const matchingTitle = getMatchingClassicTitle(currentBook.title) || currentBook.title;
-    const translators = translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" };
+    const isClassic = isClassicBook(currentBook.title, currentBook.author);
+    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
+    const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
     setTranslatorA(translators.minumsa);
     setTranslatorB(translators.moonhak);
-  }, [currentBook.title, user?.userId]);
+  }, [currentBook.title, currentBook.author, user?.userId]);
 
   const handleLikeComment = async (commentId: string) => {
     if (!isAuthenticated) {
@@ -309,10 +312,13 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                     publisherName={voteData.optionA.publisher} 
                     coverUrl={
                       (() => {
-                        const matchingTitle = getMatchingClassicTitle(currentBook.title) || currentBook.title;
-                        return translationCovers[matchingTitle]?.[voteData.optionA.publisher] || 
-                               translationCovers[currentBook.title]?.[voteData.optionA.publisher] || 
-                               (voteData.optionA.publisher === "민음사" ? currentBook.coverUrl : undefined);
+                        const isClassic = isClassicBook(currentBook.title, currentBook.author);
+                        const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
+                        return isClassic 
+                          ? (translationCovers[matchingTitle]?.[voteData.optionA.publisher] || 
+                             translationCovers[currentBook.title]?.[voteData.optionA.publisher] || 
+                             (voteData.optionA.publisher === "민음사" ? currentBook.coverUrl : undefined))
+                          : (voteData.optionA.publisher === "민음사" ? currentBook.coverUrl : undefined);
                       })()
                     }
                     allowPublisherFallback={false}
@@ -370,10 +376,13 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                     publisherName={voteData.optionB.publisher} 
                     coverUrl={
                       (() => {
-                        const matchingTitle = getMatchingClassicTitle(currentBook.title) || currentBook.title;
-                        return translationCovers[matchingTitle]?.[voteData.optionB.publisher] || 
-                               translationCovers[currentBook.title]?.[voteData.optionB.publisher] || 
-                               (voteData.optionB.publisher === "민음사" ? currentBook.coverUrl : undefined);
+                        const isClassic = isClassicBook(currentBook.title, currentBook.author);
+                        const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
+                        return isClassic 
+                          ? (translationCovers[matchingTitle]?.[voteData.optionB.publisher] || 
+                             translationCovers[currentBook.title]?.[voteData.optionB.publisher] || 
+                             (voteData.optionB.publisher === "민음사" ? currentBook.coverUrl : undefined))
+                          : (voteData.optionB.publisher === "민음사" ? currentBook.coverUrl : undefined);
                       })()
                     }
                     allowPublisherFallback={false}
@@ -603,8 +612,9 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
               coverUrl: book.coverUrl,
             });
             
-            const matchingTitle = getMatchingClassicTitle(book.title) || book.title;
-            const translators = translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" };
+            const isClassic = isClassicBook(book.title, book.author);
+            const matchingTitle = isClassic ? (getMatchingClassicTitle(book.title) || book.title) : book.title;
+            const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
             setTranslatorA(translators.minumsa);
             setTranslatorB(translators.moonhak);
             

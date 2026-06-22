@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { translationCovers } from "../data/translationCovers";
-import { getMatchingClassicTitle } from "../utils/titleHelper";
+import { getMatchingClassicTitle, isClassicBook } from "../utils/titleHelper";
 
 interface BookCoverProps {
   title: string;
@@ -270,9 +270,12 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
 
     // 1. 고정 매핑(translationCovers) 확인 → 있을 시 최우선 고화질 고정
     let staticCover = "";
-    if (publisherName) {
-      const matchingTitle = getMatchingClassicTitle(title) || title;
-      staticCover = translationCovers[matchingTitle]?.[publisherName] || translationCovers[title]?.[publisherName] || "";
+    if (publisherName && author) {
+      const isClassic = isClassicBook(title, author);
+      const matchingTitle = isClassic ? (getMatchingClassicTitle(title) || title) : title;
+      if (isClassic) {
+        staticCover = translationCovers[matchingTitle]?.[publisherName] || translationCovers[title]?.[publisherName] || "";
+      }
     }
 
     if (staticCover) {
