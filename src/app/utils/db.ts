@@ -2207,6 +2207,18 @@ export function saveAuthorOpinion(opinion: DbAuthorOpinion): void {
   localStorage.setItem("forum_author_opinions", JSON.stringify(opinions));
 }
 
+export function deleteAuthorOpinion(opinionId: string): void {
+  const data = localStorage.getItem("forum_author_opinions");
+  if (!data) return;
+  try {
+    const opinions: DbAuthorOpinion[] = JSON.parse(data);
+    const filtered = opinions.filter(o => o.id !== opinionId);
+    localStorage.setItem("forum_author_opinions", JSON.stringify(filtered));
+  } catch (e) {
+    console.error("Failed to delete author opinion:", e);
+  }
+}
+
 export function toggleAuthorOpinionLike(opinionId: string, userId: string, isLikeAction: boolean): { likes: number; dislikes: number; isLiked: boolean; isDisliked: boolean } {
   const userLikesKey = `myAuthorOpinionLikes_${userId}`;
   const userLikesData = localStorage.getItem(userLikesKey);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Flag, Award, BookOpen, Globe } from "lucide-react";
+import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Flag, Award, BookOpen, Globe, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -13,8 +13,9 @@ import { saveGlobalBook, getGlobalBooks } from "@/app/utils/db";
 import { cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { popularBooksData } from "@/app/data/booksData";
 import { initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
+import { toast } from "sonner";
 
-import { getAuthorOpinions, saveAuthorOpinion, toggleAuthorOpinionLike, getAuthorOpinionLikeStatus, getFormattedTimestamp } from "@/app/utils/db";
+import { getAuthorOpinions, saveAuthorOpinion, deleteAuthorOpinion, toggleAuthorOpinionLike, getAuthorOpinionLikeStatus, getFormattedTimestamp } from "@/app/utils/db";
 
 interface Author {
   id: number;
@@ -385,6 +386,12 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
     }, ...opinions]);
   };
 
+  const handleDeleteOpinion = (opinionId: string) => {
+    deleteAuthorOpinion(opinionId);
+    setOpinions(opinions.filter(o => o.id !== opinionId));
+    toast.success("의견이 삭제되었습니다");
+  };
+
   const handleLike = (opinionId: string) => {
     if (!isAuthenticated) {
       onLoginRequired?.();
@@ -709,15 +716,28 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                           <p className="text-xs opacity-75">{opinion.date}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          setReportingId(opinion.id);
-                          setShowReportModal(true);
-                        }}
-                        className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
-                      >
-                        <Flag className="size-4 opacity-60" />
-                      </button>
+                      {isAuthenticated && user && user.nickname === opinion.author ? (
+                        <button
+                          onClick={() => {
+                            if (window.confirm("의견을 삭제하시겠습니까?")) {
+                              handleDeleteOpinion(opinion.id);
+                            }
+                          }}
+                          className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0 text-red-200 hover:text-red-100"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setReportingId(opinion.id);
+                            setShowReportModal(true);
+                          }}
+                          className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+                        >
+                          <Flag className="size-4 opacity-60" />
+                        </button>
+                      )}
                     </div>
                     
                     <p className="text-sm leading-relaxed">{opinion.content}</p>
