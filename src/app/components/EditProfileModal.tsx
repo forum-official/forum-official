@@ -166,15 +166,22 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
       }
     }
 
-    updateProfile({
-      nickname: trimmed,
-      bio: bio.trim(),
-      profileImage: profileImage,
-      favAuthors: favAuthors.slice(0, 3),
-      favPublishers: favPublishers.slice(0, 3),
-    });
-    toast.success("프로필이 수정되었습니다");
-    onClose();
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        nickname: trimmed,
+        bio: bio.trim(),
+        profileImage: profileImage,
+        favAuthors: favAuthors.slice(0, 3),
+        favPublishers: favPublishers.slice(0, 3),
+      });
+      toast.success("프로필이 수정되었습니다");
+      onClose();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

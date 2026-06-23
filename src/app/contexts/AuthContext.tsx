@@ -108,7 +108,17 @@ const fetchLatestProfile = async (sessionUser: any): Promise<User | null> => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem("forum_user");
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
 
   useEffect(() => {
     // Initialize user state (local fallback or Supabase session)
@@ -178,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           syncUserToLocalList(finalUser);
           fetchUserLikesFromCloud(finalUser.userId);
         }
-      } else {
+      } else if (event === "SIGNED_OUT") {
         setUser(null);
         localStorage.removeItem("forum_user");
       }
@@ -356,33 +366,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isSupabaseConfigured) {
       try {
         // 1. Auth 메타데이터 갱신 완료 대기 (await)
-        const { error: authError } = await supabase.auth.updateUser({
+        const { data: updateData, error: authError } = await supabase.auth.updateUser({
           data: {
-            nickname: updates.nickname || user.nickname,
-            bio: updates.bio || user.bio,
-            profileImage: updates.profileImage || user.profileImage,
+            nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
+            bio: updates.bio !== undefined ? updates.bio : user.bio,
+            profileImage: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
             isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
             nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
-            favAuthors: updates.favAuthors || user.favAuthors,
-            favPublishers: updates.favPublishers || user.favPublishers,
+            favAuthors: updates.favAuthors !== undefined ? updates.favAuthors : (user.favAuthors || []),
+            favPublishers: updates.favPublishers !== undefined ? updates.favPublishers : (user.favPublishers || []),
             pushEnabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
-            lifeBooks: updates.lifeBooks || user.lifeBooks,
+            lifeBooks: updates.lifeBooks !== undefined ? updates.lifeBooks : (user.lifeBooks || []),
           }
         });
         
         if (authError) throw authError;
 
         // 2. Profiles DB 테이블 갱신 완료 대기 (await)
-        const sessionUser = (await supabase.auth.getUser()).data.user;
+        const sessionUser = updateData.user;
         if (sessionUser) {
           const { error: dbError } = await supabase.from("profiles").update({
-            nickname: updates.nickname || user.nickname,
-            bio: updates.bio || user.bio,
-            profile_image: updates.profileImage || user.profileImage,
+            nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
+            bio: updates.bio !== undefined ? updates.bio : user.bio,
+            profile_image: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
             is_private: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
-            fav_authors: updates.favAuthors || user.favAuthors,
-            fav_publishers: updates.favPublishers || user.favPublishers,
-            life_books: updates.lifeBooks || user.lifeBooks,
+            fav_authors: updates.favAuthors !== undefined ? updates.favAuthors : (user.favAuthors || []),
+            fav_publishers: updates.favPublishers !== undefined ? updates.favPublishers : (user.favPublishers || []),
+            life_books: updates.lifeBooks !== undefined ? updates.lifeBooks : (user.lifeBooks || []),
             push_enabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
             updated_at: new Date().toISOString()
           }).eq("id", sessionUser.id);
