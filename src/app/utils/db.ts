@@ -3229,6 +3229,85 @@ export function getUserRecentBooks(userId: string): Book[] {
   }
 })();
 
+let globalUserLikesMap: Record<string, number> = {};
+let isLikesMapInitialized = false;
+
+export function getTierName(likes: number): string {
+  if (likes >= 1000) return "마스터";
+  if (likes >= 500) return "다이아몬드";
+  if (likes >= 300) return "플래티넘";
+  if (likes >= 100) return "골드";
+  if (likes >= 10) return "실버";
+  return "브론즈";
+}
+
+export async function getAllUsersLikesMap(): Promise<Record<string, number>> {
+  const likesMap: Record<string, number> = {};
+
+  const countLikes = (storageKey: string) => {
+    try {
+      const data = localStorage.getItem(storageKey);
+      if (data) {
+        const items = JSON.parse(data);
+        items.forEach((item: any) => {
+          const author = item.author;
+          if (author) {
+            likesMap[author] = (likesMap[author] || 0) + (item.likes || 0);
+          }
+        });
+      }
+    } catch (e) {
+      console.error(`Failed to parse ${storageKey}:`, e);
+    }
+  };
+
+  countLikes("forum_reviews");
+  countLikes("forum_comments");
+  countLikes("forum_debate_opinions");
+  countLikes("forum_author_opinions");
+
+  if (isSupabaseConfigured) {
+    try {
+      const tables = ["reviews", "comments", "debate_opinions", "author_opinions"];
+      for (const table of tables) {
+        const { data, error } = await supabase.from(table).select("author, likes");
+        if (data && !error) {
+          data.forEach((row: any) => {
+            const author = row.author;
+            if (author) {
+              likesMap[author] = (likesMap[author] || 0) + (row.likes || 0);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch all users likes map from Supabase:", err);
+    }
+  }
+
+  return likesMap;
+}
+
+export async function initUserLikesMap() {
+  if (isLikesMapInitialized) return;
+  globalUserLikesMap = await getAllUsersLikesMap();
+  isLikesMapInitialized = true;
+}
+
+export function getUserTierSync(nickname: string): string {
+  const likes = globalUserLikesMap[nickname] || 0;
+  return getTierName(likes);
+}
+
+export function updateUserLikesCache(nickname: string, delta: number) {
+  if (globalUserLikesMap[nickname] !== undefined) {
+    globalUserLikesMap[nickname] += delta;
+  } else {
+    globalUserLikesMap[nickname] = delta;
+  }
+}
+
+
 
 
 

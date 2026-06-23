@@ -29,6 +29,7 @@ import {
   DbDebateTopic,
   deleteDebateOpinionFromCloud
 } from "@/app/utils/db";
+import { UserTierBadge } from "@/app/components/UserTierBadge";
 
 interface MonthlyDebateScreenProps {
   onBack: () => void;
@@ -756,8 +757,9 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                           )}
                         </div>
                         <div className="text-left">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-semibold text-sm text-gray-800">{opinion.author}</p>
+                            <UserTierBadge nickname={opinion.author} />
                             {skin.badgeEmoji && skin.id !== "default" && (
                               <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
                             )}

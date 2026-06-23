@@ -15,6 +15,7 @@ import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePubli
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
+import { UserTierBadge } from "@/app/components/UserTierBadge";
 
 
 interface BookDetailScreenProps {
@@ -1359,8 +1360,9 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
                       {review.authorInitial}
                     </div>
                     <div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-semibold text-sm">{review.author}</p>
+                        <UserTierBadge nickname={review.author} />
                         {skin.badgeEmoji && skin.id !== "default" && (
                           <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
                         )}

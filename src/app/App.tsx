@@ -41,7 +41,8 @@ import { CreateReviewModal } from "@/app/components/CreateReviewModal";
 import { ReportModal } from "@/app/components/ReportModal";
 import { DiscussionDetailModal } from "@/app/components/DiscussionDetailModal";
 import { OtherUserProfileScreen } from "@/app/components/screens/OtherUserProfileScreen";
-import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked, getSinglePublisherVotes, voteSinglePublisher, getWorkPublisherVotes, voteWorkPublisher, getDebateVotes, getDebateOpinions } from "@/app/utils/db";
+import { UserTierBadge } from "@/app/components/UserTierBadge";
+import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked, getSinglePublisherVotes, voteSinglePublisher, getWorkPublisherVotes, voteWorkPublisher, getDebateVotes, getDebateOpinions, initUserLikesMap } from "@/app/utils/db";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 // 작가 데이터는 src/app/data/authorsData.ts에서 관리 및 동적 생성됩니다.
@@ -320,6 +321,13 @@ function AppContent() {
       });
       localStorage.setItem("cover_cache_version", cacheVersion);
     }
+  }, []);
+
+  // 전역 유저 티어 맵 캐시 초기화
+  useEffect(() => {
+    initUserLikesMap().catch((err) => {
+      console.error("Failed to initialize user likes tier map:", err);
+    });
   }, []);
 
   // 1회성 가짜 데이터(씨드 리뷰, 씨드 좋아요, 씨드 출판사 투표) 정제 로직
@@ -1836,7 +1844,10 @@ function AppContent() {
                                 <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-[10px]">
                                   {discussion.author ? discussion.author.charAt(0) : "익"}
                                 </div>
-                                <span className="font-semibold text-gray-700 text-xs">{discussion.author}</span>
+                                <span className="font-semibold text-gray-700 text-xs flex items-center gap-1">
+                                  {discussion.author}
+                                  <UserTierBadge nickname={discussion.author} />
+                                </span>
                                 <span>·</span>
                                 <span className="text-[10px]">{discussion.timestamp}</span>
                               </div>

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 import { getAuthorOpinions, saveAuthorOpinion, deleteAuthorOpinion, toggleAuthorOpinionLike, getAuthorOpinionLikeStatus, getFormattedTimestamp } from "@/app/utils/db";
+import { UserTierBadge } from "@/app/components/UserTierBadge";
 
 interface Author {
   id: number;
@@ -709,8 +710,9 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                           {opinion.authorInitial}
                         </div>
                         <div className="text-left">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-semibold text-sm">{opinion.author}</p>
+                            <UserTierBadge nickname={opinion.author} />
                             {skin.badgeEmoji && (
                               <span className="text-base leading-none">{skin.badgeEmoji}</span>
                             )}

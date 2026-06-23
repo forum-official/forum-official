@@ -7,6 +7,7 @@ import { commentSkins, getSelectedSkin, getUserOwnedSkins, setSelectedSkin } fro
 import { SkinShopModal } from "@/app/components/SkinShopModal";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { fetchCommentsFromCloud, saveCommentToCloud, deleteCommentFromCloud, getFormattedTimestamp, toggleCommentLikeInCloud, isCommentLiked, updateDiscussionCommentCount, toggleDiscussionLikeInCloud, isDiscussionLiked, deleteDiscussionFromCloud } from "@/app/utils/db";
+import { UserTierBadge } from "@/app/components/UserTierBadge";
 
 interface DiscussionDetailModalProps {
   id: string;
@@ -249,9 +250,12 @@ export function DiscussionDetailModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 text-left">
                   <h3 className="font-bold text-base leading-tight text-gray-900">{title}</h3>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {author} · {timestamp}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-xs text-gray-500 font-medium">{author}</span>
+                    <UserTierBadge nickname={author} />
+                    <span className="text-[10px] text-gray-400">·</span>
+                    <span className="text-xs text-gray-500">{timestamp}</span>
+                  </div>
                 </div>
                 {/* Post Like Button */}
                 <button
@@ -468,12 +472,13 @@ export function DiscussionDetailModal({
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                             <span
                               className="text-sm font-medium text-gray-900"
                             >
                               {comment.author}
                             </span>
+                            <UserTierBadge nickname={comment.author} />
                             {badgeEmoji && (
                               <span className="text-sm">{badgeEmoji}</span>
                             )}

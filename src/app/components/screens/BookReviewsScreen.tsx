@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { toast } from "sonner";
 import { toggleReviewLikeInCloud, isReviewLiked } from "@/app/utils/db";
+import { UserTierBadge } from "@/app/components/UserTierBadge";
 
 interface Review {
   id: string;
@@ -188,8 +189,9 @@ export function BookReviewsScreen({
                         </span>
                       </div>
                       <div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-medium text-sm">{review.author}</p>
+                          <UserTierBadge nickname={review.author} />
                           {skin.badgeEmoji && skin.id !== "default" && (
                             <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
                           )}
