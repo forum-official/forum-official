@@ -1,7 +1,8 @@
 export const translationCovers: Record<string, Record<string, string>> = {
   "1984": {
     "민음사": "https://image.aladin.co.kr/product/41/89/cover500/s122531356_2.jpg",
-    "문학동네": "https://image.aladin.co.kr/product/596/66/cover500/8954609163_1.jpg"
+    "문학동네": "https://image.aladin.co.kr/product/596/66/cover500/8954609163_1.jpg",
+    "열린책들": "https://image.aladin.co.kr/product/27/93/cover500/8932910243_2.jpg"
   },
   "호밀밭의 파수꾼": {
     "민음사": "https://image.aladin.co.kr/product/30882/22/cover500/8937460475_2.jpg",
@@ -9,11 +10,13 @@ export const translationCovers: Record<string, Record<string, string>> = {
   },
   "동물농장": {
     "민음사": "https://image.aladin.co.kr/product/4/6/cover500/s93746005x_3.jpg",
-    "문학동네": "https://image.aladin.co.kr/product/705/33/cover500/8954610927_2.jpg"
+    "문학동네": "https://image.aladin.co.kr/product/705/33/cover500/8954610927_2.jpg",
+    "열린책들": "https://image.aladin.co.kr/product/28/1/cover500/8932910278_2.jpg"
   },
   "위대한 개츠비": {
     "민음사": "https://image.aladin.co.kr/product/41/79/cover500/s582934787_1.jpg",
-    "문학동네": "https://image.aladin.co.kr/product/22619/24/cover500/k622636934_1.jpg"
+    "문학동네": "https://image.aladin.co.kr/product/22619/24/cover500/k622636934_1.jpg",
+    "열린책들": "https://image.aladin.co.kr/product/27/91/cover500/8932910014_2.jpg"
   },
   "변신": {
     "민음사": "https://image.aladin.co.kr/product/6/4/cover500/s972932230_1.jpg",
@@ -21,7 +24,8 @@ export const translationCovers: Record<string, Record<string, string>> = {
   },
   "이방인": {
     "민음사": "https://image.aladin.co.kr/product/21224/66/cover500/8937443848_1.jpg",
-    "문학동네": "https://image.aladin.co.kr/product/11945/32/cover500/s202838681_2.jpg"
+    "문학동네": "https://image.aladin.co.kr/product/11945/32/cover500/s202838681_2.jpg",
+    "열린책들": "https://image.aladin.co.kr/product/23971/42/cover500/k302639352_1.jpg"
   },
   "노인과 바다": {
     "민음사": "https://image.aladin.co.kr/product/1452/24/cover500/8937462788_3.jpg",
@@ -29,11 +33,13 @@ export const translationCovers: Record<string, Record<string, string>> = {
   },
   "죄와 벌": {
     "민음사": "https://image.aladin.co.kr/product/1621/17/cover500/8937462842_3.jpg",
-    "문학동네": "https://image.aladin.co.kr/product/24085/81/cover500/8954671772_1.jpg"
+    "문학동네": "https://image.aladin.co.kr/product/24085/81/cover500/8954671772_1.jpg",
+    "열린책들": "https://image.aladin.co.kr/product/27/91/cover500/8932910049_2.jpg"
   },
   "카라마조프가의 형제들": {
     "민음사": "https://image.aladin.co.kr/product/98/80/cover500/s937461544_1.jpg",
-    "문학동네": "https://image.aladin.co.kr/product/14325/25/cover500/895465097x_1.jpg"
+    "문학동네": "https://image.aladin.co.kr/product/14325/25/cover500/895465097x_1.jpg",
+    "열린책들": "https://image.aladin.co.kr/product/2529/77/cover500/8932913072_1.jpg"
   },
   "안나 카레니나": {
     "민음사": "https://image.aladin.co.kr/product/461/57/cover500/s062635100_1.jpg",

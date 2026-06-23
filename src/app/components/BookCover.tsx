@@ -125,10 +125,13 @@ async function decodeResponseSmart(res: Response): Promise<string> {
 
 // Helper to fetch HTML via multiple CORS proxies concurrently (Racing Technique for Maximum Speed)
 export async function fetchHtmlViaProxy(targetUrl: string): Promise<string> {
-  // 1. Try our dedicated Vercel API proxy first (extremely fast & reliable)
+  // 1. Try our dedicated Vercel API proxy first (with 4s timeout)
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
-    const res = await fetch(proxyUrl);
+    const res = await fetch(proxyUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       return await decodeResponseSmart(res);
     }
@@ -343,8 +346,9 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
     }
 
     // 3. 유효한 URL이 있으면 우선 표출 (Yes24 포함 — img onError가 자동으로 처리)
+    // 단, 출판사가 한정되어 있다면 타 출판사 표지 오지정 방지를 위해 대안 표지 fallback을 쓰지 않음
     let finalCoverUrl = coverUrl;
-    if (isInvalidCoverUrl(finalCoverUrl)) {
+    if (isInvalidCoverUrl(finalCoverUrl) && !publisherName) {
       const altCover = findAlternativeWorkCover(title, author);
       if (altCover) {
         finalCoverUrl = altCover;
@@ -416,7 +420,7 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
         setResolvedCover(fetchedCover);
         setImgError(false);
       } else {
-        const altCover = findAlternativeWorkCover(title, author);
+        const altCover = !publisherName ? findAlternativeWorkCover(title, author) : "";
         if (altCover && altCover !== resolvedCover) {
           localStorage.setItem(cacheKey, altCover);
           setResolvedCover(altCover);
@@ -427,7 +431,7 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
         }
       }
     } catch {
-      const altCover = findAlternativeWorkCover(title, author);
+      const altCover = !publisherName ? findAlternativeWorkCover(title, author) : "";
       if (altCover && altCover !== resolvedCover) {
         localStorage.setItem(cacheKey, altCover);
         setResolvedCover(altCover);
