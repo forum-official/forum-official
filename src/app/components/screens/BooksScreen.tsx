@@ -7,6 +7,7 @@ import { getBookLikes, getBookRatingStatsWithQuick, getPublisherVotes, getGlobal
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getMatchingClassicTitle, isClassicBook, getWorkKey } from "@/app/utils/titleHelper";
+import { AdMobNativeMockCard } from "@/app/components/AdMobNativeMockCard";
 
 function integrateBooks(books: any[]): any[] {
   // 출판사가 없거나 무효한 출판사인 책 필터링
@@ -608,14 +609,23 @@ export function BooksScreen({
                 <span className="text-[10px] text-gray-500">실시간 도서 검색 중...</span>
               </div>
             )}
-            {displayedBooks.map((book, index) => (
-              <PopularBookCard
-                key={book.id}
-                {...book}
-                rank={index + 1}
-                onClick={() => onBookClick(book)}
-              />
-            ))}
+            {displayedBooks.flatMap((book, index) => {
+              const items = [
+                <PopularBookCard
+                  key={book.id}
+                  {...book}
+                  rank={index + 1}
+                  onClick={() => onBookClick(book)}
+                />
+              ];
+              // 8번째 책 카드마다 피드 중간에 자연스러운 광고 컴포넌트 삽입
+              if ((index + 1) % 8 === 0) {
+                items.push(
+                  <AdMobNativeMockCard key={`ad-${index}`} />
+                );
+              }
+              return items;
+            })}
             {/* 무한 스크롤 감지 센서 */}
             {filteredBooks.length > displayCount && (
               <div id="infinite-scroll-trigger" className="h-12 w-full flex items-center justify-center text-purple-600 gap-2 mt-4">

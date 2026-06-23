@@ -15,6 +15,7 @@ import { QuoteCard } from "@/app/components/QuoteCard";
 import { PublisherRecommendation } from "@/app/components/PublisherRecommendation";
 import { SearchModal } from "@/app/components/SearchModal";
 import { NotificationModal } from "@/app/components/NotificationModal";
+import { AdMobBanner } from "@/app/components/AdMobBanner";
 import { AuthModal } from "@/app/components/AuthModal";
 import { NicknameSetupModal } from "@/app/components/NicknameSetupModal";
 import { CreateDiscussionModal } from "@/app/components/CreateDiscussionModal";
@@ -1714,12 +1715,13 @@ function AppContent() {
                   </div>
                 </section>
 
-                {/* Quote Section */}
+                {/* Quote Section & Sponsored Banner */}
                 <section>
                   <QuoteCard 
                     {...quotes[currentQuoteIndex]}
                     onRefresh={handleRefreshQuote}
                   />
+                  <AdMobBanner />
                 </section>
               </div>
             )}
