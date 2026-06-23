@@ -116,7 +116,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
   const getReadingTier = (count: number) => {
     if (count >= 1000) {
       return {
-        name: "독서의 신 (마스터)",
+        name: "마스터",
         badge: "👑 마스터",
         className: "bg-gradient-to-r from-red-500 via-yellow-500 to-red-600 text-white border border-red-300 shadow-sm",
         icon: "👑"
@@ -124,7 +124,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
     }
     if (count >= 500) {
       return {
-        name: "도서 제왕 (다이아몬드)",
+        name: "다이아몬드",
         badge: "💎 다이아몬드",
         className: "bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 text-white border border-cyan-300 shadow-sm",
         icon: "💎"
@@ -132,7 +132,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
     }
     if (count >= 300) {
       return {
-        name: "독서 현자 (플래티넘)",
+        name: "플래티넘",
         badge: "✨ 플래티넘",
         className: "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border border-purple-300 shadow-sm",
         icon: "✨"
@@ -140,7 +140,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
     }
     if (count >= 100) {
       return {
-        name: "박학다식 선비 (골드)",
+        name: "골드",
         badge: "🥇 골드",
         className: "bg-gradient-to-r from-amber-400 to-orange-500 text-white border border-yellow-300 shadow-sm",
         icon: "🥇"
@@ -148,14 +148,14 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
     }
     if (count >= 10) {
       return {
-        name: "성실한 책벌레 (실버)",
+        name: "실버",
         badge: "🥈 실버",
         className: "bg-gradient-to-r from-slate-300 to-slate-400 text-slate-800 border border-slate-200 shadow-sm",
         icon: "🥈"
       };
     }
     return {
-      name: "새싹 독서가 (브론즈)",
+      name: "브론즈",
       badge: "🥉 브론즈",
       className: "bg-gradient-to-r from-orange-300 to-orange-400 text-orange-950 border border-orange-200 shadow-sm",
       icon: "🥉"
@@ -470,15 +470,15 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
               {/* Next Tier Message */}
               <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-center">
                 {userStats.likes >= 1000 ? (
-                  <p className="text-xs font-bold text-yellow-600">👑 최고 등급인 '독서의 신'을 달성하셨습니다!</p>
+                  <p className="text-xs font-bold text-yellow-600">👑 최고 등급인 '마스터'를 달성하셨습니다!</p>
                 ) : (
                   (() => {
                     const nextTierInfo = 
-                      userStats.likes < 10 ? { name: "성실한 책벌레 (실버)", req: 10 } :
-                      userStats.likes < 100 ? { name: "박학다식 선비 (골드)", req: 100 } :
-                      userStats.likes < 300 ? { name: "독서 현자 (플래티넘)", req: 300 } :
-                      userStats.likes < 500 ? { name: "도서 제왕 (다이아몬드)", req: 500 } :
-                      { name: "독서의 신 (마스터)", req: 1000 };
+                      userStats.likes < 10 ? { name: "실버", req: 10 } :
+                      userStats.likes < 100 ? { name: "골드", req: 100 } :
+                      userStats.likes < 300 ? { name: "플래티넘", req: 300 } :
+                      userStats.likes < 500 ? { name: "다이아몬드", req: 500 } :
+                      { name: "마스터", req: 1000 };
                     
                     const needed = nextTierInfo.req - userStats.likes;
                     return (
@@ -501,12 +501,12 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
                   </div>
                   <div className="space-y-0.5 p-1 bg-white max-h-[180px] overflow-y-auto">
                     {[
-                      { name: "👑 마스터", desc: "독서의 신", cut: "1,000" },
-                      { name: "💎 다이아몬드", desc: "도서 제왕", cut: "500" },
-                      { name: "✨ 플래티넘", desc: "독서 현자", cut: "300" },
-                      { name: "🥇 골드", desc: "박학다식 선비", cut: "100" },
-                      { name: "🥈 실버", desc: "성실한 책벌레", cut: "10" },
-                      { name: "🥉 브론즈", desc: "새싹 독서가", cut: "0" },
+                      { name: "👑 마스터", cut: "1,000" },
+                      { name: "💎 다이아몬드", cut: "500" },
+                      { name: "✨ 플래티넘", cut: "300" },
+                      { name: "🥇 골드", cut: "100" },
+                      { name: "🥈 실버", cut: "10" },
+                      { name: "🥉 브론즈", cut: "0" },
                     ].map((t, idx) => {
                       const isCurrent = (
                         (t.cut === "1,000" && userStats.likes >= 1000) ||
@@ -525,7 +525,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
                               : "text-gray-600"
                           }`}
                         >
-                          <div>{t.name} <span className="text-[9px] text-gray-400 font-normal">({t.desc})</span></div>
+                          <div>{t.name}</div>
                           <div className="text-right font-mono">{t.cut}개</div>
                         </div>
                       );
