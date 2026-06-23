@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase, isSupabaseConfigured } from "@/app/utils/supabaseClient";
 import { fetchUserLikesFromCloud, updateUserNicknameInDb, checkNicknameDuplicate, resolveDuplicateNicknames } from "@/app/utils/db";
+import { toast } from "sonner";
 
 interface User {
   userId: string;
@@ -16,6 +17,7 @@ interface User {
   favPublishers?: string[];
   pushEnabled?: boolean;
   lifeBooks?: Array<{ workKey: string; publisher: string; coverUrl: string; title: string; author: string }>;
+  ownedSkins?: string[];
 }
 
 interface AuthContextType {
@@ -35,6 +37,7 @@ interface AuthContextType {
     favPublishers?: string[]; 
     pushEnabled?: boolean;
     lifeBooks?: Array<{ workKey: string; publisher: string; coverUrl: string; title: string; author: string }>;
+    ownedSkins?: string[];
   }) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   withdraw: () => Promise<{ success: boolean; error?: string }>;
@@ -80,6 +83,7 @@ const fetchLatestProfile = async (sessionUser: any): Promise<User | null> => {
     favPublishers: meta.favPublishers || [],
     pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
     lifeBooks: meta.lifeBooks || [],
+    ownedSkins: ["default"],
   };
 
   try {
@@ -100,8 +104,20 @@ const fetchLatestProfile = async (sessionUser: any): Promise<User | null> => {
       baseUser.lifeBooks = profile.life_books || baseUser.lifeBooks;
       baseUser.nicknameSet = true; // DB 프로필이 복구된 경우 닉네임 기설정 처리
     }
+
+    // user_skins 테이블에서 보유한 프리미엄 스킨 목록 조회
+    const { data: skins, error: skinsError } = await supabase
+      .from("user_skins")
+      .select("skin_id")
+      .eq("user_id", sessionUser.id);
+
+    if (skins && !skinsError) {
+      baseUser.ownedSkins = ["default", ...skins.map(s => s.skin_id)];
+      // 로컬 스킨 보유 캐시도 함께 동기화
+      localStorage.setItem(`ownedSkins_${baseUser.userId}`, JSON.stringify(baseUser.ownedSkins));
+    }
   } catch (err) {
-    console.warn("Failed to fetch latest profile from Supabase profiles table:", err);
+    console.warn("Failed to fetch latest profile or user skins:", err);
   }
 
   return baseUser;
@@ -142,6 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.error("Failed to sync user after resolveDuplicateNicknames:", e);
               }
             }
+            // 로컬 스킨 캐시 복구
+            const localOwned = localStorage.getItem(`ownedSkins_${parsedUser.userId}`);
+            parsedUser.ownedSkins = localOwned ? JSON.parse(localOwned) : ["default"];
             setUser(parsedUser);
             fetchUserLikesFromCloud(parsedUser.userId);
           } catch (error) {
@@ -198,6 +217,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Toss 결제 완료 리다이렉트 인터셉터
+  useEffect(() => {
+    const handleTossPaymentRedirect = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const status = urlParams.get("payment_status");
+      const skinId = urlParams.get("skinId");
+      const orderId = urlParams.get("orderId");
+      const paymentKey = urlParams.get("paymentKey");
+      const amount = urlParams.get("amount");
+
+      if (status === "success" && skinId && user) {
+        if (user.ownedSkins?.includes(skinId)) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
+        toast.info("웹 결제 승인 및 스킨 지급을 확인하는 중...");
+        
+        try {
+          const { verifyPaymentAndAwardSkin } = await import("@/app/utils/paymentService");
+          const verifyResult = await verifyPaymentAndAwardSkin({
+            paymentType: "toss",
+            skinId,
+            userId: user.userId,
+            orderId: orderId || undefined,
+            paymentKey: paymentKey || undefined,
+            amount: amount ? parseInt(amount) : 4900
+          });
+
+          if (verifyResult.success) {
+            toast.success(verifyResult.message);
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            const updatedSkins = [...(user.ownedSkins || ["default"]), skinId];
+            // 로컬 스킨 리스트(localStorage ownedSkins) 도 동기화
+            const localStorageKey = `ownedSkins_${user.userId}`;
+            localStorage.setItem(localStorageKey, JSON.stringify(updatedSkins));
+            
+            updateProfile({ ownedSkins: updatedSkins });
+          } else {
+            toast.error(verifyResult.message);
+          }
+        } catch (err) {
+          console.error("Toss redirect verification fail:", err);
+        }
+      } else if (status === "fail") {
+        toast.error("결제에 실패하였습니다. 다시 시도해 주세요.");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    handleTossPaymentRedirect();
+  }, [user]);
 
   // 이메일 로그인 핸들러
   const login = async (emailOrUserId: string, password: string): Promise<boolean> => {
@@ -358,6 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     favPublishers?: string[]; 
     pushEnabled?: boolean;
     lifeBooks?: Array<{ workKey: string; publisher: string; coverUrl: string; title: string; author: string }>;
+    ownedSkins?: string[];
   }) => {
     if (!user) return;
     const oldNickname = user.nickname;

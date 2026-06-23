@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Sparkles, Film, Coins, Check } from "lucide-react";
+import { X, Sparkles, Film, Coins, Check, Loader2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { 
@@ -13,6 +13,9 @@ import {
   CommentSkin 
 } from "@/app/data/commentSkins";
 import { toast } from "sonner";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { requestPlatformPayment, verifyPaymentAndAwardSkin } from "@/app/utils/paymentService";
+import { isNativeApp } from "@/app/utils/platform";
 
 interface SkinShopModalProps {
   onClose: () => void;
@@ -20,10 +23,12 @@ interface SkinShopModalProps {
 }
 
 export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) {
+  const { user, updateProfile } = useAuth();
   const [ownedSkins, setOwnedSkins] = useState<string[]>([]);
   const [selectedSkinId, setSelectedSkinId] = useState<string>("default");
   const [points, setPoints] = useState<number>(0);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
 
   // Ad simulation state
   const [isAdWatching, setIsAdWatching] = useState<boolean>(false);
@@ -37,17 +42,77 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
     setPoints(getUserPoints());
   }, []);
 
-  const handlePurchase = (skin: CommentSkin) => {
-    const result = purchaseSkin(skin);
-    if (result.requireLogin) {
-      toast.error(result.message);
+  const handlePurchase = async (skin: CommentSkin) => {
+    if (!isLoggedIn || !user) {
+      toast.error("스킨을 구매하려면 로그인이 필요합니다.");
       onClose();
       setTimeout(() => {
         onLoginRequired?.();
       }, 100);
       return;
     }
-    
+
+    const isOwned = ownedSkins.includes(skin.id);
+    if (isOwned) {
+      toast.error("이미 보유한 스킨입니다");
+      return;
+    }
+
+    // 1. 프리미엄 스킨 결제 처리 (실제 카드 결제 / 인앱 결제 분기)
+    if (skin.isPremium) {
+      setIsProcessingPayment(true);
+      try {
+        const paymentResult = await requestPlatformPayment({
+          skinId: skin.id,
+          skinName: skin.name,
+          price: 4900, // 프리미엄 스킨 4,900원 결제
+          userNickname: user.nickname,
+          userId: user.userId
+        });
+
+        if (!paymentResult.success) {
+          toast.error(paymentResult.message);
+          setIsProcessingPayment(false);
+          return;
+        }
+
+        // Native App 환경 (RevenueCat)의 경우 동기식 결제 성공 후 즉시 2차 결제 검증 및 지급을 태움
+        if (isNativeApp() && paymentResult.transactionId) {
+          toast.info("인앱 결제가 완료되었습니다. 결제 건을 검증하는 중...");
+          
+          const verifyResult = await verifyPaymentAndAwardSkin({
+            paymentType: "revenuecat",
+            skinId: skin.id,
+            userId: user.userId,
+            transactionId: paymentResult.transactionId
+          });
+
+          if (verifyResult.success) {
+            toast.success(verifyResult.message);
+            // 로컬 보유 스킨 갱신
+            const updatedOwned = [...ownedSkins, skin.id];
+            setOwnedSkins(updatedOwned);
+            // AuthContext 프로필 업데이트 (클라이언트에 반영)
+            if (updateProfile) {
+              await updateProfile({
+                lifeBooks: user.lifeBooks // 기존 값 보존하며 동기화
+              });
+            }
+          } else {
+            toast.error(verifyResult.message);
+          }
+        }
+      } catch (err: any) {
+        console.error("Premium purchase failed:", err);
+        toast.error(err.message || "결제 중 오류가 발생했습니다.");
+      } finally {
+        setIsProcessingPayment(false);
+      }
+      return;
+    }
+
+    // 2. 일반 스킨 포인트 구매 처리
+    const result = purchaseSkin(skin);
     if (result.success) {
       toast.success(result.message);
       setOwnedSkins(getUserOwnedSkins());
@@ -97,7 +162,16 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-[370px] w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+        <div className="bg-white rounded-2xl max-w-[370px] w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl relative">
+          {/* Payment Loading Overlay */}
+          {isProcessingPayment && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+              <Loader2 className="size-8 text-purple-600 animate-spin mb-2" />
+              <p className="text-xs font-bold text-purple-700">결제 진행 중...</p>
+              <p className="text-[9px] text-gray-400 mt-1">창을 닫거나 새로고침하지 마세요.</p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3.5 flex items-center justify-between text-white">
             <div className="flex items-center gap-2">
@@ -148,8 +222,8 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
                       {skin.badgeEmoji && <span className="text-base">{skin.badgeEmoji}</span>}
                       <span className="text-xs font-bold text-gray-800">{skin.name}</span>
                       {skin.price > 0 && !isOwned && (
-                        <Badge className="bg-amber-100 hover:bg-amber-100 text-amber-700 font-bold border-none text-[9px] px-1 py-0 h-4">
-                          {skin.price} P
+                        <Badge className={`${skin.isPremium ? "bg-purple-100 text-purple-700" : "bg-amber-100 text-amber-700"} font-bold border-none text-[9px] px-1 py-0 h-4`}>
+                          {skin.isPremium ? "₩ 4,900" : `${skin.price} P`}
                         </Badge>
                       )}
                       {isOwned && (
@@ -180,14 +254,20 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
                   ) : (
                     <Button 
                       onClick={() => handlePurchase(skin)}
-                      disabled={isLoggedIn && points < skin.price}
+                      disabled={isLoggedIn && !skin.isPremium && points < skin.price}
                       className={`w-full text-[10px] h-7 font-bold rounded-lg border-none flex items-center justify-center ${
-                        isLoggedIn && points < skin.price
+                        isLoggedIn && !skin.isPremium && points < skin.price
                           ? "bg-gray-200 text-gray-400"
+                          : skin.isPremium 
+                          ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white animate-pulse"
                           : "bg-amber-500 hover:bg-amber-600 text-white"
                       }`}
                     >
-                      {isLoggedIn && points < skin.price ? "포인트 부족" : `스킨 구매하기 (${skin.price} P)`}
+                      {skin.isPremium 
+                        ? `카드/인앱 구매 (₩4,900)`
+                        : isLoggedIn && points < skin.price 
+                        ? "포인트 부족" 
+                        : `스킨 구매하기 (${skin.price} P)`}
                     </Button>
                   )}
                 </div>
