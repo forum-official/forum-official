@@ -195,12 +195,48 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
 
   const getPublisherCover = (title: string, publisher: string, defaultCover: string) => {
     const matchingTitle = getMatchingClassicTitle(title) || title;
+    
+    // 1. translationCovers 우선 매칭
     if (translationCovers[matchingTitle] && translationCovers[matchingTitle][publisher]) {
       return translationCovers[matchingTitle][publisher];
     }
     if (translationCovers[title] && translationCovers[title][publisher]) {
       return translationCovers[title][publisher];
     }
+
+    // 2. 전체 도서 데이터베이스 검색
+    try {
+      const globalBooks = getGlobalBooks(popularBooksData);
+      const cleanTargetTitle = cleanTitle(title).toLowerCase();
+      
+      const matchedBook = globalBooks.find(b => {
+        const bTitle = cleanTitle(b.title).toLowerCase();
+        const titleMatch = bTitle.includes(cleanTargetTitle) || cleanTargetTitle.includes(bTitle);
+        if (!titleMatch) return false;
+        
+        if (b.publisher && b.publisher.trim() === publisher.trim()) return true;
+        if (b.publishers && b.publishers.some(p => p.name.trim() === publisher.trim())) return true;
+        return false;
+      });
+
+      if (matchedBook && matchedBook.coverUrl) {
+        return matchedBook.coverUrl;
+      }
+    } catch (e) {
+      console.error("Failed to find cover in global books database:", e);
+    }
+
+    // 3. Fallback 하드코딩 방어 (페스트)
+    const cleaned = cleanTitle(title);
+    if (cleaned === "페스트" || cleaned.includes("페스트")) {
+      if (publisher === "민음사") {
+        return "https://image.aladin.co.kr/product/115/00/cover500/8937462672_1.jpg";
+      }
+      if (publisher === "문학동네") {
+        return "https://image.aladin.co.kr/product/10582/26/cover500/8954638899_1.jpg";
+      }
+    }
+
     return defaultCover;
   };
 

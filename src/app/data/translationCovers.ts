@@ -27,6 +27,10 @@ export const translationCovers: Record<string, Record<string, string>> = {
     "문학동네": "https://image.aladin.co.kr/product/11945/32/cover500/s202838681_2.jpg",
     "열린책들": "https://image.aladin.co.kr/product/23971/42/cover500/k302639352_1.jpg"
   },
+  "페스트": {
+    "민음사": "https://image.aladin.co.kr/product/115/00/cover500/8937462672_1.jpg",
+    "문학동네": "https://image.aladin.co.kr/product/10582/26/cover500/8954638899_1.jpg"
+  },
   "노인과 바다": {
     "민음사": "https://image.aladin.co.kr/product/1452/24/cover500/8937462788_3.jpg",
     "문학동네": "https://image.aladin.co.kr/product/1460/9/cover500/8954617298_2.jpg"
