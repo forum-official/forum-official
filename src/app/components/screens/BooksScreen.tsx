@@ -8,6 +8,7 @@ import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getMatchingClassicTitle, isClassicBook, getWorkKey } from "@/app/utils/titleHelper";
 import { AdMobNativeMockCard } from "@/app/components/AdMobNativeMockCard";
+import { AdMobBanner } from "@/app/components/AdMobBanner";
 
 function integrateBooks(books: any[]): any[] {
   // 출판사가 없거나 무효한 출판사인 책 필터링
@@ -633,6 +634,9 @@ export function BooksScreen({
                 <span className="text-xs text-gray-400">도서를 더 불러오고 있습니다...</span>
               </div>
             )}
+            
+            {/* 하단 AdMob 배너 광고 슬롯 */}
+            <AdMobBanner />
           </div>
         ) : (
           <div className="text-center py-12">

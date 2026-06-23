@@ -3,51 +3,78 @@ import { Sparkles, ArrowUpRight } from "lucide-react";
 
 interface AdMobBannerProps {
   adUnitId?: string; // 애드몹 실제 광고 단위 ID
+  margin?: number;   // 배너 여백 (하단 탭 바가 있을 경우 가려지지 않게 조정)
 }
 
-export function AdMobBanner({ adUnitId }: AdMobBannerProps) {
+export function AdMobBanner({ adUnitId, margin = 60 }: AdMobBannerProps) {
   const [isNativeApp, setIsNativeApp] = useState(false);
 
   useEffect(() => {
-    // Capacitor 모바일 네이티브 환경인지 감지
-    const win = window as any;
-    if (win.Capacitor && win.Capacitor.isNativePlatform()) {
-      setIsNativeApp(true);
-      // TODO: 실제 모바일 네이티브 애드몹 광고 로직 호출
-      // import { AdMob, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
-      // AdMob.showBanner({
-      //   adId: adUnitId || 'ca-app-pub-3940256099942544/6300978111', // 기본 테스트 ID
-      //   adSize: BannerAdSize.BANNER,
-      //   position: BannerAdPosition.BOTTOM_CHANCE,
-      //   margin: 50
-      // });
-    }
-  }, [adUnitId]);
+    let active = true;
+    let isBannerVisible = false;
+    let admobModule: any = null;
 
-  // 웹 브라우저 환경에서는 자연스러운 목업 띠 배너 광고 노출
+    const setupAdMob = async () => {
+      try {
+        const win = window as any;
+        if (win.Capacitor && win.Capacitor.isNativePlatform()) {
+          // dynamic import to prevent web build or runtime errors
+          admobModule = await import("@capacitor-community/admob");
+          if (!active) return;
+
+          setIsNativeApp(true);
+
+          // 1. AdMob SDK 초기화
+          await admobModule.AdMob.initialize({
+            initializeForTesting: true,
+          });
+
+          // 2. 플랫폼별 테스트 광고 ID 설정
+          const platform = win.Capacitor.getPlatform();
+          const testAdId = platform === "android"
+            ? "ca-app-pub-3940256099942544/6300978111" // Android 테스트 ID
+            : "ca-app-pub-3940256099942544/2934735716"; // iOS 테스트 ID
+
+          // 3. 배너 표시
+          await admobModule.AdMob.showBanner({
+            adId: adUnitId || testAdId,
+            adSize: admobModule.BannerAdSize.BANNER,
+            position: admobModule.BannerAdPosition.BOTTOM_CENTER,
+            margin: margin,
+            isTesting: true,
+          });
+          isBannerVisible = true;
+        }
+      } catch (err) {
+        console.error("AdMob banner execution failed:", err);
+      }
+    };
+
+    setupAdMob();
+
+    return () => {
+      active = false;
+      if (isBannerVisible && admobModule) {
+        admobModule.AdMob.removeBanner().catch((e: any) => {
+          console.error("AdMob removeBanner failed on cleanup:", e);
+        });
+      }
+    };
+  }, [adUnitId, margin]);
+
+  // 웹 브라우저 환경 및 광고 로딩 전에는 구글 광고 영역 플레이스홀더를 노출
   return (
-    <a 
-      href="https://github.com/forum-official/forum-official"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block w-full bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-purple-100 rounded-2xl p-4 transition-all duration-300 shadow-sm relative overflow-hidden group select-none mt-4.5"
-    >
-      <div className="absolute top-0 right-0 w-24 h-24 bg-purple-200/20 rounded-full -mr-6 -mt-6 blur-lg group-hover:scale-110 transition-transform" />
-      <div className="flex items-center gap-3">
-        <div className="size-9 bg-purple-600 text-white rounded-xl flex items-center justify-center shadow-inner flex-shrink-0 group-hover:scale-105 transition-transform">
-          <Sparkles className="size-4.5 animate-pulse" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded">AD</span>
-            <h4 className="text-xs font-bold text-gray-800 truncate">포럼 공식 도서 굿즈 샵 오픈!</h4>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-0.5 truncate leading-tight font-medium">지금 첫 구매 시 독서 기록장 & 말풍선 한정판 스킨 증정</p>
-        </div>
-        <div className="size-7 bg-white text-purple-600 rounded-lg flex items-center justify-center border border-purple-100 shadow-xs group-hover:bg-purple-600 group-hover:text-white transition-all">
-          <ArrowUpRight className="size-4" />
-        </div>
+    <div className="bg-gray-50 dark:bg-gray-900/60 rounded-2xl p-3 border border-gray-200/60 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[80px] relative overflow-hidden select-none mt-4.5">
+      <div className="absolute top-1.5 right-3 flex items-center gap-1.5">
+        <span className="text-[8px] font-bold text-gray-400 bg-gray-200/70 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-300/30">AD</span>
+        <span className="text-[8px] font-bold text-gray-400">Google Ads</span>
       </div>
-    </a>
+      <div className="text-center space-y-1.5 py-2">
+        <p className="text-[10.5px] font-bold text-gray-600 dark:text-gray-400">구글 애드센스 / 애드몹 배너 광고 영역</p>
+        <p className="text-[8.5px] text-gray-400 font-mono">
+          {adUnitId || "ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX"} (320x50)
+        </p>
+      </div>
+    </div>
   );
 }
