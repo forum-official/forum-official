@@ -365,27 +365,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (isSupabaseConfigured) {
       try {
-        // 1. Auth 메타데이터 갱신 완료 대기 (await)
-        const { data: updateData, error: authError } = await supabase.auth.updateUser({
+        // 1. Auth 메타데이터 갱신 (무거운 배열/객체는 제외하여 Auth 세션 락 방지)
+        const updateAuthPromise = supabase.auth.updateUser({
           data: {
             nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
             bio: updates.bio !== undefined ? updates.bio : user.bio,
             profileImage: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
             isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
             nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
-            favAuthors: updates.favAuthors !== undefined ? updates.favAuthors : (user.favAuthors || []),
-            favPublishers: updates.favPublishers !== undefined ? updates.favPublishers : (user.favPublishers || []),
             pushEnabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
-            lifeBooks: updates.lifeBooks !== undefined ? updates.lifeBooks : (user.lifeBooks || []),
           }
         });
+
+        // 3초 타임아웃 경주 적용하여 네트워크 먹통 시 무한대기 차단
+        const authResponse = await Promise.race([
+          updateAuthPromise,
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase Auth 메타데이터 업데이트 타임아웃 (3초)")), 3000))
+        ]);
         
+        const { data: updateData, error: authError } = authResponse;
         if (authError) throw authError;
 
-        // 2. Profiles DB 테이블 갱신 완료 대기 (await)
-        const sessionUser = updateData.user;
+        // 2. Profiles DB 테이블 갱신 완료 대기 (SSOT)
+        const sessionUser = updateData?.user;
         if (sessionUser) {
-          const { error: dbError } = await supabase.from("profiles").update({
+          const updateDbPromise = supabase.from("profiles").update({
             nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
             bio: updates.bio !== undefined ? updates.bio : user.bio,
             profile_image: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
@@ -397,11 +401,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             updated_at: new Date().toISOString()
           }).eq("id", sessionUser.id);
 
+          const dbResponse = await Promise.race([
+            updateDbPromise,
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase profiles DB 업데이트 타임아웃 (3초)")), 3000))
+          ]);
+
+          const { error: dbError } = dbResponse;
           if (dbError) throw dbError;
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Failed to update profile to Supabase server:", e);
-        toast.error("서버 프로필 변경 사항 저장에 실패했습니다. 다시 시도해주세요.");
+        toast.error(e.message || "서버 프로필 변경 사항 저장에 실패했습니다. 다시 시도해주세요.");
         throw e; // 에러를 호출부로 버블링하여 모달 등의 로딩 상태 취소를 도움
       }
     }
