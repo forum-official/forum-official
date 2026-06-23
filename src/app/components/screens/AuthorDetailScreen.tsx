@@ -14,6 +14,7 @@ import { cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { popularBooksData } from "@/app/data/booksData";
 import { initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 
 import { getAuthorOpinions, saveAuthorOpinion, deleteAuthorOpinion, toggleAuthorOpinionLike, getAuthorOpinionLikeStatus, getFormattedTimestamp } from "@/app/utils/db";
 
@@ -59,6 +60,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
   const [showCreateOpinionModal, setShowCreateOpinionModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingId, setReportingId] = useState<string | null>(null);
+  const [opinionToDelete, setOpinionToDelete] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
   const [opinions, setOpinions] = useState<Opinion[]>([]);
   const [activeAuthor, setActiveAuthor] = useState<Author>(author);
@@ -718,11 +720,7 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
                       </div>
                       {isAuthenticated && user && user.nickname === opinion.author ? (
                         <button
-                          onClick={() => {
-                            if (window.confirm("의견을 삭제하시겠습니까?")) {
-                              handleDeleteOpinion(opinion.id);
-                            }
-                          }}
+                          onClick={() => setOpinionToDelete(opinion.id)}
                           className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0 text-red-200 hover:text-red-100"
                         >
                           <Trash2 className="size-4" />
@@ -791,6 +789,20 @@ export function AuthorDetailScreen({ author, onBack, onBookClick, onUserClick, o
           }}
           contentType="작가 의견"
           onLoginRequired={onLoginRequired}
+        />
+      )}
+      {opinionToDelete && (
+        <ConfirmDialog
+          title="의견 삭제"
+          message="이 의견을 삭제하시겠습니까?"
+          confirmText="확인"
+          cancelText="취소"
+          confirmColor="red"
+          onConfirm={() => {
+            handleDeleteOpinion(opinionToDelete);
+            setOpinionToDelete(null);
+          }}
+          onCancel={() => setOpinionToDelete(null)}
         />
       )}
     </div>
