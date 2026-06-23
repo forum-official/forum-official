@@ -59,6 +59,54 @@ const syncUserToLocalList = (userToSync: any) => {
   localStorage.setItem("forum_users", JSON.stringify(users));
 };
 
+// Supabase Profiles 테이블 및 Auth 메타데이터에서 최신 프로필 정보 수집 (Single Source of Truth)
+const fetchLatestProfile = async (sessionUser: any): Promise<User | null> => {
+  if (!sessionUser) return null;
+  const meta = sessionUser.user_metadata || {};
+  const provider = sessionUser.app_metadata?.provider;
+  const isSocial = provider === "google" || provider === "kakao";
+  
+  const baseUser: User = {
+    userId: meta.userId || sessionUser.id,
+    nickname: meta.nickname || sessionUser.email?.split("@")[0] || "유저",
+    email: sessionUser.email || "",
+    createdAt: sessionUser.created_at,
+    bio: meta.bio || "",
+    profileImage: meta.profileImage || "",
+    isSocial,
+    isPrivate: meta.isPrivate || false,
+    nicknameSet: meta.nickname_set || false,
+    favAuthors: meta.favAuthors || [],
+    favPublishers: meta.favPublishers || [],
+    pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
+    lifeBooks: meta.lifeBooks || [],
+  };
+
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", sessionUser.id)
+      .single();
+
+    if (profile && !error) {
+      baseUser.nickname = profile.nickname || baseUser.nickname;
+      baseUser.bio = profile.bio || baseUser.bio;
+      baseUser.profileImage = profile.profile_image || baseUser.profileImage;
+      baseUser.isPrivate = profile.is_private !== undefined ? profile.is_private : baseUser.isPrivate;
+      baseUser.favAuthors = profile.fav_authors || baseUser.favAuthors;
+      baseUser.favPublishers = profile.fav_publishers || baseUser.favPublishers;
+      baseUser.pushEnabled = profile.push_enabled !== undefined ? profile.push_enabled : baseUser.pushEnabled;
+      baseUser.lifeBooks = profile.life_books || baseUser.lifeBooks;
+      baseUser.nicknameSet = true; // DB 프로필이 복구된 경우 닉네임 기설정 처리
+    }
+  } catch (err) {
+    console.warn("Failed to fetch latest profile from Supabase profiles table:", err);
+  }
+
+  return baseUser;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
@@ -97,69 +145,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Supabase session fetch
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const meta = session.user.user_metadata;
-        const provider = session.user.app_metadata?.provider;
-        const isSocial = provider === "google" || provider === "kakao";
-        const baseUser: User = {
-          userId: meta.userId || session.user.id,
-          nickname: meta.nickname || session.user.email?.split("@")[0] || "유저",
-          email: session.user.email || "",
-          createdAt: session.user.created_at,
-          bio: meta.bio || "",
-          profileImage: meta.profileImage || "",
-          isSocial,
-          isPrivate: meta.isPrivate || false,
-          nicknameSet: meta.nickname_set || false,
-          favAuthors: meta.favAuthors || [],
-          favPublishers: meta.favPublishers || [],
-          pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
-          lifeBooks: meta.lifeBooks || [],
-        };
-
         // Resolve duplicates before using nickname
         await resolveDuplicateNicknames();
 
-        // Merge with local storage if present
-        const usersData = localStorage.getItem("forum_users");
-        let finalUser = baseUser;
-        if (usersData) {
-          try {
-            const users = JSON.parse(usersData);
-            const updated = users.find((u: any) => u.userId === baseUser.userId);
-            if (updated) finalUser = updated;
-          } catch (e) {
-            console.error("Failed to parse agora_users after resolveDuplicateNicknames:", e);
-          }
-        }
-        setUser(finalUser);
-        localStorage.setItem("forum_user", JSON.stringify(finalUser));
-        syncUserToLocalList(finalUser);
-        fetchUserLikesFromCloud(finalUser.userId);
-
-        // Upsert profile information to Supabase DB
-        try {
-          await supabase.from("profiles").upsert(
-            {
-              id: session.user.id,
-              nickname: finalUser.nickname,
-              user_id: finalUser.userId,
-              email: finalUser.email,
-              profile_image: finalUser.profileImage,
-              bio: finalUser.bio,
-              is_private: finalUser.isPrivate,
-              fav_authors: finalUser.favAuthors,
-              fav_publishers: finalUser.favPublishers,
-              life_books: finalUser.lifeBooks || [],
-              push_enabled: finalUser.pushEnabled !== undefined ? finalUser.pushEnabled : true,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "id" }
-          );
-        } catch (err) {
-          console.warn(
-            "Failed to upsert profile in Supabase database (Ignore if table isn't created):",
-            err
-          );
+        // DB profiles 테이블 우선(SSOT)으로 최신 정보 동기화
+        const finalUser = await fetchLatestProfile(session.user);
+        if (finalUser) {
+          setUser(finalUser);
+          localStorage.setItem("forum_user", JSON.stringify(finalUser));
+          syncUserToLocalList(finalUser);
+          fetchUserLikesFromCloud(finalUser.userId);
         }
       } else {
         setUser(null);
@@ -173,64 +168,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Real-time auth state change handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const meta = session.user.user_metadata;
-        const provider = session.user.app_metadata?.provider;
-        const isSocial = provider === "google" || provider === "kakao";
-        const baseUser: User = {
-          userId: meta.userId || session.user.id,
-          nickname: meta.nickname || session.user.email?.split("@")[0] || "유저",
-          email: session.user.email || "",
-          createdAt: session.user.created_at,
-          bio: meta.bio || "",
-          profileImage: meta.profileImage || "",
-          isSocial,
-          isPrivate: meta.isPrivate || false,
-          nicknameSet: meta.nickname_set || false,
-          favAuthors: meta.favAuthors || [],
-          favPublishers: meta.favPublishers || [],
-          pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
-          lifeBooks: meta.lifeBooks || [],
-        };
         await resolveDuplicateNicknames();
-        const usersData = localStorage.getItem("forum_users");
-        let finalUser = baseUser;
-        if (usersData) {
-          try {
-            const users = JSON.parse(usersData);
-            const updated = users.find((u: any) => u.userId === baseUser.userId);
-            if (updated) finalUser = updated;
-          } catch (e) {
-            console.error("Failed to parse agora_users after resolveDuplicateNicknames:", e);
-          }
-        }
-        setUser(finalUser);
-        localStorage.setItem("forum_user", JSON.stringify(finalUser));
-        syncUserToLocalList(finalUser);
-        fetchUserLikesFromCloud(finalUser.userId);
-
-        try {
-          await supabase.from("profiles").upsert(
-            {
-              id: session.user.id,
-              nickname: finalUser.nickname,
-              user_id: finalUser.userId,
-              email: finalUser.email,
-              profile_image: finalUser.profileImage,
-              bio: finalUser.bio,
-              is_private: finalUser.isPrivate,
-              fav_authors: finalUser.favAuthors,
-              fav_publishers: finalUser.favPublishers,
-              life_books: finalUser.lifeBooks || [],
-              push_enabled: finalUser.pushEnabled !== undefined ? finalUser.pushEnabled : true,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "id" }
-          );
-        } catch (err) {
-          console.warn(
-            "Failed to upsert profile in Supabase database (Ignore if table isn't created):",
-            err
-          );
+        
+        // 로그인/세션 변동 시 Supabase DB 및 profiles 우선 동기화
+        const finalUser = await fetchLatestProfile(session.user);
+        if (finalUser) {
+          setUser(finalUser);
+          localStorage.setItem("forum_user", JSON.stringify(finalUser));
+          syncUserToLocalList(finalUser);
+          fetchUserLikesFromCloud(finalUser.userId);
         }
       } else {
         setUser(null);
@@ -387,7 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 프로필 정보 업데이트
+  // 프로필 정보 업데이트 (Supabase 업데이트 완료를 대기한 후 로컬 상태를 갱신하도록 순서 제어)
   const updateProfile = async (updates: { 
     nickname?: string; 
     bio?: string; 
@@ -402,24 +348,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const oldNickname = user.nickname;
     const newNickname = updates.nickname;
-    if (newNickname && oldNickname !== newNickname) {
-      updateUserNicknameInDb(oldNickname, newNickname);
-    }
 
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem("forum_user", JSON.stringify(updatedUser));
-    syncUserToLocalList(updatedUser);
-
-    if (!isSupabaseConfigured) {
-      return;
-    }
-
-    // Supabase DB 및 Auth Meta 업데이트 (UI 블로킹 방지를 위해 백그라운드 비동기 처리)
-    (async () => {
+    if (isSupabaseConfigured) {
       try {
-        // 1. Auth 메타데이터 갱신
-        await supabase.auth.updateUser({
+        // 1. Auth 메타데이터 갱신 완료 대기 (await)
+        const { error: authError } = await supabase.auth.updateUser({
           data: {
             nickname: updates.nickname || user.nickname,
             bio: updates.bio || user.bio,
@@ -432,10 +365,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             lifeBooks: updates.lifeBooks || user.lifeBooks,
           }
         });
-        // 2. Profiles DB 테이블 갱신
+        
+        if (authError) throw authError;
+
+        // 2. Profiles DB 테이블 갱신 완료 대기 (await)
         const sessionUser = (await supabase.auth.getUser()).data.user;
         if (sessionUser) {
-          await supabase.from("profiles").update({
+          const { error: dbError } = await supabase.from("profiles").update({
             nickname: updates.nickname || user.nickname,
             bio: updates.bio || user.bio,
             profile_image: updates.profileImage || user.profileImage,
@@ -446,11 +382,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             push_enabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
             updated_at: new Date().toISOString()
           }).eq("id", sessionUser.id);
+
+          if (dbError) throw dbError;
         }
       } catch (e) {
-        console.warn("Failed to update profile to Supabase DB:", e);
+        console.error("Failed to update profile to Supabase server:", e);
+        toast.error("서버 프로필 변경 사항 저장에 실패했습니다. 다시 시도해주세요.");
+        throw e; // 에러를 호출부로 버블링하여 모달 등의 로딩 상태 취소를 도움
       }
-    })();
+    }
+
+    // 서버 업데이트 성공 직후(또는 로컬 모드인 경우)에만 로컬 데이터와 React 상태 업데이트
+    if (newNickname && oldNickname !== newNickname) {
+      updateUserNicknameInDb(oldNickname, newNickname);
+    }
+
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem("forum_user", JSON.stringify(updatedUser));
+    syncUserToLocalList(updatedUser);
   };
 
   // 비밀번호 변경
