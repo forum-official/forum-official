@@ -5,15 +5,72 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { EditProfileModal } from "@/app/components/EditProfileModal";
 import { SettingsModal } from "@/app/components/SettingsModal";
-import { getUserActivityStats, getUserRecentBooks } from "@/app/utils/db";
+import { getUserActivityStats, getUserRecentBooks, getBookLikes, getBookRatingStatsWithQuick } from "@/app/utils/db";
 import { BookCover } from "@/app/components/BookCover";
 import { EditLifeBooksModal } from "@/app/components/EditLifeBooksModal";
+import { popularBooksData } from "@/app/data/booksData";
+import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
 interface ProfileTabProps {
   onLoginClick: () => void;
   onNavigate?: (screen: string) => void;
   onBookClick?: (book: any) => void;
 }
+
+interface LifeBookItem {
+  workKey: string;
+  publisher: string;
+  coverUrl: string;
+  title: string;
+  author: string;
+}
+
+// 책의 랭크 점수를 계산하는 함수
+const getBookSortScore = (book: any) => {
+  const likesStats = getBookLikes(book.id);
+  const ratingStats = getBookRatingStatsWithQuick(book.id);
+  const likes = likesStats.likesCount;
+  
+  const rating = (ratingStats.reviewsCount + ratingStats.quickCount) > 0 ? ratingStats.rating : 0.0;
+  
+  let salesPoint = book.salesPoint || 0;
+  if (!book.salesPoint) {
+    const mockIdx = popularBooksData.findIndex(pb => pb.id === book.id || pb.title === book.title);
+    if (mockIdx !== -1) {
+      salesPoint = 100000 - mockIdx * 1000;
+    }
+  }
+  
+  return { likes, rating, salesPoint };
+};
+
+// 도서 제목과 저자로 popularBooksData에서 원래 도서 객체를 찾는 함수
+const findOriginalBook = (title: string, author: string) => {
+  const cleanTitle = getMatchingClassicTitle(title) || title;
+  return popularBooksData.find(b => {
+    const bClassic = getMatchingClassicTitle(b.title) || b.title;
+    return bClassic.toLowerCase() === cleanTitle.toLowerCase() || b.title.toLowerCase() === title.toLowerCase();
+  });
+};
+
+// 인생 책 목록을 순위대로 정렬하는 함수
+const sortLifeBooks = (books: LifeBookItem[]): LifeBookItem[] => {
+  return [...books].sort((a, b) => {
+    const originalA = findOriginalBook(a.title, a.author);
+    const originalB = findOriginalBook(b.title, b.author);
+    
+    const scoreA = originalA ? getBookSortScore(originalA) : { likes: 0, rating: 0, salesPoint: 0 };
+    const scoreB = originalB ? getBookSortScore(originalB) : { likes: 0, rating: 0, salesPoint: 0 };
+    
+    if (scoreB.likes !== scoreA.likes) {
+      return scoreB.likes - scoreA.likes;
+    }
+    if (scoreB.rating !== scoreA.rating) {
+      return scoreB.rating - scoreA.rating;
+    }
+    return scoreB.salesPoint - scoreA.salesPoint;
+  });
+};
 
 export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTabProps) {
   const { user, logout, isAuthenticated } = useAuth();
@@ -268,7 +325,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
         
         {user?.lifeBooks && user.lifeBooks.length > 0 ? (
           <div className="grid grid-cols-3 gap-4">
-            {user.lifeBooks.map((b, idx) => (
+            {sortLifeBooks(user.lifeBooks).map((b, idx) => (
               <div 
                 key={idx} 
                 className="flex flex-col gap-1.5 group select-none"

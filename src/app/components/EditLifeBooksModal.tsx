@@ -7,6 +7,7 @@ import { popularBooksData } from "@/app/data/booksData";
 import { translationCovers } from "@/app/data/translationCovers";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
+import { getBookLikes, getBookRatingStatsWithQuick } from "@/app/utils/db";
 
 interface EditLifeBooksModalProps {
   onClose: () => void;
@@ -20,9 +21,56 @@ interface LifeBookItem {
   author: string;
 }
 
+// 책의 랭크 점수를 계산하는 함수
+const getBookSortScore = (book: any) => {
+  const likesStats = getBookLikes(book.id);
+  const ratingStats = getBookRatingStatsWithQuick(book.id);
+  const likes = likesStats.likesCount;
+  
+  const rating = (ratingStats.reviewsCount + ratingStats.quickCount) > 0 ? ratingStats.rating : 0.0;
+  
+  let salesPoint = book.salesPoint || 0;
+  if (!book.salesPoint) {
+    const mockIdx = popularBooksData.findIndex(pb => pb.id === book.id || pb.title === book.title);
+    if (mockIdx !== -1) {
+      salesPoint = 100000 - mockIdx * 1000;
+    }
+  }
+  
+  return { likes, rating, salesPoint };
+};
+
+// 도서 제목과 저자로 popularBooksData에서 원래 도서 객체를 찾는 함수
+const findOriginalBook = (title: string, author: string) => {
+  const cleanTitle = getMatchingClassicTitle(title) || title;
+  return popularBooksData.find(b => {
+    const bClassic = getMatchingClassicTitle(b.title) || b.title;
+    return bClassic.toLowerCase() === cleanTitle.toLowerCase() || b.title.toLowerCase() === title.toLowerCase();
+  });
+};
+
+// 인생 책 목록을 순위대로 정렬하는 함수
+const sortLifeBooks = (books: LifeBookItem[]): LifeBookItem[] => {
+  return [...books].sort((a, b) => {
+    const originalA = findOriginalBook(a.title, a.author);
+    const originalB = findOriginalBook(b.title, b.author);
+    
+    const scoreA = originalA ? getBookSortScore(originalA) : { likes: 0, rating: 0, salesPoint: 0 };
+    const scoreB = originalB ? getBookSortScore(originalB) : { likes: 0, rating: 0, salesPoint: 0 };
+    
+    if (scoreB.likes !== scoreA.likes) {
+      return scoreB.likes - scoreA.likes;
+    }
+    if (scoreB.rating !== scoreA.rating) {
+      return scoreB.rating - scoreA.rating;
+    }
+    return scoreB.salesPoint - scoreA.salesPoint;
+  });
+};
+
 export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
   const { user, updateProfile } = useAuth();
-  const [lifeBooks, setLifeBooks] = useState<LifeBookItem[]>(() => user?.lifeBooks || []);
+  const [lifeBooks, setLifeBooks] = useState<LifeBookItem[]>(() => sortLifeBooks(user?.lifeBooks || []));
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<LifeBookItem[]>([]);
@@ -31,11 +79,24 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
   // 로컬 및 알라딘 하이브리드 검색 처리
   useEffect(() => {
     if (!searchQuery.trim()) {
-      // 검색어가 없을 때는 기본적으로 인기 도서(popularBooksData)들을 출판사별로 분리해서 노출
+      // popularBooksData를 하단 책 탭 순위대로 먼저 정렬하여 라이트노벨 선노출을 방지
+      const sortedPopularBooks = [...popularBooksData].sort((a, b) => {
+        const scoreA = getBookSortScore(a);
+        const scoreB = getBookSortScore(b);
+        
+        if (scoreB.likes !== scoreA.likes) {
+          return scoreB.likes - scoreA.likes;
+        }
+        if (scoreB.rating !== scoreA.rating) {
+          return scoreB.rating - scoreA.rating;
+        }
+        return scoreB.salesPoint - scoreA.salesPoint;
+      });
+
       const initialResults: LifeBookItem[] = [];
       const seenKeys = new Set<string>();
 
-      popularBooksData.forEach((book) => {
+      sortedPopularBooks.forEach((book) => {
         const classicTitle = getMatchingClassicTitle(book.title) || book.title;
         const covers = translationCovers[classicTitle];
 
@@ -260,14 +321,14 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
       return;
     }
 
-    setLifeBooks([...lifeBooks, book]);
+    setLifeBooks(sortLifeBooks([...lifeBooks, book]));
     toast.success(`'${book.title} (${book.publisher})'을(를) 등록했습니다`);
   };
 
   // 인생 책 삭제
   const handleRemoveBook = (index: number) => {
     const updated = lifeBooks.filter((_, i) => i !== index);
-    setLifeBooks(updated);
+    setLifeBooks(sortLifeBooks(updated));
   };
 
   // 프로필 저장
