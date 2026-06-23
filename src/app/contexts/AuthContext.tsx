@@ -229,6 +229,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const amount = urlParams.get("amount");
 
       if (status === "success" && skinId && user) {
+        toast.info("현재 테스트 빌드에서는 결제 확인 및 지급이 불가능합니다.");
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
         if (user.ownedSkins?.includes(skinId)) {
           window.history.replaceState({}, document.title, window.location.pathname);
           return;

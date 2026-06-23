@@ -620,11 +620,13 @@ export function BooksScreen({
                 />
               ];
               // 8번째 책 카드마다 피드 중간에 자연스러운 광고 컴포넌트 삽입
+              /*
               if ((index + 1) % 8 === 0) {
                 items.push(
                   <AdMobNativeMockCard key={`ad-${index}`} />
                 );
               }
+              */
               return items;
             })}
             {/* 무한 스크롤 감지 센서 */}
@@ -636,7 +638,7 @@ export function BooksScreen({
             )}
             
             {/* 하단 AdMob 배너 광고 슬롯 */}
-            <AdMobBanner />
+            {/* <AdMobBanner /> */}
           </div>
         ) : (
           <div className="text-center py-12">

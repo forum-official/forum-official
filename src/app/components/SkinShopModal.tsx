@@ -60,6 +60,8 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
 
     // 1. 프리미엄 스킨 결제 처리 (실제 카드 결제 / 인앱 결제 분기)
     if (skin.isPremium) {
+      toast.info("현재 테스트 빌드에서는 결제를 이용할 수 없습니다.");
+      return;
       setIsProcessingPayment(true);
       try {
         const paymentResult = await requestPlatformPayment({
@@ -129,6 +131,8 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
   };
 
   const startAdWatching = () => {
+    toast.info("현재 테스트 빌드에서는 광고 기능을 제공하지 않습니다.");
+    return;
     if (!isLoggedIn) {
       toast.error("광고를 보려면 로그인이 필요합니다.");
       onClose();
@@ -199,6 +203,7 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
               <span className="text-sm font-black text-purple-700">{isLoggedIn ? `${points} P` : "0 P (로그인 필요)"}</span>
             </div>
             
+            {/* 
             <button
               onClick={startAdWatching}
               className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] h-7 px-2.5 rounded-lg transition-colors shadow-sm cursor-pointer border-none"
@@ -206,6 +211,7 @@ export function SkinShopModal({ onClose, onLoginRequired }: SkinShopModalProps) 
               <Film className="size-3" />
               광고 보고 +100P
             </button>
+            */}
           </div>
 
           {/* Skins List */}

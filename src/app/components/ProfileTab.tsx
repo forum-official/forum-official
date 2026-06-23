@@ -384,6 +384,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
           <span className="flex-1 text-left">나의 서재</span>
           <span className="text-gray-300 font-normal">›</span>
         </button>
+        {/* 
         <button 
           onClick={() => onNavigate?.("skin-shop")}
           className="w-full flex items-center gap-3 p-4.5 hover:bg-gray-50 transition-colors border-b border-gray-100 text-sm font-semibold text-gray-700"
@@ -392,6 +393,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
           <span className="flex-1 text-left font-bold text-purple-700">말풍선 스킨 상점</span>
           <span className="text-gray-300 font-normal">›</span>
         </button>
+        */}
         <button 
           onClick={() => setSettingsModalOpen(true)}
           className="w-full flex items-center gap-3 p-4.5 hover:bg-gray-50 transition-colors text-sm font-semibold text-gray-700"

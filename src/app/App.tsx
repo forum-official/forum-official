@@ -1590,8 +1590,8 @@ function AppContent() {
                 </section>
 
                 {/* Google AdSense / AdMob Option 1 Banner Slot */}
+                {/* 
                 <div className="bg-gray-100 dark:bg-gray-900/60 rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[80px] relative overflow-hidden select-none">
-                  {/* Google Ads icon/tag */}
                   <div className="absolute top-1.5 right-2 flex items-center gap-1">
                     <span className="text-[8px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded border border-gray-300/30">AD</span>
                     <span className="text-[8px] font-bold text-gray-400">Google Ads</span>
@@ -1601,6 +1601,7 @@ function AppContent() {
                     <p className="text-[8px] text-gray-400 font-mono">ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX (320x50)</p>
                   </div>
                 </div>
+                */}
 
                 {/* Hot Vote Section */}
                 <section>
@@ -1729,7 +1730,7 @@ function AppContent() {
                     {...quotes[currentQuoteIndex]}
                     onRefresh={handleRefreshQuote}
                   />
-                  <AdMobBanner />
+                  {/* <AdMobBanner /> */}
                 </section>
               </div>
             )}
@@ -1908,6 +1909,7 @@ function AppContent() {
                         </div>
                       );
 
+                      /*
                       if (index === 3) {
                         return [
                           <div key="inline-ad-discussions" className="px-4 py-1.5">
@@ -1925,6 +1927,7 @@ function AppContent() {
                           card
                         ];
                       }
+                      */
                       return [card];
                     })}
                   </div>
