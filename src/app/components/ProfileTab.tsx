@@ -7,6 +7,7 @@ import { EditProfileModal } from "@/app/components/EditProfileModal";
 import { SettingsModal } from "@/app/components/SettingsModal";
 import { getUserActivityStats, getUserRecentBooks } from "@/app/utils/db";
 import { BookCover } from "@/app/components/BookCover";
+import { EditLifeBooksModal } from "@/app/components/EditLifeBooksModal";
 
 interface ProfileTabProps {
   onLoginClick: () => void;
@@ -46,47 +47,64 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
 
   const [isEditProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [isEditLifeBooksOpen, setEditLifeBooksOpen] = useState(false);
 
   // UUID 식별자 감지 및 숨기기
   const isUuid = (id: string) => {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || id.length > 25;
   };
 
-  // 활동량(누적 리뷰 수) 기반의 독서 티어 계산
+  // 받은 좋아요 수 기반의 독서 티어 계산
   const getReadingTier = (count: number) => {
-    if (count >= 12) {
+    if (count >= 1000) {
       return {
-        name: "독서 현자",
-        badge: "👑 플래티넘",
-        className: "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border border-purple-300 shadow-sm",
+        name: "독서의 신 (마스터)",
+        badge: "👑 마스터",
+        className: "bg-gradient-to-r from-red-500 via-yellow-500 to-red-600 text-white border border-red-300 shadow-sm",
         icon: "👑"
       };
     }
-    if (count >= 7) {
+    if (count >= 500) {
       return {
-        name: "박학다식 선비",
+        name: "도서 제왕 (다이아몬드)",
+        badge: "💎 다이아몬드",
+        className: "bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 text-white border border-cyan-300 shadow-sm",
+        icon: "💎"
+      };
+    }
+    if (count >= 300) {
+      return {
+        name: "독서 현자 (플래티넘)",
+        badge: "✨ 플래티넘",
+        className: "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border border-purple-300 shadow-sm",
+        icon: "✨"
+      };
+    }
+    if (count >= 100) {
+      return {
+        name: "박학다식 선비 (골드)",
         badge: "🥇 골드",
         className: "bg-gradient-to-r from-amber-400 to-orange-500 text-white border border-yellow-300 shadow-sm",
         icon: "🥇"
       };
     }
-    if (count >= 3) {
+    if (count >= 10) {
       return {
-        name: "성실한 책벌레",
+        name: "성실한 책벌레 (실버)",
         badge: "🥈 실버",
         className: "bg-gradient-to-r from-slate-300 to-slate-400 text-slate-800 border border-slate-200 shadow-sm",
         icon: "🥈"
       };
     }
     return {
-      name: "새싹 독서가",
+      name: "새싹 독서가 (브론즈)",
       badge: "🥉 브론즈",
       className: "bg-gradient-to-r from-orange-300 to-orange-400 text-orange-950 border border-orange-200 shadow-sm",
       icon: "🥉"
     };
   };
 
-  const tier = getReadingTier(userStats.reviews);
+  const tier = getReadingTier(userStats.likes);
 
   if (!isAuthenticated) {
     return (
@@ -154,11 +172,10 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
         )}
       </div>
 
-      {/* Stats - 실시간 동기화 데이터 적용 */}
+      {/* Stats - 실시간 동기화 데이터 적용 (Read-only 위젯) */}
       <div className="grid grid-cols-3 gap-3">
-        <button 
-          onClick={() => onNavigate?.("my-reviews")}
-          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center hover:bg-purple-50/50 transition-colors active:scale-95 flex flex-col items-center justify-center"
+        <div 
+          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center flex flex-col items-center justify-center select-none"
         >
           <Pencil className="size-5 text-purple-600 mb-1.5" />
           {isLoadingStats ? (
@@ -167,10 +184,9 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
             <p className="text-xl font-bold text-gray-900 leading-tight">{userStats.reviews}</p>
           )}
           <p className="text-[10px] text-gray-500 font-medium">작성한 리뷰</p>
-        </button>
-        <button 
-          onClick={() => onNavigate?.("my-likes")}
-          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center hover:bg-red-50/50 transition-colors active:scale-95 flex flex-col items-center justify-center"
+        </div>
+        <div 
+          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center flex flex-col items-center justify-center select-none"
         >
           <Heart className="size-5 text-red-500 mb-1.5" />
           {isLoadingStats ? (
@@ -179,10 +195,9 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
             <p className="text-xl font-bold text-gray-900 leading-tight">{userStats.likes}</p>
           )}
           <p className="text-[10px] text-gray-500 font-medium">받은 좋아요</p>
-        </button>
-        <button 
-          onClick={() => onNavigate?.("my-comments")}
-          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center hover:bg-blue-50/50 transition-colors active:scale-95 flex flex-col items-center justify-center"
+        </div>
+        <div 
+          className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm text-center flex flex-col items-center justify-center select-none"
         >
           <MessageSquare className="size-5 text-blue-500 mb-1.5" />
           {isLoadingStats ? (
@@ -191,7 +206,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
             <p className="text-xl font-bold text-gray-900 leading-tight">{userStats.comments}</p>
           )}
           <p className="text-[10px] text-gray-500 font-medium">남긴 댓글</p>
-        </button>
+        </div>
       </div>
 
       {/* 내 취향 전시 태그 */}
@@ -237,29 +252,28 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
         </div>
       </div>
 
-      {/* 나의 서재 미리보기 */}
+      {/* 나만의 인생 책 (최대 3권) */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-3.5">
           <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-            <span>📚</span> 나의 서재 미리보기
+            <span>✨</span> 나만의 인생 책
           </h3>
           <button 
-            onClick={() => onNavigate?.("my-library")}
+            onClick={() => setEditLifeBooksOpen(true)}
             className="text-xs font-bold text-purple-600 hover:text-purple-700 transition-colors"
           >
-            전체 보기 ›
+            설정하기 ›
           </button>
         </div>
         
-        {recentBooks.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none">
-            {recentBooks.map((b) => (
+        {user?.lifeBooks && user.lifeBooks.length > 0 ? (
+          <div className="grid grid-cols-3 gap-4">
+            {user.lifeBooks.map((b, idx) => (
               <div 
-                key={b.id} 
-                onClick={() => onBookClick?.(b)}
-                className="flex-shrink-0 w-20 flex flex-col gap-1.5 cursor-pointer group"
+                key={idx} 
+                className="flex flex-col gap-1.5 group select-none"
               >
-                <div className="w-20 h-28 rounded-xl overflow-hidden border border-gray-150 shadow-sm transition-transform duration-300 group-hover:scale-105 group-hover:shadow-md">
+                <div className="aspect-[3/4.2] rounded-xl overflow-hidden border border-gray-150 shadow-sm relative">
                   <BookCover 
                     title={b.title} 
                     author={b.author} 
@@ -267,14 +281,17 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
                     className="w-full h-full object-cover" 
                   />
                 </div>
-                <span className="text-[10px] text-gray-700 font-semibold truncate block px-0.5 text-center group-hover:text-purple-700 transition-colors">{b.title}</span>
+                <div className="text-center px-0.5">
+                  <span className="text-[10px] text-gray-700 font-bold truncate block">{b.title}</span>
+                  <span className="text-[8px] text-purple-600 bg-purple-50 px-1 py-0.5 rounded font-semibold mt-0.5 inline-block">{b.publisher}</span>
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-250 p-4">
-            <p className="text-xs text-gray-400 font-semibold">최근 평가하거나 찜한 책이 없습니다.</p>
-            <p className="text-[10px] text-gray-400 mt-1">도서 상세페이지에서 별점을 매기거나 하트를 눌러보세요!</p>
+            <p className="text-xs text-gray-400 font-semibold">아직 등록된 인생 책이 없습니다.</p>
+            <p className="text-[10px] text-gray-400 mt-1">우측 상단 설정하기 버튼을 눌러 추가해보세요!</p>
           </div>
         )}
       </div>
@@ -336,6 +353,9 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
       )}
       {isSettingsModalOpen && (
         <SettingsModal onClose={() => setSettingsModalOpen(false)} />
+      )}
+      {isEditLifeBooksOpen && (
+        <EditLifeBooksModal onClose={() => setEditLifeBooksOpen(false)} />
       )}
     </div>
   );

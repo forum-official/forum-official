@@ -15,6 +15,7 @@ interface User {
   favAuthors?: string[];
   favPublishers?: string[];
   pushEnabled?: boolean;
+  lifeBooks?: Array<{ workKey: string; publisher: string; coverUrl: string; title: string; author: string }>;
 }
 
 interface AuthContextType {
@@ -24,7 +25,17 @@ interface AuthContextType {
   loginWithOAuth: (provider: "google" | "kakao", profile?: { nickname: string; email: string; profileImage: string }) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
-  updateProfile: (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean; favAuthors?: string[]; favPublishers?: string[]; pushEnabled?: boolean }) => void;
+  updateProfile: (updates: { 
+    nickname?: string; 
+    bio?: string; 
+    profileImage?: string; 
+    isPrivate?: boolean; 
+    nicknameSet?: boolean; 
+    favAuthors?: string[]; 
+    favPublishers?: string[]; 
+    pushEnabled?: boolean;
+    lifeBooks?: Array<{ workKey: string; publisher: string; coverUrl: string; title: string; author: string }>;
+  }) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   withdraw: () => Promise<{ success: boolean; error?: string }>;
 }
@@ -102,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           favAuthors: meta.favAuthors || [],
           favPublishers: meta.favPublishers || [],
           pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
+          lifeBooks: meta.lifeBooks || [],
         };
 
         // Resolve duplicates before using nickname
@@ -137,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               is_private: finalUser.isPrivate,
               fav_authors: finalUser.favAuthors,
               fav_publishers: finalUser.favPublishers,
+              life_books: finalUser.lifeBooks || [],
               push_enabled: finalUser.pushEnabled !== undefined ? finalUser.pushEnabled : true,
               updated_at: new Date().toISOString(),
             },
@@ -176,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           favAuthors: meta.favAuthors || [],
           favPublishers: meta.favPublishers || [],
           pushEnabled: meta.pushEnabled !== undefined ? meta.pushEnabled : true,
+          lifeBooks: meta.lifeBooks || [],
         };
         await resolveDuplicateNicknames();
         const usersData = localStorage.getItem("forum_users");
@@ -206,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               is_private: finalUser.isPrivate,
               fav_authors: finalUser.favAuthors,
               fav_publishers: finalUser.favPublishers,
+              life_books: finalUser.lifeBooks || [],
               push_enabled: finalUser.pushEnabled !== undefined ? finalUser.pushEnabled : true,
               updated_at: new Date().toISOString(),
             },
@@ -373,7 +388,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 프로필 정보 업데이트
-  const updateProfile = async (updates: { nickname?: string; bio?: string; profileImage?: string; isPrivate?: boolean; nicknameSet?: boolean; favAuthors?: string[]; favPublishers?: string[]; pushEnabled?: boolean }) => {
+  const updateProfile = async (updates: { 
+    nickname?: string; 
+    bio?: string; 
+    profileImage?: string; 
+    isPrivate?: boolean; 
+    nicknameSet?: boolean; 
+    favAuthors?: string[]; 
+    favPublishers?: string[]; 
+    pushEnabled?: boolean;
+    lifeBooks?: Array<{ workKey: string; publisher: string; coverUrl: string; title: string; author: string }>;
+  }) => {
     if (!user) return;
     const oldNickname = user.nickname;
     const newNickname = updates.nickname;
@@ -404,6 +429,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             favAuthors: updates.favAuthors || user.favAuthors,
             favPublishers: updates.favPublishers || user.favPublishers,
             pushEnabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
+            lifeBooks: updates.lifeBooks || user.lifeBooks,
           }
         });
         // 2. Profiles DB 테이블 갱신
@@ -416,6 +442,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             is_private: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
             fav_authors: updates.favAuthors || user.favAuthors,
             fav_publishers: updates.favPublishers || user.favPublishers,
+            life_books: updates.lifeBooks || user.lifeBooks,
             push_enabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
             updated_at: new Date().toISOString()
           }).eq("id", sessionUser.id);

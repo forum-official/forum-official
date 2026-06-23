@@ -3012,20 +3012,14 @@ export async function fetchBookDetailAggregateFromCloud(
 }
 
 export async function getUserActivityStats(userId: string, nickname: string): Promise<{ reviews: number; likes: number; comments: number }> {
-  let reviewsCount = 0;
-  let commentsCount = 0;
-  let likesCount = 0;
-
-  // 1. Local Storage fallback counts
-  // Reviews
+  // 로컬 데이터 로드 및 닉네임 필터링
   let localReviews: any[] = [];
   try {
     const data = localStorage.getItem("forum_reviews");
     if (data) localReviews = JSON.parse(data);
   } catch {}
   const myLocalReviews = localReviews.filter((r: any) => r.author === nickname);
-  
-  // Author Opinions
+
   let localAuthorOpinions: any[] = [];
   try {
     const data = localStorage.getItem("forum_author_opinions");
@@ -3033,7 +3027,6 @@ export async function getUserActivityStats(userId: string, nickname: string): Pr
   } catch {}
   const myLocalAuthorOpinions = localAuthorOpinions.filter((o: any) => o.author === nickname);
 
-  // Comments (review / discussion comments)
   let localComments: any[] = [];
   try {
     const data = localStorage.getItem("forum_comments");
@@ -3041,7 +3034,6 @@ export async function getUserActivityStats(userId: string, nickname: string): Pr
   } catch {}
   const myLocalComments = localComments.filter((c: any) => c.author === nickname);
 
-  // Debate Opinions
   let localDebateOpinions: any[] = [];
   try {
     const data = localStorage.getItem("forum_debate_opinions");
@@ -3049,21 +3041,33 @@ export async function getUserActivityStats(userId: string, nickname: string): Pr
   } catch {}
   const myLocalDebateOpinions = localDebateOpinions.filter((o: any) => o.author === nickname);
 
-  // Calculate local counts
-  reviewsCount = myLocalReviews.length + myLocalAuthorOpinions.length;
-  commentsCount = myLocalComments.length + myLocalDebateOpinions.length;
+  // 로컬 집계값 구하기
+  const localReviewsCount = myLocalReviews.length;
+  const localAuthorCount = myLocalAuthorOpinions.length;
+  const localCommentsCount = myLocalComments.length;
+  const localDebateCount = myLocalDebateOpinions.length;
 
-  // Likes received (likes on my reviews + comments + debate opinions + author opinions)
   const reviewLikesSum = myLocalReviews.reduce((sum, r) => sum + (r.likes || 0), 0);
   const commentLikesSum = myLocalComments.reduce((sum, c) => sum + (c.likes || 0), 0);
   const debateOpinionLikesSum = myLocalDebateOpinions.reduce((sum, o) => sum + (o.likes || 0), 0);
   const authorOpinionLikesSum = myLocalAuthorOpinions.reduce((sum, o) => sum + (o.likes || 0), 0);
-  likesCount = reviewLikesSum + commentLikesSum + debateOpinionLikesSum + authorOpinionLikesSum;
 
-  // 2. If Supabase is configured, fetch from cloud and merge
+  // 최종 리턴할 값들 초기화 (로컬 데이터 기준)
+  let finalReviewsCount = localReviewsCount + localAuthorCount;
+  let finalCommentsCount = localCommentsCount + localDebateCount;
+  
+  let finalReviewLikes = reviewLikesSum;
+  let finalCommentLikes = commentLikesSum;
+  let finalDebateLikes = debateOpinionLikesSum;
+  let finalAuthorLikes = authorOpinionLikesSum;
+
+  let cloudReviewsCount = localReviewsCount;
+  let cloudCommentsCount = localCommentsCount;
+  let cloudDebateCount = localDebateCount;
+
   if (isSupabaseConfigured) {
+    // 1. Reviews
     try {
-      // Query cloud reviews count
       const reviewsRes = await fetch(`${supabase.supabaseUrl}/rest/v1/reviews?author=eq.${encodeURIComponent(nickname)}&select=id,likes`, {
         headers: {
           "apikey": supabase.supabaseKey,
@@ -3073,56 +3077,62 @@ export async function getUserActivityStats(userId: string, nickname: string): Pr
       if (reviewsRes.ok) {
         const cloudReviews = await reviewsRes.json();
         if (Array.isArray(cloudReviews)) {
-          reviewsCount = cloudReviews.length + myLocalAuthorOpinions.length;
-          likesCount = cloudReviews.reduce((sum, r) => sum + (r.likes || 0), 0);
+          cloudReviewsCount = cloudReviews.length;
+          finalReviewLikes = cloudReviews.reduce((sum, r) => sum + (r.likes || 0), 0);
         }
       }
+    } catch (e) {
+      console.error("Supabase reviews stats fetch failed:", e);
+    }
 
-      // Query cloud comments count
+    // 2. Comments
+    try {
       const commentsRes = await fetch(`${supabase.supabaseUrl}/rest/v1/comments?author=eq.${encodeURIComponent(nickname)}&select=id,likes`, {
         headers: {
           "apikey": supabase.supabaseKey,
           "Authorization": `Bearer ${supabase.supabaseKey}`
         }
       });
-      let cloudCommentsCount = myLocalComments.length;
-      let cloudCommentLikes = commentLikesSum;
       if (commentsRes.ok) {
         const cloudComments = await commentsRes.json();
         if (Array.isArray(cloudComments)) {
           cloudCommentsCount = cloudComments.length;
-          cloudCommentLikes = cloudComments.reduce((sum, c) => sum + (c.likes || 0), 0);
+          finalCommentLikes = cloudComments.reduce((sum, c) => sum + (c.likes || 0), 0);
         }
       }
+    } catch (e) {
+      console.error("Supabase comments stats fetch failed:", e);
+    }
 
-      // Query cloud debate opinions count
+    // 3. Debate Opinions
+    try {
       const debateOpsRes = await fetch(`${supabase.supabaseUrl}/rest/v1/debate_opinions?author=eq.${encodeURIComponent(nickname)}&select=id,likes`, {
         headers: {
           "apikey": supabase.supabaseKey,
           "Authorization": `Bearer ${supabase.supabaseKey}`
         }
       });
-      let cloudDebateCount = myLocalDebateOpinions.length;
-      let cloudDebateLikes = debateOpinionLikesSum;
       if (debateOpsRes.ok) {
         const cloudDebates = await debateOpsRes.json();
         if (Array.isArray(cloudDebates)) {
           cloudDebateCount = cloudDebates.length;
-          cloudDebateLikes = cloudDebates.reduce((sum, o) => sum + (o.likes || 0), 0);
+          finalDebateLikes = cloudDebates.reduce((sum, o) => sum + (o.likes || 0), 0);
         }
       }
-
-      commentsCount = cloudCommentsCount + cloudDebateCount;
-      likesCount += cloudCommentLikes + cloudDebateLikes + authorOpinionLikesSum;
     } catch (e) {
-      console.error("Failed to fetch activity stats from Supabase:", e);
+      console.error("Supabase debate_opinions stats fetch failed:", e);
     }
+
+    finalReviewsCount = cloudReviewsCount + localAuthorCount;
+    finalCommentsCount = cloudCommentsCount + cloudDebateCount;
   }
 
+  const finalLikesCount = finalReviewLikes + finalCommentLikes + finalDebateLikes + finalAuthorLikes;
+
   return {
-    reviews: reviewsCount,
-    likes: likesCount,
-    comments: commentsCount
+    reviews: finalReviewsCount,
+    likes: finalLikesCount,
+    comments: finalCommentsCount
   };
 }
 
