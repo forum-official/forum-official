@@ -21,8 +21,7 @@ const availableAuthors = Array.from(
 const availablePublishers = Array.from(
   new Set(
     popularBooksData
-      .filter(b => b && typeof b.publisher === 'string')
-      .map(b => b.publisher.trim())
+      .flatMap(b => b && Array.isArray(b.publishers) ? b.publishers.map(p => p.name.trim()) : [])
   )
 ).filter(Boolean);
 

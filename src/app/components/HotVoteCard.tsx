@@ -6,6 +6,7 @@ import { useAuth } from "@/app/contexts/AuthContext";
 import type { Book } from "@/app/data/booksData";
 import { BookCover } from "@/app/components/BookCover";
 import { getWorkKey } from "@/app/utils/titleHelper";
+import { getWorkPublisherVotes } from "@/app/utils/db";
 
 const cleanTitle = (t: string) => {
   let cleaned = t;
@@ -50,13 +51,23 @@ export function HotVoteCard({
     return myVotes[workKey] || null;
   });
 
+  const [publisherVotes, setPublisherVotes] = useState(() => {
+    return book.publishers.map(pub => ({
+      ...pub,
+      votes: getWorkPublisherVotes(workKey, pub.name)
+    }));
+  });
+
   useEffect(() => {
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${userId}`) || '{}');
     setHasVoted(workKey in myVotes);
     setSelectedPublisher(myVotes[workKey] || null);
-  }, [workKey, userId]);
+    setPublisherVotes(book.publishers.map(pub => ({
+      ...pub,
+      votes: getWorkPublisherVotes(workKey, pub.name)
+    })));
+  }, [workKey, userId, book.publishers]);
 
-  const publisherVotes = book.publishers;
   const totalVotes = publisherVotes.reduce((sum, pub) => sum + pub.votes, 0);
 
   const handleVote = () => {
@@ -70,6 +81,15 @@ export function HotVoteCard({
     // 부모 컴포넌트의 투표 핸들러 호출
     onVote?.(book.id, selectedPublisher);
     setHasVoted(true);
+    setPublisherVotes(prev => prev.map(pub => {
+      if (pub.name === selectedPublisher) {
+        return {
+          ...pub,
+          votes: pub.votes + 1
+        };
+      }
+      return pub;
+    }));
   };
 
   // 투표수로 정렬
