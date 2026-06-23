@@ -138,58 +138,59 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
     }
 
     setIsLoading(true);
-    const query = searchQuery.toLowerCase().trim();
-
-    // 1. 로컬 검색 매칭
-    const localMatches: LifeBookItem[] = [];
-    const seenKeys = new Set<string>();
-
-    popularBooksData.forEach((book) => {
-      const matchTitle = book.title.toLowerCase().includes(query);
-      const matchAuthor = book.author.toLowerCase().includes(query);
-
-      if (matchTitle || matchAuthor) {
-        const classicTitle = getMatchingClassicTitle(book.title) || book.title;
-        const covers = translationCovers[classicTitle];
-
-        if (covers && Object.keys(covers).length > 0) {
-          Object.entries(covers).forEach(([pubName, coverUrl]) => {
-            const uniqueKey = `${classicTitle}_${pubName}`.toLowerCase();
-            if (!seenKeys.has(uniqueKey)) {
-              seenKeys.add(uniqueKey);
-              localMatches.push({
-                workKey: classicTitle,
-                publisher: pubName,
-                coverUrl: coverUrl,
-                title: book.title.includes("세트") ? classicTitle : book.title,
-                author: book.author.split(",")[0].trim(),
-              });
-            }
-          });
-        } else {
-          book.publishers.forEach((pub) => {
-            const pubName = pub.name;
-            const uniqueKey = `${book.title}_${pubName}`.toLowerCase();
-            if (!seenKeys.has(uniqueKey)) {
-              seenKeys.add(uniqueKey);
-              const altCover = book.alternativeCovers?.find((c) => c.publisher === pubName)?.coverUrl || book.coverUrl;
-              localMatches.push({
-                workKey: book.title,
-                publisher: pubName,
-                coverUrl: altCover,
-                title: book.title,
-                author: book.author.split(",")[0].trim(),
-              });
-            }
-          });
-        }
-      }
-    });
-
-    setSearchResults(localMatches);
-
-    // 2. 알라딘 검색 API 트리거 (Debounce 적용)
+    setSearchResults([]); // 검색어가 바뀔 때 이전 검색 결과를 비워 로딩중 화면 유도
+    
+    // 알라딘 API 검색 + 로컬 검색 결과를 600ms 뒤에 한 번에 묶어서 업데이트
     const delayDebounce = setTimeout(async () => {
+      const query = searchQuery.toLowerCase().trim();
+      const localMatches: LifeBookItem[] = [];
+      const seenKeys = new Set<string>();
+
+      // 1. 로컬 검색 매칭 연산
+      popularBooksData.forEach((book) => {
+        const matchTitle = book.title.toLowerCase().includes(query);
+        const matchAuthor = book.author.toLowerCase().includes(query);
+
+        if (matchTitle || matchAuthor) {
+          const classicTitle = getMatchingClassicTitle(book.title) || book.title;
+          const covers = translationCovers[classicTitle];
+
+          if (covers && Object.keys(covers).length > 0) {
+            Object.entries(covers).forEach(([pubName, coverUrl]) => {
+              const uniqueKey = `${classicTitle}_${pubName}`.toLowerCase();
+              if (!seenKeys.has(uniqueKey)) {
+                seenKeys.add(uniqueKey);
+                localMatches.push({
+                  workKey: classicTitle,
+                  publisher: pubName,
+                  coverUrl: coverUrl,
+                  title: book.title.includes("세트") ? classicTitle : book.title,
+                  author: book.author.split(",")[0].trim(),
+                });
+              }
+            });
+          } else {
+            book.publishers.forEach((pub) => {
+              const pubName = pub.name;
+              const uniqueKey = `${book.title}_${pubName}`.toLowerCase();
+              if (!seenKeys.has(uniqueKey)) {
+                seenKeys.add(uniqueKey);
+                const altCover = book.alternativeCovers?.find((c) => c.publisher === pubName)?.coverUrl || book.coverUrl;
+                localMatches.push({
+                  workKey: book.title,
+                  publisher: pubName,
+                  coverUrl: altCover,
+                  title: book.title,
+                  author: book.author.split(",")[0].trim(),
+                });
+              }
+            });
+          }
+        }
+      });
+
+      // 2. 알라딘 검색 API 연산
+      let apiResults: LifeBookItem[] = [];
       try {
         const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}`;
         const html = await fetchHtmlViaProxy(targetUrl);
@@ -197,8 +198,6 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
         const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
-
-        const apiResults: LifeBookItem[] = [];
 
         boxes.forEach((box, index) => {
           try {
@@ -284,20 +283,35 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
             console.error("Failed to parse Aladin search item:", e);
           }
         });
-
-        setSearchResults((prev) => {
-          const combined = [...prev];
-          apiResults.forEach((item) => {
-            const key = `${item.title}_${item.publisher}`.toLowerCase();
-            if (!combined.some((c) => `${c.title}_${c.publisher}`.toLowerCase() === key)) {
-              combined.push(item);
-            }
-          });
-          return combined;
-        });
       } catch (err) {
         console.error("API search failed:", err);
       } finally {
+        // 로컬 매치와 API 결과를 결합하여 한 번에 바인딩
+        const finalResults = [...localMatches];
+        apiResults.forEach((item) => {
+          const key = `${item.title}_${item.publisher}`.toLowerCase();
+          if (!finalResults.some((c) => `${c.title}_${c.publisher}`.toLowerCase() === key)) {
+            finalResults.push(item);
+          }
+        });
+
+        // 랭킹 순 정렬이 가능하도록 popularBooksData 연동 정렬
+        const sortedFinal = finalResults.sort((a, b) => {
+          const originalA = findOriginalBook(a.title, a.author);
+          const originalB = findOriginalBook(b.title, b.author);
+          const scoreA = originalA ? getBookSortScore(originalA) : { likes: 0, rating: 0, salesPoint: 0 };
+          const scoreB = originalB ? getBookSortScore(originalB) : { likes: 0, rating: 0, salesPoint: 0 };
+          
+          if (scoreB.likes !== scoreA.likes) {
+            return scoreB.likes - scoreA.likes;
+          }
+          if (scoreB.rating !== scoreA.rating) {
+            return scoreB.rating - scoreA.rating;
+          }
+          return scoreB.salesPoint - scoreA.salesPoint;
+        });
+
+        setSearchResults(sortedFinal);
         setIsLoading(false);
       }
     }, 600);
@@ -425,7 +439,13 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
 
         {/* Search Results List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {searchResults.length > 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12 flex flex-col items-center justify-center">
+              <Loader2 className="size-8 text-purple-600 animate-spin mb-3" />
+              <p className="text-xs text-gray-400 font-bold">도서를 검색하는 중입니다...</p>
+              <p className="text-[10px] text-gray-400 mt-1">잠시만 기다려주세요.</p>
+            </div>
+          ) : searchResults.length > 0 ? (
             searchResults.map((book) => {
               const isAdded = lifeBooks.some(
                 (b) => b.title === book.title && b.publisher === book.publisher
