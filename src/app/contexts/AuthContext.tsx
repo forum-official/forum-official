@@ -209,6 +209,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             bio: foundUser.bio,
             profileImage: foundUser.profileImage,
             isPrivate: foundUser.isPrivate || false,
+            nicknameSet: foundUser.nicknameSet || false,
+            favAuthors: foundUser.favAuthors || [],
+            favPublishers: foundUser.favPublishers || [],
+            lifeBooks: foundUser.lifeBooks || [],
           };
           setUser(userToStore);
           localStorage.setItem("forum_user", JSON.stringify(userToStore));
@@ -480,6 +484,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isSocial: true,
           isPrivate: foundUser.isPrivate || false,
           nicknameSet: foundUser.nicknameSet || false,
+          favAuthors: foundUser.favAuthors || [],
+          favPublishers: foundUser.favPublishers || [],
+          lifeBooks: foundUser.lifeBooks || [],
         };
         setUser(userToStore);
         localStorage.setItem("forum_user", JSON.stringify(userToStore));

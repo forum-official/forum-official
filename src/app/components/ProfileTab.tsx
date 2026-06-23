@@ -105,6 +105,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
   const [isEditProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isEditLifeBooksOpen, setEditLifeBooksOpen] = useState(false);
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
 
   // UUID 식별자 감지 및 숨기기
   const isUuid = (id: string) => {
@@ -198,28 +199,40 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
               <img 
                 src={user.profileImage} 
                 alt="프로필" 
-                className="w-20 h-20 rounded-full object-cover border-2 border-white/80 shadow-md"
+                className="w-20 h-20 rounded-full object-cover border-2 border-white/80 shadow-md cursor-pointer"
+                onClick={() => setIsTierModalOpen(true)}
               />
             ) : (
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-3xl font-extrabold border-2 border-white/80 shadow-md">
+              <div 
+                className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-3xl font-extrabold border-2 border-white/80 shadow-md cursor-pointer"
+                onClick={() => setIsTierModalOpen(true)}
+              >
                 {user?.nickname.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="absolute -bottom-1 -right-1 text-2xl filter drop-shadow">
+            <span 
+              className="absolute -bottom-1 -right-1 text-2xl filter drop-shadow cursor-pointer select-none hover:scale-110 transition-transform"
+              onClick={() => setIsTierModalOpen(true)}
+              title="나의 랭킹 및 승급 조건 보기"
+            >
               {tier.icon}
             </span>
           </div>
-          <div className="flex-1 min-w-0">
+          <div 
+            className="flex-1 min-w-0 cursor-pointer select-none group"
+            onClick={() => setIsTierModalOpen(true)}
+            title="나의 랭킹 및 승급 조건 보기"
+          >
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-2xl font-extrabold tracking-tight truncate">{user?.nickname}</h2>
-              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${tier.className}`}>
+              <h2 className="text-2xl font-extrabold tracking-tight truncate group-hover:text-purple-100 transition-colors">{user?.nickname}</h2>
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${tier.className} group-hover:scale-105 transition-transform`}>
                 {tier.badge}
               </span>
             </div>
             {!isUuid(user?.userId || "") && (
               <p className="text-xs text-purple-200 mt-1 font-medium">@{user?.userId}</p>
             )}
-            <p className="text-[10px] text-purple-200/80 mt-1 font-semibold">등급: {tier.name}</p>
+            <p className="text-[10px] text-purple-200/80 mt-1 font-semibold group-hover:underline">등급: {tier.name} ›</p>
           </div>
         </div>
         {user?.bio && (
@@ -413,6 +426,116 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
       )}
       {isEditLifeBooksOpen && (
         <EditLifeBooksModal onClose={() => setEditLifeBooksOpen(false)} />
+      )}
+
+      {/* Tier Info Modal */}
+      {isTierModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" 
+          onClick={() => setIsTierModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-200" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-6 text-white text-center relative">
+              <div className="absolute top-4 right-4">
+                <button 
+                  onClick={() => setIsTierModalOpen(false)} 
+                  className="text-white/70 hover:text-white text-lg font-bold p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="text-5xl mb-2.5 filter drop-shadow">{tier.icon}</div>
+              <h3 className="text-lg font-bold">독서 랭크 안내</h3>
+              <p className="text-[10px] text-purple-200/90 mt-1">타 유저로부터 받은 총 좋아요 수를 기준으로 등급이 결정됩니다.</p>
+            </div>
+            
+            {/* Body */}
+            <div className="p-5 space-y-4">
+              {/* Current Status */}
+              <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/50 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] text-purple-600 font-bold tracking-tight">현재 나의 티어</p>
+                  <p className="text-xs font-extrabold text-gray-800 mt-0.5">{tier.name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] text-gray-500 font-bold tracking-tight font-sans">받은 전체 좋아요</p>
+                  <p className="text-xs font-extrabold text-red-500 mt-0.5">{userStats.likes} ❤️</p>
+                </div>
+              </div>
+
+              {/* Next Tier Message */}
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-center">
+                {userStats.likes >= 1000 ? (
+                  <p className="text-xs font-bold text-yellow-600">👑 최고 등급인 '독서의 신'을 달성하셨습니다!</p>
+                ) : (
+                  (() => {
+                    const nextTierInfo = 
+                      userStats.likes < 10 ? { name: "성실한 책벌레 (실버)", req: 10 } :
+                      userStats.likes < 100 ? { name: "박학다식 선비 (골드)", req: 100 } :
+                      userStats.likes < 300 ? { name: "독서 현자 (플래티넘)", req: 300 } :
+                      userStats.likes < 500 ? { name: "도서 제왕 (다이아몬드)", req: 500 } :
+                      { name: "독서의 신 (마스터)", req: 1000 };
+                    
+                    const needed = nextTierInfo.req - userStats.likes;
+                    return (
+                      <p className="text-[11px] font-semibold text-gray-600 leading-relaxed">
+                        다음 등급 <span className="font-extrabold text-purple-700">{nextTierInfo.name}</span>까지<br />
+                        앞으로 <span className="font-extrabold text-red-500">{needed}개</span>의 좋아요가 더 필요합니다!
+                      </p>
+                    );
+                  })()
+                )}
+              </div>
+
+              {/* Tier Chart */}
+              <div>
+                <h4 className="text-[10px] font-bold text-gray-400 mb-2">등급별 달성 조건</h4>
+                <div className="border border-gray-100 rounded-xl overflow-hidden text-[11px]">
+                  <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-100 font-bold p-2 text-gray-500">
+                    <div>등급 (티어)</div>
+                    <div className="text-right">좋아요 컷</div>
+                  </div>
+                  <div className="space-y-0.5 p-1 bg-white max-h-[180px] overflow-y-auto">
+                    {[
+                      { name: "👑 마스터", desc: "독서의 신", cut: "1,000" },
+                      { name: "💎 다이아몬드", desc: "도서 제왕", cut: "500" },
+                      { name: "✨ 플래티넘", desc: "독서 현자", cut: "300" },
+                      { name: "🥇 골드", desc: "박학다식 선비", cut: "100" },
+                      { name: "🥈 실버", desc: "성실한 책벌레", cut: "10" },
+                      { name: "🥉 브론즈", desc: "새싹 독서가", cut: "0" },
+                    ].map((t, idx) => {
+                      const isCurrent = (
+                        (t.cut === "1,000" && userStats.likes >= 1000) ||
+                        (t.cut === "500" && userStats.likes >= 500 && userStats.likes < 1000) ||
+                        (t.cut === "300" && userStats.likes >= 300 && userStats.likes < 500) ||
+                        (t.cut === "100" && userStats.likes >= 100 && userStats.likes < 300) ||
+                        (t.cut === "10" && userStats.likes >= 10 && userStats.likes < 100) ||
+                        (t.cut === "0" && userStats.likes < 10)
+                      );
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`grid grid-cols-2 p-1.5 rounded-lg ${
+                            isCurrent 
+                              ? "bg-purple-50 text-purple-700 font-bold border border-purple-100/50" 
+                              : "text-gray-600"
+                          }`}
+                        >
+                          <div>{t.name} <span className="text-[9px] text-gray-400 font-normal">({t.desc})</span></div>
+                          <div className="text-right font-mono">{t.cut}개</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
