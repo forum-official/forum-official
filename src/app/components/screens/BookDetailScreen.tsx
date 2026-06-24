@@ -1230,6 +1230,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         )}
 
         {/* Option 3 Ad Placeholder */}
+        {false && (
         <div className="bg-gradient-to-br from-indigo-50/80 to-purple-50/80 border border-indigo-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-1.5 right-2 bg-indigo-600/10 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-indigo-200">
             광고
@@ -1258,6 +1259,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
             </div>
           </div>
         </div>
+        )}
 
         {/* Related Discussions */}
         {relatedDiscussions.length > 0 && (

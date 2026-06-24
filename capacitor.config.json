@@ -2,10 +2,6 @@
   "appId": "com.forumofficial.app",
   "appName": "포룸",
   "webDir": "dist",
-  "server": {
-    "url": "https://forum-official.vercel.app",
-    "cleartext": true
-  },
   "plugins": {
     "AdMob": {
       "initializeOnJS": true

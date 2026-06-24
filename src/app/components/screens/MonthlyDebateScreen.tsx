@@ -509,7 +509,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                     </motion.div>
                   );
 
-                  if (index === 3) {
+                  if (false && index === 3) {
                     return [
                       <motion.div
                         key="inline-ad-debates"
