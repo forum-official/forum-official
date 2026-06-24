@@ -454,10 +454,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
 
-        // 3초 타임아웃 경주 적용하여 네트워크 먹통 시 무한대기 차단
+        // 10초 타임아웃 경주 적용하여 네트워크 먹통 시 무한대기 차단
         const authResponse = await Promise.race([
           updateAuthPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase Auth 메타데이터 업데이트 타임아웃 (3초)")), 3000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase Auth 메타데이터 업데이트 타임아웃 (10초)")), 10000))
         ]);
         
         const { data: updateData, error: authError } = authResponse;
@@ -480,7 +480,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           const dbResponse = await Promise.race([
             updateDbPromise,
-            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase profiles DB 업데이트 타임아웃 (3초)")), 3000))
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase profiles DB 업데이트 타임아웃 (10초)")), 10000))
           ]);
 
           const { error: dbError } = dbResponse;
