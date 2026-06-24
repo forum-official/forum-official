@@ -46,8 +46,10 @@ const getBookSortScore = (book: any) => {
 
 // 도서 제목과 저자로 popularBooksData에서 원래 도서 객체를 찾는 함수
 const findOriginalBook = (title: string, author: string) => {
+  if (!title || typeof title !== "string") return null;
   const cleanTitle = getMatchingClassicTitle(title) || title;
   return popularBooksData.find(b => {
+    if (!b || !b.title || typeof b.title !== "string") return false;
     const bClassic = getMatchingClassicTitle(b.title) || b.title;
     return bClassic.toLowerCase() === cleanTitle.toLowerCase() || b.title.toLowerCase() === title.toLowerCase();
   });
@@ -55,7 +57,9 @@ const findOriginalBook = (title: string, author: string) => {
 
 // 인생 책 목록을 순위대로 정렬하는 함수
 const sortLifeBooks = (books: LifeBookItem[]): LifeBookItem[] => {
-  return [...books].sort((a, b) => {
+  if (!Array.isArray(books)) return [];
+  const validBooks = books.filter(b => b && b.title && typeof b.title === "string");
+  return [...validBooks].sort((a, b) => {
     const originalA = findOriginalBook(a.title, a.author);
     const originalB = findOriginalBook(b.title, b.author);
     
