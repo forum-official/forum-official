@@ -458,7 +458,11 @@ export function EditReadingTasteModal({ onClose, initialTab = "author" }: EditRe
           updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase 전체 에러:", error);
+        alert(`[저장 실패]\n메시지: ${error.message}\n상세(details): ${error.details || '없음'}\n힌트(hint): ${error.hint || '없음'}`);
+        throw error;
+      }
 
       // 3. 성공 시 모달 닫기 로직 및 로컬 상태 동기화
       alert('성공적으로 저장되었습니다!');
@@ -475,7 +479,10 @@ export function EditReadingTasteModal({ onClose, initialTab = "author" }: EditRe
       onClose(); 
     } catch (error: any) {
       console.error('저장 에러:', error);
-      alert(`저장 중 오류가 발생했습니다: ${error.message}`);
+      // 이미 위에서 에러 alert을 띄웠으므로, 여기서 이중 alert 방지
+      if (!error.details) {
+        alert(`저장 중 오류가 발생했습니다: ${error.message}`);
+      }
     } finally {
       setIsSaving(false); // ★무슨 일이 있어도 무조건 로딩 해제★
     }
