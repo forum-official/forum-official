@@ -83,9 +83,9 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
       });
       toast.success("프로필이 수정되었습니다");
       onClose();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("프로필 저장 중 오류가 발생했습니다.");
+      alert(e.message || "프로필 저장 중 오류가 발생했습니다.");
     } finally {
       setIsSaving(false);
     }

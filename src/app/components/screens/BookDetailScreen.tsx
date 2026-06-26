@@ -32,6 +32,34 @@ interface BookDetailScreenProps {
   isForcedMobile?: boolean;
 }
 
+const DEBATE_TOPICS_ISBN_MAP: Record<string, string[]> = {
+  "1984": ["9788937460777", "9788954625296", "9788932910048", "9788998055271", "9788932473956"],
+  "호밀밭의 파수꾼": ["9788937460470", "9788937437540", "9788937420474"],
+  "이방인": ["9788937460876", "9788954617482", "9788932916491"],
+  "동물농장": ["9788937460050", "9788954625289", "9788932910055"],
+  "멋진 신세계": ["9788931003666", "9788932473215"],
+  "죄와 벌": ["9788937460296", "9788937460302", "9788954637954"],
+  "데미안": ["9788937460449", "9788954622080", "9788932909981"],
+  "변신": ["9788932910017", "9788937460364"],
+  "페스트": ["9788937461804", "9788932916897"],
+};
+
+const getBookIsbn13 = (b: any) => {
+  if (b.isbn13) return b.isbn13;
+  const localIsbns: Record<string, string> = {
+    "1984": "9788937460777",
+    "이방인": "9788937460876",
+    "호밀밭의 파수꾼": "9788937460470",
+    "동물농장": "9788937460050",
+    "멋진 신세계": "9788931003666",
+    "죄와 벌": "9788937460296",
+    "데미안": "9788937460449",
+    "변신": "9788932910017",
+    "페스트": "9788937461804",
+  };
+  return localIsbns[b.title] || localIsbns[b.id] || "";
+};
+
 export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserClick, onLoginRequired, discussions, onDiscussionClick, debateTopics, onDebateClick, onVote, onAuthorClick, isForcedMobile = false }: BookDetailScreenProps) {
   const { isAuthenticated, user } = useAuth();
   const userId = user?.userId || "guest";
@@ -100,7 +128,8 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         res.push(p);
       }
     });
-    return res.map((pub: any) => ({
+    const filteredPubs = res.filter((p: any) => p.name !== "출판사 미상");
+    return filteredPubs.map((pub: any) => ({
       name: pub.name,
       votes: getWorkPublisherVotes(workKey, pub.name)
     }));
@@ -116,7 +145,8 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         res.push(p);
       }
     });
-    return res.map((pub: any) => ({
+    const filteredPubs = res.filter((p: any) => p.name !== "출판사 미상");
+    return filteredPubs.map((pub: any) => ({
       name: pub.name,
       votes: getWorkPublisherVotes(workKey, pub.name)
     }));
@@ -804,13 +834,37 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
     : "0.0";
   const totalRatingCount = combinedStats.reviewsCount + combinedStats.quickCount;
 
-  // 관련 토론 필터링
+  const currentIsbn = getBookIsbn13(book);
+  const editionDebateIsbns = [
+    "9788937460777", "9788954625296", "9788932910048", "9788998055271", "9788932473956", // 1984
+    "9788937460876", "9788954617482", "9788932916491", // 이방인
+    "9788937460470", // 호밀밭의 파수꾼
+    "9788937460050", "9788954625289", "9788932910055", // 동물농장
+    "9788931003666", "9788932473215", // 멋진 신세계
+    "9788937460296", "9788937460302", "9788954637954", // 죄와 벌
+    "9788937460449", "9788954622080", "9788932909981", // 데미안
+    "9788932910017", "9788937460364", // 변신
+    "9788937461804", "9788932916897"  // 페스트
+  ];
+  const isEditionDebateTarget = !!(currentIsbn && editionDebateIsbns.includes(currentIsbn));
+
+  // 관련 토론 필터링 (isbn13 기준 1:1 일치 강화)
   const relatedDiscussions = discussions?.filter((discussion) => {
-    // 1. 관련 도서 ID가 지정되어 있는 경우 ID로 일치 검사 (workKey도 호환되도록 비교 대상 확장)
     if (discussion.relatedBookId) {
-      return discussion.relatedBookId === book.id || discussion.relatedBookId === workKey;
+      return discussion.relatedBookId === book.id || 
+             discussion.relatedBookId === workKey ||
+             (currentIsbn && discussion.relatedBookId === currentIsbn);
     }
-    // 2. 도서 ID가 지정되어 있지 않은 경우 차선책으로 텍스트 포함 여부 검사
+    
+    // 1984 등 주요 고전 키워드가 엇갈려 렌더링되지 않도록 방어막 형성
+    const allowedIsbns = DEBATE_TOPICS_ISBN_MAP["1984"];
+    if (allowedIsbns && allowedIsbns.includes(currentIsbn)) {
+      return discussion.title.includes("1984") || discussion.description.includes("1984");
+    }
+    if (discussion.title.includes("1984") || discussion.description.includes("1984")) {
+      return false;
+    }
+
     const bookTitle = book.title.toLowerCase();
     const workTitle = workKey.toLowerCase();
     const cleanAuthor = bookAuthor.toLowerCase();
@@ -824,8 +878,14 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
            discussionOptions.includes(workTitle);
   }) || [];
 
-  // 찬반토론 필터링
+  // 찬반토론 필터링 (isbn13 기준 1:1 일치 강화)
   const relatedDebates = (debateTopics?.filter((debate) => {
+    const allowedIsbns = DEBATE_TOPICS_ISBN_MAP[debate.bookTitle];
+    if (allowedIsbns && currentIsbn) {
+      return allowedIsbns.includes(currentIsbn);
+    }
+    if (debate.bookTitle === "1984") return false; // 1984는 무조건 ISBN이 일치해야 함
+    
     const cleanBook = book.title.replace(/\s+/g, "").toLowerCase();
     const cleanWork = workKey.replace(/\s+/g, "").toLowerCase();
     const cleanDebate = debate.bookTitle.replace(/\s+/g, "").toLowerCase();
@@ -1089,8 +1149,8 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
             )}
           </div>
 
-          {/* Publisher Vote */}
-          {sortedPublishers.length >= 2 && (
+          {/* Publisher Vote - 판본토론 조건부 노출 */}
+          {isEditionDebateTarget && sortedPublishers.length >= 2 && (
             <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-white lg:bg-white lg:bg-none rounded-2xl p-5 shadow-lg lg:shadow-none border border-purple-100 lg:border-slate-200">
               <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
                 📚 판본 토론

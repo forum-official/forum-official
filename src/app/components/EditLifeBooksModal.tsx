@@ -306,8 +306,9 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
       await updateProfile({ lifeBooks });
       toast.success("인생 책이 성공적으로 저장되었습니다!");
       onClose();
-    } catch (error) {
-      toast.error("저장 중 오류가 발생했습니다.");
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "저장 중 오류가 발생했습니다.");
     } finally {
       setIsSaving(false);
     }

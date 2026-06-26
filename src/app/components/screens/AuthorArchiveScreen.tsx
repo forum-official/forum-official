@@ -1,7 +1,6 @@
-import { ArrowLeft, Search, BookOpen, Award, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Loader2 } from "lucide-react";
 import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { ScreenHeader } from "@/app/components/ScreenHeader";
 import { popularBooksData } from "@/app/data/booksData";
 import type { Book } from "@/app/data/booksData";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -22,7 +21,6 @@ interface AuthorArchiveScreenProps {
 }
 
 export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, selectedAuthor: initialSelectedAuthor, onAuthorClick, onBookClick }: AuthorArchiveScreenProps) {
-  // sessionStorage로 필터 상태 유지 (작가 상세에서 돌아와도 유지)
   const [searchQuery, setSearchQuery] = useState(
     () => sessionStorage.getItem('authorArchive_search') || ""
   );
@@ -33,9 +31,14 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [displayCount, setDisplayCount] = useState(20);
 
-  // useMemo: 맴 렌더마다 불필요한 재계산 방지 (쫙 클릭 시 무한증식 방지)
   const allBooks = useMemo(() => getGlobalBooks(popularBooksData), []);
   const authors = useMemo(() => getAuthorsList(allBooks), [allBooks]);
+
+  // 검색/필터가 완료된 작가 배열 상태
+  const [filteredAuthorsList, setFilteredAuthorsList] = useState<any[]>(() => {
+    return [...authors].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  });
+  const [isSearchingApi, setIsSearchingApi] = useState(false);
 
   // 필터 변경 시 sessionStorage 저장 및 displayCount 리셋
   useEffect(() => {
@@ -54,14 +57,76 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
       scrollContainerRef.current.scrollTop = scrollPosition;
     }
   }, [scrollPosition]);
-  
-  const [apiAuthors, setApiAuthors] = useState<any[]>([]);
-  const [isSearchingApi, setIsSearchingApi] = useState(false);
 
-  // 온라인 작가 검색 (디비에 없는 작가 대응)
+  // 톨스토이 중복 제거 함수
+  const deduplicateAuthors = (list: any[]) => {
+    const uniqueList: any[] = [];
+    list.forEach(author => {
+      const name = author.name.trim();
+      const cleanName = name.replace(/\s+/g, "").toLowerCase();
+      const cleanEn = (author.nameEn || "").replace(/\s+/g, "").toLowerCase();
+      
+      const isDuplicate = uniqueList.some(existing => {
+        const exName = existing.name.trim();
+        const exCleanName = exName.replace(/\s+/g, "").toLowerCase();
+        const exCleanEn = (existing.nameEn || "").replace(/\s+/g, "").toLowerCase();
+        
+        // 1. 영어 이름 일치 (최소 4자 이상 핵심 Last name)
+        if (cleanEn && exCleanEn && (cleanEn.includes(exCleanEn) || exCleanEn.includes(cleanEn))) {
+          const minLen = Math.min(cleanEn.length, exCleanEn.length);
+          if (minLen > 3) return true;
+        }
+        
+        // 2. 한글 이름 일치 (김영하, 김유정처럼 2자 이상 포함관계)
+        if (cleanName.includes(exCleanName) || exCleanName.includes(cleanName)) {
+          const minLen = Math.min(cleanName.length, exCleanName.length);
+          if (minLen >= 2) return true;
+        }
+        
+        // 3. 특수 정규화 매칭 (톨스토이)
+        if (cleanName.includes("톨스토이") && exCleanName.includes("톨스토이")) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      if (!isDuplicate) {
+        uniqueList.push(author);
+      } else {
+        // 이미 uniqueList에 존재하는 작가와 병합
+        const idx = uniqueList.findIndex(existing => {
+          const exCleanName = existing.name.trim().replace(/\s+/g, "").toLowerCase();
+          return cleanName.includes(exCleanName) || exCleanName.includes(cleanName) ||
+                 (cleanName.includes("톨스토이") && exCleanName.includes("톨스토이"));
+        });
+        if (idx !== -1) {
+          const existing = uniqueList[idx];
+          const hasBetterImage = !existing.imageUrl && author.imageUrl;
+          const hasBetterDesc = (!existing.description || existing.description.length < 35) && author.description && author.description.length > 35;
+          if (hasBetterImage || hasBetterDesc) {
+            uniqueList[idx] = {
+              ...existing,
+              imageUrl: author.imageUrl || existing.imageUrl,
+              description: author.description || existing.description,
+              nameEn: author.nameEn.length > existing.nameEn.length ? author.nameEn : existing.nameEn,
+            };
+          }
+        }
+      }
+    });
+    return uniqueList;
+  };
+
+  // Promise.all 기반 로컬+외부 동기식 조회 useEffect
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setApiAuthors([]);
+    const query = searchQuery.trim();
+    if (!query) {
+      let list = authors;
+      if (selectedCountry !== "전체") {
+        list = list.filter(a => a.nationality === selectedCountry);
+      }
+      setFilteredAuthorsList([...list].sort((a, b) => a.name.localeCompare(b.name, 'ko')));
       setIsSearchingApi(false);
       return;
     }
@@ -70,196 +135,204 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
 
     const delayDebounce = setTimeout(async () => {
       try {
-        const query = searchQuery.trim();
-        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
-        const html = await fetchHtmlViaProxy(targetUrl);
-        
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
-        
-        const authorBooksMap = new Map<string, any[]>();
-        
-        boxes.forEach((box) => {
-          try {
-            const titleSpan = box.querySelector(".b_book_t");
-            const titleLink = box.querySelector("a.bo3");
-            const title = (titleSpan?.textContent || titleLink?.textContent || "").trim();
-            if (!title) return;
-            
-            let author = "";
-            let publisher = "";
-            let year = 2024;
-            
-            const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
-            let foundMetadata = false;
-            
-            for (let i = 0; i < listItems.length; i++) {
-              const text = listItems[i].textContent || "";
-              if (!foundMetadata && text.includes("|")) {
-                const parts = text.split("|").map(p => p.trim());
-                const isShoppingOrPricing = 
-                  /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
-                  (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
-                  
-                const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing;
-                if (isMetadataLine) {
-                  author = cleanAladinAuthors(parts[0] || "");
-                  publisher = parts[1].replace(/\s*\([^)]+\)/g, "").trim();
-                  if (parts[2]) {
-                    const yearMatch = parts[2].match(/\d{4}/);
-                    if (yearMatch) year = parseInt(yearMatch[0]);
-                  } else {
-                    const yearMatch = parts[1].match(/\d{4}/);
-                    if (yearMatch) year = parseInt(yearMatch[0]);
+        // 1. 로컬 매칭
+        const queryLower = query.toLowerCase();
+        const localMatches = authors.filter(
+          (a) => a.name.toLowerCase().includes(queryLower) || a.nameEn.toLowerCase().includes(queryLower)
+        );
+        const specialMatches = specialFallbackAuthors.filter(
+          (a) => a.name.toLowerCase().includes(queryLower) || a.nameEn.toLowerCase().includes(queryLower)
+        );
+        const mergedLocal = [...localMatches];
+        specialMatches.forEach(spec => {
+          if (!mergedLocal.some(l => l.id === spec.id)) {
+            mergedLocal.push(spec);
+          }
+        });
+
+        // 2. 외부 알라딘 및 위키백과 조회 (Promise.all)
+        let dynamicAuthors: any[] = [];
+        try {
+          const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
+          const html = await fetchHtmlViaProxy(targetUrl);
+          
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
+          const authorBooksMap = new Map<string, any[]>();
+          
+          boxes.forEach((box) => {
+            try {
+              const titleSpan = box.querySelector(".b_book_t");
+              const titleLink = box.querySelector("a.bo3");
+              const title = (titleSpan?.textContent || titleLink?.textContent || "").trim();
+              if (!title) return;
+              
+              let author = "";
+              let publisher = "";
+              let year = 2024;
+              
+              const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
+              let foundMetadata = false;
+              
+              for (let i = 0; i < listItems.length; i++) {
+                const text = listItems[i].textContent || "";
+                if (!foundMetadata && text.includes("|")) {
+                  const parts = text.split("|").map(p => p.trim());
+                  const isShoppingOrPricing = 
+                    /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
+                    (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
+                    
+                  const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing;
+                  if (isMetadataLine) {
+                    author = cleanAladinAuthors(parts[0] || "");
+                    publisher = parts[1].replace(/\s*\([^)]+\)/g, "").trim();
+                    if (parts[2]) {
+                      const yearMatch = parts[2].match(/\d{4}/);
+                      if (yearMatch) year = parseInt(yearMatch[0]);
+                    } else {
+                      const yearMatch = parts[1].match(/\d{4}/);
+                      if (yearMatch) year = parseInt(yearMatch[0]);
+                    }
+                    foundMetadata = true;
                   }
-                  foundMetadata = true;
                 }
               }
-            }
-            
-            if (author && author !== "저자 미상") {
-              const individualAuthors = author.split(',')
-                .map(a => a.trim())
-                .filter(a => a && !isOrganization(a));
               
-              individualAuthors.forEach(indAuthor => {
-                const lowerQuery = query.toLowerCase();
-                const lowerAuthor = indAuthor.toLowerCase();
+              if (author && author !== "저자 미상") {
+                const individualAuthors = author.split(',')
+                  .map(a => a.trim())
+                  .filter(a => a && !isOrganization(a));
                 
-                if (lowerAuthor.includes(lowerQuery) || lowerQuery.includes(lowerAuthor)) {
-                  if (!authorBooksMap.has(indAuthor)) {
-                    authorBooksMap.set(indAuthor, []);
+                individualAuthors.forEach(indAuthor => {
+                  const lowerQuery = query.toLowerCase();
+                  const lowerAuthor = indAuthor.toLowerCase();
+                  if (lowerAuthor.includes(lowerQuery) || lowerQuery.includes(lowerAuthor)) {
+                    if (!authorBooksMap.has(indAuthor)) {
+                      authorBooksMap.set(indAuthor, []);
+                    }
+                    const currentBooks = authorBooksMap.get(indAuthor)!;
+                    const matchedDbAuthor = getBestAuthorMatch(indAuthor, { title, year, description: "" });
+                    if (matchedDbAuthor !== null) return;
+                    if (!currentBooks.some(b => b.title === title)) {
+                      currentBooks.push({ title, year, publishers: publisher ? [publisher] : ["민음사"] });
+                    }
                   }
-                  const currentBooks = authorBooksMap.get(indAuthor)!;
-                  
-                  // 동명이인 데이터베이스 작가가 있고, 이 책이 그 작가의 책이라면 동적 작가 결과에서 배제시킵니다.
-                  const matchedDbAuthor = getBestAuthorMatch(indAuthor, { title, year, description: "" });
-                  if (matchedDbAuthor !== null) {
-                    return;
-                  }
-
-                  if (!currentBooks.some(b => b.title === title)) {
-                    currentBooks.push({
-                      title,
-                      year,
-                      publishers: publisher ? [publisher] : ["민음사"]
-                    });
-                  }
-                }
-              });
+                });
+              }
+            } catch (e) {
+              console.error("Error parsing box in archive search:", e);
             }
-          } catch (e) {
-            console.error("Error parsing box in archive search:", e);
-          }
-        });
+          });
 
-        const dynamicAuthorsToFetch: string[] = [];
-        authorBooksMap.forEach((books, authorName) => {
-          const existsLocally = authors.some(
-            a => a.name.toLowerCase() === authorName.toLowerCase()
-          );
-          if (!existsLocally && !isOrganization(authorName)) {
-            dynamicAuthorsToFetch.push(authorName);
-          }
-        });
+          const dynamicAuthorsToFetch: string[] = [];
+          authorBooksMap.forEach((books, authorName) => {
+            const existsLocally = authors.some(a => a.name.toLowerCase() === authorName.toLowerCase());
+            if (!existsLocally && !isOrganization(authorName)) {
+              dynamicAuthorsToFetch.push(authorName);
+            }
+          });
 
-        // 최대 3개까지만 Wikipedia API 호출하여 속도 조절
-        const topDynamicAuthors = dynamicAuthorsToFetch.slice(0, 3);
-        
-        const dynamicAuthorsDetails = await Promise.all(
-          topDynamicAuthors.map(async (authorName) => {
-            let wikiTitle = authorName;
-            let nameEn = authorName;
-            let nationality = "미상";
-            let imageUrl = "";
-            let description = `${authorName} 작가에 대한 정보입니다.`;
-            let genre = ["소설"];
-            
-            try {
-              const isKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(authorName);
-              const domain = isKorean ? "ko" : "en";
-              const wikiApiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(authorName.trim().replace(/ /g, "_"))}`;
+          const topDynamicAuthors = dynamicAuthorsToFetch.slice(0, 3);
+          dynamicAuthors = await Promise.all(
+            topDynamicAuthors.map(async (authorName) => {
+              let wikiTitle = authorName;
+              let nameEn = authorName;
+              let nationality = "미상";
+              let imageUrl = "";
+              let description = `${authorName} 작가에 대한 정보입니다.`;
+              let genre = ["소설"];
               
-              const res = await fetch(wikiApiUrl);
-              
-              if (res.ok) {
-                const data = await res.json();
-                
-                const isDisambiguation = 
-                  data.type === "disambiguation" ||
-                  (data.extract && (
-                    data.extract.includes("다음 사람을 가리킨다") ||
-                    data.extract.includes("다음을 가리킨다") ||
-                    data.extract.includes("동명이인")
-                  ));
-                  
-                if (!isDisambiguation) {
-                  wikiTitle = data.title || authorName;
-                  nameEn = data.title ? data.title.replace(/_/g, ' ') : authorName;
-                  imageUrl = data.thumbnail?.source || "";
-                  
-                  if (data.extract) {
-                    description = data.extract;
-                    
-                    if (data.extract.includes("대한민국") || data.extract.includes("한국의") || data.extract.includes("조선")) {
-                      nationality = "한국";
-                    } else if (data.extract.includes("프랑스")) {
-                      nationality = "프랑스";
-                    } else if (data.extract.includes("미국")) {
-                      nationality = "미국";
-                    } else if (data.extract.includes("영국")) {
-                      nationality = "영국";
-                    } else if (data.extract.includes("일본")) {
-                      nationality = "일본";
-                    } else if (data.extract.includes("독일")) {
-                      nationality = "독일";
-                    } else if (data.extract.includes("러시아")) {
-                      nationality = "러시아";
+              try {
+                const isKorean = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(authorName);
+                const domain = isKorean ? "ko" : "en";
+                const wikiApiUrl = `https://${domain}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(authorName.trim().replace(/ /g, "_"))}`;
+                const res = await fetch(wikiApiUrl);
+                if (res.ok) {
+                  const data = await res.json();
+                  const isDisambiguation = 
+                    data.type === "disambiguation" ||
+                    (data.extract && (
+                      data.extract.includes("다음 사람을 가리킨다") ||
+                      data.extract.includes("다음을 가리킨다") ||
+                      data.extract.includes("동명이인")
+                    ));
+                  if (!isDisambiguation) {
+                    wikiTitle = data.title || authorName;
+                    nameEn = data.title ? data.title.replace(/_/g, ' ') : authorName;
+                    imageUrl = data.thumbnail?.source || "";
+                    if (data.extract) {
+                      description = data.extract;
+                      if (data.extract.includes("대한민국") || data.extract.includes("한국의") || data.extract.includes("조선")) {
+                        nationality = "한국";
+                      } else if (data.extract.includes("프랑스")) {
+                        nationality = "프랑스";
+                      } else if (data.extract.includes("미국")) {
+                        nationality = "미국";
+                      } else if (data.extract.includes("영국")) {
+                        nationality = "영국";
+                      } else if (data.extract.includes("일본")) {
+                        nationality = "일본";
+                      } else if (data.extract.includes("독일")) {
+                        nationality = "독일";
+                      } else if (data.extract.includes("러시아")) {
+                        nationality = "러시아";
+                      }
                     }
                   }
                 }
+              } catch (err) {
+                console.error(`Failed to fetch Wikipedia bio for ${authorName}:`, err);
               }
-            } catch (err) {
-              console.error(`Failed to fetch Wikipedia bio for dynamic author ${authorName}:`, err);
-            }
-            
-            let hash = 0;
-            for (let i = 0; i < authorName.length; i++) {
-              hash = authorName.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const id = 10000 + Math.abs(hash % 90000);
-            
-            const books = authorBooksMap.get(authorName) || [];
-            const representative = books.slice(0, 3).map(b => b.title);
-            
-            return {
-              id,
-              name: authorName,
-              nameEn,
-              nationality,
-              birth: "미상",
-              genre,
-              description,
-              representative,
-              books,
-              awards: [],
-              imageUrl,
-              wikiTitle
-            };
-          })
-        );
+              
+              let hash = 0;
+              for (let i = 0; i < authorName.length; i++) {
+                hash = authorName.charCodeAt(i) + ((hash << 5) - hash);
+              }
+              const id = 10000 + Math.abs(hash % 90000);
+              const books = authorBooksMap.get(authorName) || [];
+              const representative = books.slice(0, 3).map(b => b.title);
+              
+              return {
+                id,
+                name: authorName,
+                nameEn,
+                nationality,
+                birth: "미상",
+                genre,
+                description,
+                representative,
+                books,
+                awards: [],
+                imageUrl,
+                wikiTitle
+              };
+            })
+          );
+        } catch (apiErr) {
+          console.error("API search failed:", apiErr);
+        }
+
+        // 3. 병합 및 중복 제거
+        const merged = [...mergedLocal, ...dynamicAuthors];
+        const deduplicated = deduplicateAuthors(merged);
+
+        // 4. 국가 필터링 및 정렬
+        let finalAuthors = deduplicated;
+        if (selectedCountry !== "전체") {
+          finalAuthors = finalAuthors.filter(a => a.nationality === selectedCountry);
+        }
         
-        setApiAuthors(dynamicAuthorsDetails);
+        setFilteredAuthorsList(finalAuthors.sort((a, b) => a.name.localeCompare(b.name, 'ko')));
       } catch (error) {
-        console.error("Error in online author search:", error);
+        console.error("Error in combined search:", error);
       } finally {
         setIsSearchingApi(false);
       }
     }, 600);
 
     return () => clearTimeout(delayDebounce);
-  }, [searchQuery, authors]);
+  }, [searchQuery, selectedCountry, authors]);
 
   // 초기 선택된 작가가 있으면 자동으로 해당 작가 상세 정보 표시
   useEffect(() => {
@@ -269,7 +342,6 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
         onAuthorClick(author);
       }
     }
-  // authors는 의존성에서 제외: initialSelectedAuthor가 변할 때만 실행
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSelectedAuthor]);
 
@@ -279,80 +351,6 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
     ...Array.from(new Set(authors.map(a => a.nationality).filter(n => n && n !== "기타")))
       .sort((a, b) => a.localeCompare(b, 'ko'))
   ], [authors]);
-
-  // 필터링 및 정렬
-  let filteredAuthors = authors;
-  
-  // 검색어 필터
-  if (searchQuery) {
-    const queryLower = searchQuery.toLowerCase();
-    const localMatches = authors.filter(
-      (author) =>
-        author.name.toLowerCase().includes(queryLower) ||
-        author.nameEn.toLowerCase().includes(queryLower)
-    );
-    
-    const specialMatches = specialFallbackAuthors.filter(
-      (author) =>
-        author.name.toLowerCase().includes(queryLower) ||
-        author.nameEn.toLowerCase().includes(queryLower)
-    );
-    
-    // Merge without duplicate IDs
-    const mergedLocal = [...localMatches];
-    specialMatches.forEach(spec => {
-      if (!mergedLocal.some(l => l.id === spec.id)) {
-        mergedLocal.push(spec);
-      }
-    });
-    
-    filteredAuthors = mergedLocal;
-  }
-
-  // API 작가 목록과 병합 (중복 제거)
-  if (searchQuery) {
-    const merged = [...filteredAuthors];
-    apiAuthors.forEach(apiAuthor => {
-      const isDuplicate = merged.some(
-        localAuthor => 
-          localAuthor.name.toLowerCase() === apiAuthor.name.toLowerCase() &&
-          // 책이 겹치거나, 둘 다 fallback 작가(id = 0)인 경우에만 중복으로 간주하고 합칩니다.
-          (localAuthor.id === 0 || apiAuthor.books.some(b => 
-            localAuthor.books.some((lb: any) => lb.title.toLowerCase() === b.title.toLowerCase())
-          ))
-      );
-      if (!isDuplicate) {
-        merged.push(apiAuthor);
-      }
-    });
-    filteredAuthors = merged;
-  }
-
-  // 국가 필터
-  if (selectedCountry !== "전체") {
-    filteredAuthors = filteredAuthors.filter(author => author.nationality === selectedCountry);
-  }
-
-  // 가나다순 정렬
-  filteredAuthors = [...filteredAuthors].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-
-  const displayedAuthors = filteredAuthors.slice(0, displayCount);
-
-  const handleBookClick = (bookTitle: string, authorName: string) => {
-    // Find the book in popularBooksData
-    const book = allBooks.find(
-      (b) => b.title === bookTitle && b.author === authorName
-    );
-    
-    if (book) {
-      if (onBookClick) {
-        onBookClick(book);
-      }
-    } else {
-      // If book not found in data, alert user
-      toast.error(`${bookTitle}의 상세 정보가 아직 등록되지 않았습니다.`);
-    }
-  };
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white overflow-hidden">
@@ -384,7 +382,6 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
               <button
                 key={country}
                 onClick={() => {
-                  // 이미 선택된 국가를 다시 누르면 "전체"로 이동
                   if (selectedCountry === country && country !== "전체") {
                     setSelectedCountry("전체");
                   } else {
@@ -411,27 +408,23 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
           setScrollPosition(e.currentTarget.scrollTop);
           const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
           if (scrollTop + clientHeight >= scrollHeight - 150) {
-            setDisplayCount(prev => Math.min(prev + 15, filteredAuthors.length));
+            setDisplayCount(prev => Math.min(prev + 15, filteredAuthorsList.length));
           }
         }}
       >
         <div className="max-w-md mx-auto px-4 py-4">
-          {isSearchingApi && (
-            <div className="flex items-center justify-center py-3 gap-2 text-sm text-gray-500 bg-purple-50/50 rounded-xl mb-3 border border-purple-100/30">
-              <Loader2 className="size-4 animate-spin text-purple-500" />
-              <span>온라인에서 작가 검색 중...</span>
+          {isSearchingApi ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-sm text-gray-500">
+              <Loader2 className="size-8 animate-spin text-purple-500" />
+              <span className="font-bold text-gray-600">작가를 검색하고 있어요...</span>
             </div>
-          )}
-
-          {filteredAuthors.length === 0 ? (
+          ) : filteredAuthorsList.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">
-                {isSearchingApi ? "검색 중입니다..." : "검색 결과가 없습니다"}
-              </p>
+              <p className="text-gray-500 font-bold">검색 결과가 없습니다</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {displayedAuthors.map((author) => (
+              {filteredAuthorsList.slice(0, displayCount).map((author) => (
                 <Card
                   key={author.id}
                   className="p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group bg-white border border-gray-100/60 rounded-2xl"
@@ -455,7 +448,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
                         {author.nameEn} · {author.nationality}
                       </p>
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {(author.genre || []).slice(0, 3).map((g) => (
+                        {(author.genre || []).slice(0, 3).map((g: string) => (
                           <Badge key={g} variant="secondary" className="text-xs">
                             {g}
                           </Badge>
