@@ -193,84 +193,18 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
         }
       });
 
-      // 2. 알라딘 검색 API 연산
+      // 2. 알라딘 검색 API 연산 (Vercel api/aladin-search 프록시 직접 호출)
       let apiResults: LifeBookItem[] = [];
       try {
-        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}`;
-        const html = await fetchHtmlViaProxy(targetUrl);
+        const targetUrl = `/api/aladin-search?query=${encodeURIComponent(searchQuery)}&maxResults=10`;
+        const res = await fetch(targetUrl);
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.items || [];
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
-
-        boxes.forEach((box, index) => {
-          try {
-            // 이미지
-            const img = box.querySelector("img.front_cover") as HTMLImageElement | null;
-            let coverUrl = img?.src || "";
-            if (coverUrl.startsWith("//")) {
-              coverUrl = "https:" + coverUrl;
-            }
-            if (coverUrl.includes("cover200")) {
-              coverUrl = coverUrl.replace("cover200", "cover500");
-            } else if (coverUrl.includes("cover150")) {
-              coverUrl = coverUrl.replace("cover150", "cover500");
-            }
-
-            // 제목
-            let title = "";
-            const titleSpan = box.querySelector(".b_book_t");
-            const titleLink = box.querySelector("a.bo3");
-            if (titleSpan) {
-              title = titleSpan.textContent?.trim() || "";
-            } else if (titleLink) {
-              title = titleLink.textContent?.trim() || "";
-            }
-
-            if (!title) return;
-
-            // 메타데이터 파싱 (저자, 출판사)
-            let author = "저자 미상";
-            let publisher = "출판사 미상";
-            let foundMetadata = false;
-
-            const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
-            for (let i = 0; i < listItems.length; i++) {
-              const text = listItems[i].textContent || "";
-              if (!foundMetadata && text.includes("|")) {
-                const parts = text.split("|").map((p) => p.trim());
-                const isShoppingOrPricing =
-                  /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
-                  (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
-
-                const isMetadataLine =
-                  parts.length >= 2 &&
-                  !isShoppingOrPricing &&
-                  (text.includes("지은이") ||
-                    text.includes("옮긴이") ||
-                    text.includes("저자") ||
-                    text.includes("지음") ||
-                    text.includes("옮김") ||
-                    text.includes("역자") ||
-                    text.includes("저") ||
-                    text.includes("글") ||
-                    text.includes("그림") ||
-                    /\d{4}/.test(text));
-
-                if (isMetadataLine) {
-                  const authorPart = parts[0];
-                  author = authorPart
-                    .replace(/\(지은이\)|\(옮긴이\)|\(글\)|\(그림\)/g, "")
-                    .split(",")[0]
-                    .trim();
-                  
-                  publisher = parts[1] || "출판사 미상";
-                  foundMetadata = true;
-                }
-              }
-            }
-
-            const cleanTitle = getMatchingClassicTitle(title) || title;
+          items.forEach((item: any) => {
+            const cleanTitle = getMatchingClassicTitle(item.title) || item.title;
+            const publisher = item.publishers?.[0]?.name || "출판사 미상";
             const uniqueKey = `${cleanTitle}_${publisher}`.toLowerCase();
 
             if (!seenKeys.has(uniqueKey) && publisher !== "출판사 미상") {
@@ -278,28 +212,44 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
               apiResults.push({
                 workKey: cleanTitle,
                 publisher: publisher,
-                coverUrl: coverUrl,
+                coverUrl: item.coverUrl,
                 title: cleanTitle,
-                author: author,
+                author: item.author || "저자 미상",
               });
             }
-          } catch (e) {
-            console.error("Failed to parse Aladin search item:", e);
-          }
-        });
+          });
+        }
       } catch (err) {
-        console.error("API search failed:", err);
+        console.error("API search failed in EditLifeBooksModal:", err);
       } finally {
         // 로컬 매치와 API 결과를 결합하여 한 번에 바인딩
         const finalResults = [...localMatches];
+        
+        // 중복 이미지 및 중복 ID(ISBN) 방지를 위한 중복제거 필터링 적용
+        const seenCovers = new Set<string>();
+        const seenTitles = new Set<string>();
+        
+        // 로컬 매치 도서들의 이미지와 제목 캐시 기록
+        finalResults.forEach(r => {
+          if (r.coverUrl) seenCovers.add(r.coverUrl.trim());
+          seenTitles.add(`${r.title}_${r.publisher}`.toLowerCase());
+        });
+
         apiResults.forEach((item) => {
           const key = `${item.title}_${item.publisher}`.toLowerCase();
-          if (!finalResults.some((c) => `${c.title}_${c.publisher}`.toLowerCase() === key)) {
+          const cleanCover = (item.coverUrl || "").trim();
+          
+          const isDuplicateTitle = seenTitles.has(key);
+          const isDuplicateCover = cleanCover !== "" && seenCovers.has(cleanCover);
+          
+          if (!isDuplicateTitle && !isDuplicateCover) {
+            seenTitles.add(key);
+            if (cleanCover) seenCovers.add(cleanCover);
             finalResults.push(item);
           }
         });
 
-        // 랭킹 순 정렬이 가능하도록 popularBooksData 연동 정렬
+        // 랭킹 순 정렬
         const sortedFinal = finalResults.sort((a, b) => {
           const originalA = findOriginalBook(a.title, a.author);
           const originalB = findOriginalBook(b.title, b.author);
@@ -370,7 +320,7 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
           <div>
-            <h2 className="text-lg font-extrabold text-gray-800">나만의 인생 책 설정</h2>
+            <h2 className="text-lg font-extrabold text-gray-800">나의 인생 책 설정</h2>
             <p className="text-xs text-gray-400 mt-0.5">내 서재에 빛나는 인생 책을 최대 3권까지 전시해보세요.</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
@@ -380,7 +330,7 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
 
         {/* Selected Life Books Slots */}
         <div className="bg-gray-55/40 px-6 py-5 border-b border-gray-100 flex-shrink-0">
-          <span className="text-xs font-bold text-gray-500 block mb-3">선택된 인생 책 ({lifeBooks.length}/3)</span>
+          <span className="text-xs font-bold text-gray-500 block mb-3">선택된 나의 인생 책 ({lifeBooks.length}/3)</span>
           <div className="grid grid-cols-3 gap-3">
             {[0, 1, 2].map((idx) => {
               const book = lifeBooks[idx];

@@ -8,6 +8,7 @@ import { SettingsModal } from "@/app/components/SettingsModal";
 import { getUserActivityStats, getUserRecentBooks, getBookLikes, getBookRatingStatsWithQuick } from "@/app/utils/db";
 import { BookCover } from "@/app/components/BookCover";
 import { EditLifeBooksModal } from "@/app/components/EditLifeBooksModal";
+import { EditReadingTasteModal } from "@/app/components/EditReadingTasteModal";
 import { popularBooksData } from "@/app/data/booksData";
 import { getMatchingClassicTitle } from "@/app/utils/titleHelper";
 
@@ -109,6 +110,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
   const [isEditProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isEditLifeBooksOpen, setEditLifeBooksOpen] = useState(false);
+  const [isEditReadingTasteOpen, setEditReadingTasteOpen] = useState(false);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
 
   // UUID 식별자 감지 및 숨기기
@@ -285,9 +287,17 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
 
       {/* 내 취향 전시 태그 */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <h3 className="text-sm font-bold text-gray-800 mb-3.5 flex items-center gap-1.5">
-          <span>🎨</span> 나의 독서 취향
-        </h3>
+        <div className="flex items-center justify-between mb-3.5">
+          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+            <span>🎨</span> 나의 독서 취향
+          </h3>
+          <button 
+            onClick={() => setEditReadingTasteOpen(true)}
+            className="text-xs font-bold text-purple-600 hover:text-purple-700 transition-colors"
+          >
+            설정하기 ›
+          </button>
+        </div>
         <div className="space-y-4">
           <div>
             <span className="text-[11px] text-gray-400 block mb-2 font-semibold">인생 작가</span>
@@ -302,7 +312,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-gray-400 italic">프로필 수정에서 인생 작가를 등록해 보세요!</span>
+                <span className="text-xs text-gray-400 italic">설정하기 버튼을 눌러 인생 작가를 등록해 보세요!</span>
               )}
             </div>
           </div>
@@ -319,18 +329,18 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-gray-400 italic">프로필 수정에서 최애 출판사를 등록해 보세요!</span>
+                <span className="text-xs text-gray-400 italic">설정하기 버튼을 눌러 최애 출판사를 등록해 보세요!</span>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* 나만의 인생 책 (최대 3권) */}
+      {/* 나의 인생 책 (최대 3권) */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-3.5">
           <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-            <span>✨</span> 나만의 인생 책
+            <span>✨</span> 나의 인생 책
           </h3>
           <button 
             onClick={() => setEditLifeBooksOpen(true)}
@@ -363,7 +373,7 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-250 p-4">
+          <div className="text-center py-8 bg-gray-55/30 rounded-2xl border border-dashed border-gray-200 p-4">
             <p className="text-xs text-gray-400 font-semibold">아직 등록된 인생 책이 없습니다.</p>
             <p className="text-[10px] text-gray-400 mt-1">우측 상단 설정하기 버튼을 눌러 추가해보세요!</p>
           </div>
@@ -432,6 +442,9 @@ export function ProfileTab({ onLoginClick, onNavigate, onBookClick }: ProfileTab
       )}
       {isEditLifeBooksOpen && (
         <EditLifeBooksModal onClose={() => setEditLifeBooksOpen(false)} />
+      )}
+      {isEditReadingTasteOpen && (
+        <EditReadingTasteModal onClose={() => setEditReadingTasteOpen(false)} />
       )}
 
       {/* Tier Info Modal */}

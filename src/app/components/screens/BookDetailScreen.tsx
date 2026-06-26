@@ -17,7 +17,6 @@ import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMa
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
 import { UserTierBadge } from "@/app/components/UserTierBadge";
 
-
 interface BookDetailScreenProps {
   book: Book;
   workKey?: string;
@@ -67,7 +66,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
 
   const getAladinLink = () => {
     const isNumeric = /^\d+$/.test(book.id);
-    const partner = "ttbforum.official.dev0549001";
+    const partner = "ttbforum.official.dev0549002";
     if (isNumeric) {
       return `https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=${book.id}&partner=${partner}&start=api`;
     } else {
@@ -91,7 +90,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
     }
   });
 
-  const uniqueInitialPubs = (() => {
+  const [publisherVotes, setPublisherVotes] = useState(() => {
     const pubs = isClassic ? mergedPubs : bookPubs;
     const seen = new Set<string>();
     const res: any[] = [];
@@ -101,22 +100,28 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         res.push(p);
       }
     });
-    return res;
-  })();
-
-  const initialPubs = uniqueInitialPubs;
+    return res.map((pub: any) => ({
+      name: pub.name,
+      votes: getWorkPublisherVotes(workKey, pub.name)
+    }));
+  });
 
   const getPubVotesList = () => {
-    return initialPubs.map((pub: any) => {
-      return {
-        name: pub.name,
-        votes: getWorkPublisherVotes(workKey, pub.name)
-      };
+    const pubs = isClassic ? mergedPubs : bookPubs;
+    const seen = new Set<string>();
+    const res: any[] = [];
+    pubs.forEach((p: any) => {
+      if (p && p.name && !seen.has(p.name)) {
+        seen.add(p.name);
+        res.push(p);
+      }
     });
+    return res.map((pub: any) => ({
+      name: pub.name,
+      votes: getWorkPublisherVotes(workKey, pub.name)
+    }));
   };
 
-  const [publisherVotes, setPublisherVotes] = useState(getPubVotesList);
-  
   // 컴포넌트 마운트 시 스크롤을 최상단으로 이동
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -162,6 +167,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
   const [showReportModal, setShowReportModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+
   const findFallbackDescription = (): string => {
     const allBooks = getGlobalBooks(popularBooksData);
     for (const b of allBooks) {
@@ -399,7 +405,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
           .trim();
         
         const ttbQuery = `${cleanTitle} ${cleanAuth}`.trim();
-        const ttbUrl = `https://www.aladin.co.kr/ttb/api/ItemSearch.aspx?ttbkey=ttbforum.official.dev0549001&Query=${encodeURIComponent(ttbQuery)}&QueryType=Keyword&MaxResults=3&start=1&SearchTarget=Book&output=js&Version=20131101`;
+        const ttbUrl = `https://www.aladin.co.kr/ttb/api/ItemSearch.aspx?ttbkey=ttbforum.official.dev0549002&Query=${encodeURIComponent(ttbQuery)}&QueryType=Keyword&MaxResults=3&start=1&SearchTarget=Book&output=js&Version=20131101`;
         
         const proxyTtbUrl = `/api/proxy?url=${encodeURIComponent(ttbUrl)}`;
         const ttbRes = await fetch(proxyTtbUrl);
@@ -855,10 +861,10 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20 lg:bg-slate-50 lg:bg-none">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 z-10">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between max-w-md lg:max-w-[1200px] mx-auto">
           <button
             onClick={onBack}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -870,565 +876,552 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* Book Info */}
-        <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-6 shadow-sm border border-purple-100">
-          <div className="flex gap-5 mb-4">
-            <div className="w-32 flex-shrink-0 flex flex-col items-center">
-              {/* 내 별점 평가 (Quick Rating) */}
-              <div className="w-full bg-white rounded-xl py-2 px-1 border border-purple-100 flex flex-col items-center mb-3 shadow-sm">
-                <span className="text-[10px] text-purple-600 font-semibold mb-1">내 별점 남기기</span>
-                <div className="flex gap-0.5 justify-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => handleQuickRatingClick(star)}
-                      className="transition-transform active:scale-125 focus:outline-none"
-                    >
-                      <Star
-                        className={`w-4 h-4 ${
-                          star <= myQuickRating
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <BookCover 
-                title={book.title} 
-                author={bookAuthor} 
-                publisherName={activePublisher}
-                coverUrl={activeCoverUrl} 
-                className="w-full rounded-lg shadow-md"
-              />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-bold text-xl mb-2 leading-tight">{book.title}</h2>
-              <div className="flex flex-wrap items-center gap-x-1.5 text-gray-600 text-sm mb-1">
-                {splitAuthors(bookAuthor).map((authorName, index, arr) => (
-                  <span key={authorName} className="flex items-center">
-                    <span className="text-gray-600 font-medium">{authorName}</span>
-                    {index < arr.length - 1 && <span className="text-gray-400 select-none">,</span>}
-                  </span>
-                ))}
-              </div>
-              <p className="text-gray-500 text-xs mb-3">{book.publisher}</p>
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-3 text-xs sm:text-sm">
-                {totalRatingCount > 0 ? (
-                  <>
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6 lg:max-w-[1200px] lg:px-6 lg:grid lg:grid-cols-10 lg:gap-8 lg:space-y-0">
+        
+        {/* Left Column (60% - Book info, description, publisher vote) */}
+        <div className="lg:col-span-6 lg:space-y-6 space-y-6">
+          {/* Book Info */}
+          <div className="bg-gradient-to-br from-purple-50 to-white lg:bg-white lg:bg-none rounded-2xl p-6 shadow-sm lg:shadow-none border border-purple-100 lg:border-slate-200">
+            <div className="flex gap-5 mb-4">
+              <div className="w-32 flex-shrink-0 flex flex-col items-center">
+                {/* 내 별점 평가 (Quick Rating) */}
+                <div className="w-full bg-white rounded-xl py-2 px-1 border border-purple-100 lg:border-slate-200 flex flex-col items-center mb-3 shadow-sm lg:shadow-none">
+                  <span className="text-[10px] text-purple-600 font-semibold mb-1 lg:text-slate-500">내 별점 남기기</span>
+                  <div className="flex gap-0.5 justify-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => handleQuickRatingClick(star)}
+                        className="transition-transform active:scale-125 focus:outline-none"
+                      >
                         <Star
-                          key={i}
-                          className={`w-3.5 h-3.5 ${
-                            i < Math.floor(parseFloat(averageRating))
-                              ? "text-yellow-500 fill-yellow-500"
+                          className={`w-4 h-4 ${
+                            star <= myQuickRating
+                              ? "fill-yellow-400 text-yellow-400"
                               : "text-gray-300"
                           }`}
                         />
-                      ))}
-                    </div>
-                    <span className="font-semibold whitespace-nowrap">{averageRating}점</span>
-                    <span className="text-gray-500 whitespace-nowrap">({totalRatingCount}개의 독자 평가)</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 text-gray-300" />
-                      ))}
-                    </div>
-                    <span className="font-semibold whitespace-nowrap text-gray-400">평점 없음</span>
-                    <span className="text-gray-400 whitespace-nowrap">(0개의 독자 평가)</span>
-                  </>
-                )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <BookCover 
+                  title={book.title} 
+                  author={bookAuthor} 
+                  publisherName={activePublisher}
+                  coverUrl={activeCoverUrl} 
+                  className="w-full rounded-lg shadow-md"
+                />
               </div>
-            </div>
-          </div>
-
-          {/* 다른 출판사 표지 보기 */}
-          {(() => {
-            const seen = new Set<string>();
-            const uniqueCovers: any[] = [];
-            (book.alternativeCovers || []).forEach((c: any) => {
-              if (c && c.publisher && !seen.has(c.publisher)) {
-                seen.add(c.publisher);
-                uniqueCovers.push(c);
-              }
-            });
-
-            if (uniqueCovers.length < 2) return null;
-
-            return (
-              <div className="mt-2 bg-white rounded-xl p-3 border border-purple-100 shadow-sm w-full mb-4">
-                <span className="text-[11px] text-purple-600 font-bold block mb-2 text-center uppercase tracking-wide">다른 출판사 표지 보기</span>
-                <div 
-                  className="flex gap-3.5 overflow-x-auto pb-2 px-4 -mx-3 scrollbar-none justify-start md:justify-center"
-                  style={{
-                    display: "flex",
-                    overflowX: "auto",
-                    scrollbarWidth: "none",
-                    msOverflowStyle: "none"
-                  }}
-                >
-                  {uniqueCovers.map((item: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        // 캐싱된 진짜 이미지 URL이 있는지 로컬스토리지에서 정밀 확인
-                        const cacheKey = `cover_${book.title}_${bookAuthor}_${item.publisher}`;
-                        const cachedUrl = localStorage.getItem(cacheKey);
-                        
-                        const targetCoverUrl = (cachedUrl && cachedUrl !== "NO_COVER_FOUND") 
-                          ? cachedUrl 
-                          : (item.coverUrl || "");
-                          
-                        setActiveCoverUrl(targetCoverUrl);
-                        setActivePublisher(item.publisher);
-                      }}
-                      className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all shadow-xs ${
-                        activePublisher === item.publisher
-                          ? "border-purple-500 bg-purple-50/70 scale-105"
-                          : "border-gray-150 bg-gray-50/50 hover:bg-gray-100/70"
-                      }`}
-                      style={{
-                        flexShrink: 0,
-                        width: "80px"
-                      }}
-                    >
-                      <div className="w-12 h-16 pointer-events-none mb-1 flex-shrink-0">
-                        <BookCover 
-                          title={book.title} 
-                          author={bookAuthor} 
-                          publisherName={item.publisher} 
-                          coverUrl={item.coverUrl} 
-                          className="w-full h-full object-cover rounded-md shadow-md"
-                          allowPublisherFallback={false}
-                          allowDynamicFetch={true}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
-                        {item.publisher}
-                      </span>
-                    </button>
+              <div className="flex-1">
+                <h2 className="font-bold text-xl mb-2 leading-tight">{book.title}</h2>
+                <div className="flex flex-wrap items-center gap-x-1.5 text-gray-600 text-sm mb-1">
+                  {splitAuthors(bookAuthor).map((authorName, index, arr) => (
+                    <span key={authorName} className="flex items-center">
+                      <span className="text-gray-600 font-medium">{authorName}</span>
+                      {index < arr.length - 1 && <span className="text-gray-400 select-none">,</span>}
+                    </span>
                   ))}
                 </div>
-              </div>
-            );
-          })()}
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <button
-                onClick={handleLike}
-                className="flex items-center gap-2 hover:text-purple-600 transition-colors"
-              >
-                <Heart
-                  className={`size-5 ${liked ? "fill-red-500 text-red-500" : "text-gray-400"}`}
-                />
-                <span>{likeCount}</span>
-              </button>
-              <div className="flex items-center gap-1">
-                <MessageSquare className="size-5 text-gray-400" />
-                <span>{reviews.length}</span>
-              </div>
-            </div>
-            <Button
-              onClick={handleLike}
-              variant={liked ? "default" : "outline"}
-              className={`w-full ${liked ? "bg-red-500 hover:bg-red-600" : ""}`}
-            >
-              <Heart className={`size-4 mr-2 ${liked ? "fill-white" : ""}`} />
-              {liked ? "찜 완료" : "찜하기"}
-            </Button>
-          </div>
-            </div>
-            {/* 📖 Book Description - 상단으로 이동 (기본 정보 제공 우선) */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-          <h3 className="font-bold text-lg mb-3">📖 책 소개</h3>
-          {bookDesc ? (
-            <p className="text-sm text-gray-700 leading-relaxed">{bookDesc}</p>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                <span className="text-sm text-gray-400 animate-pulse">책 정보를 불러오고 있어요...</span>
-              </div>
-              <div className="h-3 bg-gray-100 rounded-full animate-pulse w-full" />
-              <div className="h-3 bg-gray-100 rounded-full animate-pulse w-5/6" />
-              <div className="h-3 bg-gray-100 rounded-full animate-pulse w-4/5" />
-              <div className="h-3 bg-gray-100 rounded-full animate-pulse w-full" />
-              <div className="h-3 bg-gray-100 rounded-full animate-pulse w-3/4" />
-            </div>
-          )}
-        </div>
-
-
-        {/* 🔥 CTR 최적화: 찬반토론을 최상단으로 이동 (시각적 임팩트 + FOMO 효과) */}
-        {relatedDebates.length > 0 && (
-          <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-5 shadow-md border-2 border-orange-200">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                ⚡ 찬반토론
-                <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full animate-pulse">
-                  HOT
-                </span>
-              </h3>
-              <span className="text-xs font-semibold text-orange-600">
-                ({relatedDebates.length})
-              </span>
-            </div>
-            <p className="text-sm text-gray-700 mb-4 font-medium">
-              🔥 지금 가장 뜨거운 논쟁! 당신의 선택은?
-            </p>
-            
-            <div className="space-y-3">
-              {relatedDebates.slice(0, 3).map((debate, index) => (
-                <button
-                  key={index}
-                  onClick={() => onDebateClick?.(debate)}
-                  className="w-full text-left p-4 rounded-xl border-2 border-orange-200 hover:border-orange-400 hover:shadow-lg bg-white transition-all"
-                >
-                  <h4 className="font-bold text-sm mb-3 line-clamp-2 text-gray-900">{debate.topic}</h4>
-                  
-                  {/* 투표 현황 */}
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-green-700 w-12">찬성</span>
-                      <div className="flex-1 bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-gradient-to-r from-green-500 to-green-400 h-3 rounded-full transition-all shadow-sm"
-                          style={{ width: `${(debate.agreeCount + debate.disagreeCount) > 0 ? (debate.agreeCount / (debate.agreeCount + debate.disagreeCount)) * 100 : 50}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-green-700 w-16 text-right">{debate.agreeCount.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-red-700 w-12">반대</span>
-                      <div className="flex-1 bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-gradient-to-r from-red-500 to-red-400 h-3 rounded-full transition-all shadow-sm"
-                          style={{ width: `${(debate.agreeCount + debate.disagreeCount) > 0 ? (debate.disagreeCount / (debate.agreeCount + debate.disagreeCount)) * 100 : 50}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-red-700 w-16 text-right">{debate.disagreeCount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">💬 {debate.totalComments}개 의견</span>
-                    <span className="font-bold text-orange-600">
-                      총 {(debate.agreeCount + debate.disagreeCount).toLocaleString()}표 참여
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Publisher Vote */}
-        {sortedPublishers.length >= 2 && (
-          <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-white rounded-2xl p-5 shadow-lg border border-purple-100">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-              📚 판본 토론
-              <span className="text-sm font-normal text-gray-500">
-                ({totalVotes}명 투표)
-              </span>
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              어떤 출판사의 번역이 가장 좋나요?
-            </p>
-
-            <div className="space-y-3 mb-4">
-              {sortedPublishers.map((publisher, index) => {
-                const percentage = totalVotes > 0 ? (publisher.votes / totalVotes) * 100 : 0;
-                const isTop = publisher.name === topPublisher.name;
-                const isSelected = selectedPublisher === publisher.name;
-
-                return (
-                  <button
-                    key={publisher.name}
-                    onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
-                    disabled={hasVoted}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                      isSelected && !hasVoted
-                        ? "border-purple-500 bg-purple-50 shadow-md"
-                        : hasVoted && isSelected
-                        ? "border-purple-600 bg-purple-50"
-                        : hasVoted
-                        ? "border-gray-200 bg-gray-50"
-                        : "border-gray-200 hover:border-purple-400 bg-white"
-                    } ${hasVoted ? "cursor-default" : "cursor-pointer"}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-purple-700">{publisher.name}</span>
-                        {isTop && hasVoted && (
-                          <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                            1위
-                          </span>
-                        )}
-                        {isSelected && !hasVoted && (
-                          <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
-                            선택됨
-                          </span>
-                        )}
-                        {isSelected && hasVoted && (
-                          <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                            내 투표
-                          </span>
-                        )}
-                      </div>
-                      <span className="font-bold text-purple-600">
-                        {publisher.votes}표
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 mb-1.5 overflow-hidden shadow-inner">
-                      <motion.div
-                        className={`h-3 rounded-full ${
-                          isTop ? "bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600" : "bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400"
-                        }`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ 
-                          duration: 1.2, 
-                          ease: "easeOut",
-                          delay: 0.1 * index
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-purple-700">{percentage.toFixed(1)}%</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <Button
-              onClick={handleVote}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 py-6 text-base font-bold shadow-md hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-              disabled={!selectedPublisher || hasVoted}
-              style={{
-                background: hasVoted 
-                  ? 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)' 
-                  : undefined,
-              }}
-            >
-              {hasVoted ? "✓ 투표 완료" : "투표하기"}
-            </Button>
-
-            {hasVoted && (
-              <p className="text-sm text-purple-600 mt-3 text-center">
-                ✓ 투표가 완료되었습니다
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Option 3 Ad Placeholder */}
-        {false && (
-        <div className="bg-gradient-to-br from-indigo-50/80 to-purple-50/80 border border-indigo-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-          <div className="absolute top-1.5 right-2 bg-indigo-600/10 text-indigo-700 text-[9px] font-bold px-1.5 py-0.5 rounded border border-indigo-200">
-            광고
-          </div>
-          <div className="text-xs font-bold text-indigo-900 mb-2 flex items-center gap-1">
-            <span>🛒</span> 구매 혜택 정보
-          </div>
-          <div className="flex items-center justify-between gap-3 bg-white/70 backdrop-blur-sm p-3 rounded-xl border border-indigo-50/50">
-            <div className="flex-1">
-              <h4 className="text-xs font-bold text-gray-800">
-                "{book.title}" 최저가 구매하기
-              </h4>
-              <p className="text-[10px] text-gray-500 mt-0.5">
-                알라딘 TTB 공식 제휴 혜택가 제공
-              </p>
-            </div>
-            <div className="flex flex-col gap-1.5 shrink-0">
-              <a
-                href={getAladinLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#FF0077]/10 hover:bg-[#FF0077]/20 text-[#FF0077] text-[10px] font-extrabold px-3 py-2 rounded-lg border border-[#FF0077]/20 text-center transition-all shadow-sm"
-              >
-                알라딘 바로가기
-              </a>
-            </div>
-          </div>
-        </div>
-        )}
-
-        {/* Related Discussions */}
-        {relatedDiscussions.length > 0 && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-              💬 관련 토론
-              <span className="text-sm font-normal text-gray-500">
-                ({relatedDiscussions.length})
-              </span>
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              이 책과 관련된 커뮤니티 토론을 확인해보세요
-            </p>
-            
-            <div className="space-y-3">
-              {relatedDiscussions.slice(0, 3).map((discussion, index) => (
-                <button
-                  key={index}
-                  onClick={() => onDiscussionClick?.(discussion)}
-                  className="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all"
-                >
-                  <h4 className="font-bold text-sm mb-2 line-clamp-2">{discussion.title}</h4>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center gap-3">
-                      <span>👤 {discussion.author}</span>
-                      <span>🗳️ {discussion.totalVotes}표</span>
-                      <span>💬 {discussion.comments}</span>
-                    </div>
-                    <span>{discussion.timestamp}</span>
-                  </div>
-                  {/* Tags removed as they are replaced by direct book linking */}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reviews Section - 하단으로 이동 (깊이있는 콘텐츠는 관심있는 사용자가 스크롤) */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg">독자 리뷰</h3>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-              <span className="font-bold text-lg">{averageRating}</span>
-              <span className="text-sm text-gray-500">({totalRatingCount})</span>
-            </div>
-          </div>
-
-          {/* 내 별점 평가 (Quick Rating) */}
-          <div className="bg-purple-50/50 rounded-xl p-4 mb-4 border border-purple-100 flex flex-col items-center">
-            <span className="text-sm text-purple-700 font-semibold mb-2">이 책의 별점을 매겨보세요</span>
-            <div className="flex gap-1.5 justify-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => handleQuickRatingClick(star)}
-                  className="transition-transform active:scale-125 focus:outline-none"
-                >
-                  <Star
-                    className={`w-8 h-8 ${
-                      star <= myQuickRating
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-            {myQuickRating > 0 && (
-              <span className="text-xs text-purple-600 font-medium mt-2">내가 남긴 별점: {myQuickRating}점</span>
-            )}
-          </div>
-
-          <Button
-            onClick={() => {
-              if (isAuthenticated) {
-                setShowCreateReviewModal(true);
-              } else {
-                onLoginRequired?.();
-              }
-            }}
-            className="w-full mb-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
-          >
-            리뷰 작성하기
-          </Button>
-
-          {/* Review Preview */}
-          <div className="space-y-3">
-            {reviews.slice(0, 2).map((review) => {
-              const skin = commentSkins.find((s) => s.id === review.skinId) || commentSkins[0];
-              
-              return (
-              <div key={review.id} className="border-t border-gray-200 pt-3">
-                <div className="flex items-start justify-between mb-2">
-                  <div 
-                    className="flex items-center gap-2 p-1 -m-1"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-sm font-bold text-purple-600">
-                      {review.authorInitial}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-semibold text-sm">{review.author}</p>
-                        <UserTierBadge nickname={review.author} />
-                        {skin.badgeEmoji && skin.id !== "default" && (
-                          <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
+                <p className="text-gray-500 text-xs mb-3">{book.publisher}</p>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-3 text-xs sm:text-sm">
+                  {totalRatingCount > 0 ? (
+                    <>
+                      <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`size-3 ${
-                              i < review.rating
-                                ? "fill-yellow-400 text-yellow-400"
+                            className={`w-3.5 h-3.5 ${
+                              i < Math.floor(parseFloat(averageRating))
+                                ? "text-yellow-500 fill-yellow-500"
                                 : "text-gray-300"
                             }`}
                           />
                         ))}
                       </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">{review.date}</span>
-                </div>
-                
-                {/* Content with Skin */}
-                <div className={`p-3 rounded-xl mb-2 ${skin.bubbleClass}`}>
-                  <p className={`text-sm line-clamp-2 ${skin.textClass}`}>{review.content}</p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <button 
-                    onClick={() => handleLikeReview(review.id)}
-                    className={`flex items-center gap-1 mt-2 text-xs transition-colors ${
-                      isReviewLiked(review.id, userId)
-                        ? "text-purple-600 font-semibold"
-                        : "text-gray-500 hover:text-purple-600"
-                    }`}
-                  >
-                    <ThumbsUp className={`size-3 ${isReviewLiked(review.id, userId) ? "fill-purple-600 text-purple-600" : ""}`} />
-                    <span>{review.likes}</span>
-                  </button>
-                  {user && user.nickname === review.author && (
-                    <button
-                      onClick={() => handleDeleteReview(review.id)}
-                      className="p-1 hover:bg-red-50 rounded transition-colors group"
-                      title="리뷰 삭제"
-                    >
-                      <Trash2 className="size-4 text-gray-400 group-hover:text-red-500" />
-                    </button>
+                      <span className="font-semibold whitespace-nowrap">{averageRating}점</span>
+                      <span className="text-gray-500 whitespace-nowrap">({totalRatingCount}개의 독자 평가)</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 text-gray-300" />
+                        ))}
+                      </div>
+                      <span className="font-semibold whitespace-nowrap text-gray-400">평점 없음</span>
+                      <span className="text-gray-400 whitespace-nowrap">(0개의 독자 평가)</span>
+                    </>
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* 다른 출판사 표지 보기 */}
+            {(() => {
+              const seenPublishers = new Set<string>();
+              const seenCovers = new Set<string>();
+              const seenIds = new Set<string>();
+              const uniqueCovers: any[] = [];
+              (book.alternativeCovers || []).forEach((c: any) => {
+                if (!c || !c.publisher) return;
+                
+                const cleanCoverUrl = (c.coverUrl || "").trim();
+                const cleanBookId = (c.bookId || "").trim();
+                
+                const isDuplicatePub = seenPublishers.has(c.publisher);
+                const isDuplicateCover = cleanCoverUrl !== "" && seenCovers.has(cleanCoverUrl);
+                const isDuplicateId = cleanBookId !== "" && seenIds.has(cleanBookId);
+                
+                if (!isDuplicatePub && !isDuplicateCover && !isDuplicateId) {
+                  seenPublishers.add(c.publisher);
+                  if (cleanCoverUrl) seenCovers.add(cleanCoverUrl);
+                  if (cleanBookId) seenIds.add(cleanBookId);
+                  uniqueCovers.push(c);
+                }
+              });
+
+              if (uniqueCovers.length < 2) return null;
+
+              return (
+                <div className="mt-2 bg-white rounded-xl p-3 border border-purple-100 lg:border-slate-200 shadow-sm lg:shadow-none w-full mb-4">
+                  <span className="text-[11px] text-purple-600 font-bold block mb-2 text-center uppercase tracking-wide lg:text-slate-500">다른 출판사 표지 보기</span>
+                  <div 
+                    className="flex gap-3.5 overflow-x-auto pb-2 px-4 -mx-3 scrollbar-none justify-start md:justify-center"
+                    style={{
+                      display: "flex",
+                      overflowX: "auto",
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none"
+                    }}
+                  >
+                    {uniqueCovers.map((item: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          const cacheKey = `cover_${book.title}_${bookAuthor}_${item.publisher}`;
+                          const cachedUrl = localStorage.getItem(cacheKey);
+                          
+                          const targetCoverUrl = (cachedUrl && cachedUrl !== "NO_COVER_FOUND") 
+                            ? cachedUrl 
+                            : (item.coverUrl || "");
+                            
+                          setActiveCoverUrl(targetCoverUrl);
+                          setActivePublisher(item.publisher);
+                        }}
+                        className={`flex flex-col items-center p-2 rounded-xl border-2 transition-all shadow-xs ${
+                          activePublisher === item.publisher
+                            ? "border-purple-500 bg-purple-50/70 scale-105"
+                            : "border-gray-150 bg-gray-50/50 hover:bg-gray-100/70 lg:border-slate-200"
+                        }`}
+                        style={{
+                          flexShrink: 0,
+                          width: "80px"
+                        }}
+                      >
+                        <div className="w-12 h-16 pointer-events-none mb-1 flex-shrink-0">
+                          <BookCover 
+                            title={book.title} 
+                            author={bookAuthor} 
+                            publisherName={item.publisher} 
+                            coverUrl={item.coverUrl} 
+                            className="w-full h-full object-cover rounded-md shadow-md"
+                            allowPublisherFallback={false}
+                            allowDynamicFetch={true}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-700 text-center leading-normal whitespace-nowrap px-0.5">
+                          {item.publisher}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               );
-            })}
+            })()}
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <button
+                  onClick={handleLike}
+                  className="flex items-center gap-2 hover:text-purple-600 transition-colors"
+                >
+                  <Heart
+                    className={`size-5 ${liked ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                  />
+                  <span>{likeCount}</span>
+                </button>
+                <div className="flex items-center gap-1">
+                  <MessageSquare className="size-5 text-gray-400" />
+                  <span>{reviews.length}</span>
+                </div>
+              </div>
+              <Button
+                onClick={handleLike}
+                variant={liked ? "default" : "outline"}
+                className={`w-full ${liked ? "bg-red-500 hover:bg-red-600" : ""}`}
+              >
+                <Heart className={`size-4 mr-2 ${liked ? "fill-white" : ""}`} />
+                {liked ? "찜 완료" : "찜하기"}
+              </Button>
+            </div>
           </div>
 
-          {reviews.length > 2 && (
-            <Button
-              onClick={() => setShowReviewsScreen(true)}
-              variant="outline"
-              className="w-full mt-4"
-            >
-              리뷰 더 보기 ({reviews.length})
-            </Button>
+          {/* 📖 Book Description */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm lg:shadow-none border border-gray-200 lg:border-slate-200">
+            <h3 className="font-bold text-lg mb-3">📖 책 소개</h3>
+            {bookDesc ? (
+              <p className="text-sm text-gray-700 leading-relaxed">{bookDesc}</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-4 h-4 border-2 border-purple-400 lg:border-slate-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  <span className="text-sm text-gray-400 animate-pulse">책 정보를 불러오고 있어요...</span>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-full animate-pulse w-full" />
+                <div className="h-3 bg-gray-100 rounded-full animate-pulse w-5/6" />
+                <div className="h-3 bg-gray-100 rounded-full animate-pulse w-4/5" />
+                <div className="h-3 bg-gray-100 rounded-full animate-pulse w-full" />
+                <div className="h-3 bg-gray-100 rounded-full animate-pulse w-3/4" />
+              </div>
+            )}
+          </div>
+
+          {/* Publisher Vote */}
+          {sortedPublishers.length >= 2 && (
+            <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-white lg:bg-white lg:bg-none rounded-2xl p-5 shadow-lg lg:shadow-none border border-purple-100 lg:border-slate-200">
+              <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                📚 판본 토론
+                <span className="text-sm font-normal text-gray-500">
+                  ({totalVotes}명 투표)
+                </span>
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                어떤 출판사의 번역이 가장 좋나요?
+              </p>
+
+              <div className="space-y-3 mb-4">
+                {sortedPublishers.map((publisher, index) => {
+                  const percentage = totalVotes > 0 ? (publisher.votes / totalVotes) * 100 : 0;
+                  const isTop = publisher.name === topPublisher.name;
+                  const isSelected = selectedPublisher === publisher.name;
+
+                  return (
+                    <button
+                      key={publisher.name}
+                      onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
+                      disabled={hasVoted}
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
+                        isSelected && !hasVoted
+                          ? "border-purple-500 bg-purple-50 shadow-md lg:border-purple-600 lg:bg-purple-50/50"
+                          : hasVoted && isSelected
+                          ? "border-purple-600 bg-purple-50"
+                          : hasVoted
+                          ? "border-gray-200 bg-gray-50 lg:border-slate-200 lg:bg-slate-50/50"
+                          : "border-gray-200 hover:border-purple-400 bg-white lg:border-slate-200 lg:hover:border-purple-300"
+                      } ${hasVoted ? "cursor-default" : "cursor-pointer"}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-purple-700">{publisher.name}</span>
+                          {isTop && hasVoted && (
+                            <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                              1위
+                            </span>
+                          )}
+                          {isSelected && !hasVoted && (
+                            <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
+                              선택됨
+                          </span>
+                          )}
+                          {isSelected && hasVoted && (
+                            <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                              내 투표
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-bold text-purple-600">
+                          {publisher.votes}표
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 lg:bg-slate-100 rounded-full h-3 mb-1.5 overflow-hidden shadow-inner">
+                        <motion.div
+                          className={`h-3 rounded-full ${
+                            isTop ? "bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 lg:from-purple-500 lg:to-purple-500" : "bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 lg:from-purple-300 lg:to-purple-300"
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ 
+                            duration: 1.2, 
+                            ease: "easeOut",
+                            delay: 0.1 * index
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-purple-700">{percentage.toFixed(1)}%</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Button
+                onClick={handleVote}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 py-6 text-base font-bold shadow-md hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                disabled={!selectedPublisher || hasVoted}
+                style={{
+                  background: hasVoted 
+                    ? 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)' 
+                    : undefined,
+                }}
+              >
+                {hasVoted ? "✓ 투표 완료" : "투표하기"}
+              </Button>
+
+              {hasVoted && (
+                <p className="text-sm text-purple-600 mt-3 text-center">
+                  ✓ 투표가 완료되었습니다
+                </p>
+              )}
+            </div>
           )}
+        </div>
+
+        {/* Right Column (40% - Debates, related discussions, reviews) */}
+        <div className="lg:col-span-4 lg:space-y-6 space-y-6">
+          {/* Related Debates */}
+          {relatedDebates.length > 0 && (
+            <div className="bg-gradient-to-br from-orange-50 to-white lg:bg-white lg:bg-none rounded-2xl p-5 shadow-md lg:shadow-none border-2 border-orange-200 lg:border lg:border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  ⚡ 찬반토론
+                  <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full animate-pulse">
+                    HOT
+                  </span>
+                </h3>
+                <span className="text-xs font-semibold text-orange-600">
+                  ({relatedDebates.length})
+                </span>
+              </div>
+              <p className="text-sm text-gray-700 mb-4 font-medium">
+                🔥 지금 가장 뜨거운 논쟁! 당신의 선택은?
+              </p>
+              
+              <div className="space-y-3">
+                {relatedDebates.slice(0, 3).map((debate, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onDebateClick?.(debate)}
+                    className="w-full text-left p-4 rounded-xl border-2 border-orange-200 lg:border lg:border-slate-200 hover:border-orange-400 lg:hover:border-slate-350 hover:shadow-lg lg:hover:shadow-none bg-white transition-all"
+                  >
+                    <h4 className="font-bold text-sm mb-3 line-clamp-2 text-gray-900">{debate.topic}</h4>
+                    
+                    {/* 투표 현황 */}
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-green-700 lg:text-slate-600 w-12">찬성</span>
+                        <div className="flex-1 bg-gray-200 lg:bg-slate-100 rounded-full h-3">
+                          <div 
+                            className="bg-gradient-to-r from-green-500 to-green-400 lg:from-green-500 lg:to-green-500 h-3 rounded-full transition-all shadow-sm lg:shadow-none"
+                            style={{ width: `${(debate.agreeCount + debate.disagreeCount) > 0 ? (debate.agreeCount / (debate.agreeCount + debate.disagreeCount)) * 100 : 50}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-green-700 lg:text-slate-700 w-16 text-right">{debate.agreeCount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-red-700 lg:text-slate-600 w-12">반대</span>
+                        <div className="flex-1 bg-gray-200 lg:bg-slate-100 rounded-full h-3">
+                          <div 
+                            className="bg-gradient-to-r from-red-500 to-red-400 lg:from-red-500 lg:to-red-500 h-3 rounded-full transition-all shadow-sm lg:shadow-none"
+                            style={{ width: `${(debate.agreeCount + debate.disagreeCount) > 0 ? (debate.disagreeCount / (debate.agreeCount + debate.disagreeCount)) * 100 : 50}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-red-700 lg:text-slate-700 w-16 text-right">{debate.disagreeCount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600">💬 {debate.totalComments}개 의견</span>
+                      <span className="font-bold text-orange-600 lg:text-slate-700">
+                        총 {(debate.agreeCount + debate.disagreeCount).toLocaleString()}표 참여
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Related Discussions */}
+          {relatedDiscussions.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm lg:shadow-none border border-gray-200 lg:border-slate-200">
+              <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                💬 관련 토론
+                <span className="text-sm font-normal text-gray-500">
+                  ({relatedDiscussions.length})
+                </span>
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                이 책과 관련된 커뮤니티 토론을 확인해보세요
+              </p>
+              
+              <div className="space-y-3">
+                {relatedDiscussions.slice(0, 3).map((discussion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onDiscussionClick?.(discussion)}
+                    className="w-full text-left p-4 rounded-xl border border-gray-200 lg:border-slate-200 hover:border-purple-400 lg:hover:border-slate-350 hover:bg-purple-50 lg:hover:bg-slate-50 transition-all"
+                  >
+                    <h4 className="font-bold text-sm mb-2 line-clamp-2">{discussion.title}</h4>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center gap-3">
+                        <span>👤 {discussion.author}</span>
+                        <span>🗳️ {discussion.totalVotes}표</span>
+                        <span>💬 {discussion.comments}</span>
+                      </div>
+                      <span>{discussion.timestamp}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reviews Section */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm lg:shadow-none border border-gray-200 lg:border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">독자 리뷰</h3>
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                <span className="font-bold text-lg">{averageRating}</span>
+                <span className="text-sm text-gray-500">({totalRatingCount})</span>
+              </div>
+            </div>
+
+            {/* 내 별점 평가 (Quick Rating) */}
+            <div className="bg-purple-50/50 lg:bg-slate-50/50 rounded-xl p-4 mb-4 border border-purple-100 lg:border-slate-200 flex flex-col items-center">
+              <span className="text-sm text-purple-700 lg:text-slate-700 font-semibold mb-2">이 책의 별점을 매겨보세요</span>
+              <div className="flex gap-1.5 justify-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => handleQuickRatingClick(star)}
+                    className="transition-transform active:scale-125 focus:outline-none"
+                  >
+                    <Star
+                      className={`w-8 h-8 ${
+                        star <= myQuickRating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {myQuickRating > 0 && (
+                <span className="text-xs text-purple-600 lg:text-slate-600 font-medium mt-2">내가 남긴 별점: {myQuickRating}점</span>
+              )}
+            </div>
+
+            <Button
+              onClick={() => {
+                if (isAuthenticated) {
+                  setShowCreateReviewModal(true);
+                } else {
+                  onLoginRequired?.();
+                }
+              }}
+              className="w-full mb-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 lg:from-purple-600 lg:to-purple-600 lg:hover:bg-purple-700"
+            >
+              리뷰 작성하기
+            </Button>
+
+            {/* Review Preview */}
+            <div className="space-y-3">
+              {reviews.slice(0, 2).map((review) => {
+                const skin = commentSkins.find((s) => s.id === review.skinId) || commentSkins[0];
+                
+                return (
+                <div key={review.id} className="border-t border-gray-200 pt-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div 
+                      className="flex items-center gap-2 p-1 -m-1"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 lg:from-slate-100 lg:to-slate-200 rounded-full flex items-center justify-center text-sm font-bold text-purple-600 lg:text-slate-600">
+                        {review.authorInitial}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-semibold text-sm">{review.author}</p>
+                          <UserTierBadge nickname={review.author} />
+                          {skin.badgeEmoji && skin.id !== "default" && (
+                            <span className="text-base leading-none inline-flex items-center" title={skin.name}>{skin.badgeEmoji}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`size-3 ${
+                                i < review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">{review.date}</span>
+                  </div>
+                  
+                  {/* Content with Skin */}
+                  <div className={`p-3 rounded-xl mb-2 ${skin.bubbleClass}`}>
+                    <p className={`text-sm line-clamp-2 ${skin.textClass}`}>{review.content}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <button 
+                      onClick={() => handleLikeReview(review.id)}
+                      className={`flex items-center gap-1 mt-2 text-xs transition-colors ${
+                        isReviewLiked(review.id, userId)
+                          ? "text-purple-600 lg:text-purple-600 font-semibold"
+                          : "text-gray-500 hover:text-purple-600 lg:hover:text-purple-600"
+                      }`}
+                    >
+                      <ThumbsUp className={`size-3 ${isReviewLiked(review.id, userId) ? "fill-purple-600 text-purple-600" : ""}`} />
+                      <span>{review.likes}</span>
+                    </button>
+                    {user && user.nickname === review.author && (
+                      <button
+                        onClick={() => handleDeleteReview(review.id)}
+                        className="p-1 hover:bg-red-50 rounded transition-colors group"
+                        title="리뷰 삭제"
+                      >
+                        <Trash2 className="size-4 text-gray-400 group-hover:text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+
+            {reviews.length > 2 && (
+              <Button
+                onClick={() => setShowReviewsScreen(true)}
+                variant="outline"
+                className="w-full mt-4 border-slate-200 text-slate-700 hover:bg-slate-50"
+              >
+                리뷰 더 보기 ({reviews.length})
+              </Button>
+            )}
           </div>
         </div>
+
+      </div>
 
       {/* Create Review Modal */}
       {showCreateReviewModal && (

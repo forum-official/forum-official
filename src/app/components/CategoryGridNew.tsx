@@ -10,7 +10,7 @@ function CategoryItem({ imageSrc, label, onClick }: CategoryItemProps) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl active:scale-95 transition-all w-full hover:bg-purple-50/50"
+      className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl active:scale-95 transition-all w-full hover:bg-slate-50"
     >
       <div className="w-16 h-16 overflow-hidden flex items-center justify-center bg-transparent">
         <img 
@@ -43,7 +43,7 @@ export function CategoryGridNew({ onNavigate }: CategoryGridNewProps) {
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-x-1 gap-y-2 bg-white rounded-3xl p-3 shadow-sm border border-purple-100/30">
+    <div className="grid grid-cols-4 gap-x-1 gap-y-2 bg-white rounded-xl p-3 shadow-none border border-slate-200">
       {categories.map((category, index) => (
         <CategoryItem 
           key={index} 

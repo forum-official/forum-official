@@ -1,0 +1,10 @@
+const fs = require('fs');
+const html = fs.readFileSync('scratch/search_result.html', 'utf8');
+console.log("Contains ss_book_box:", html.includes("ss_book_box"));
+console.log("Contains browse_list_box:", html.includes("browse_list_box"));
+console.log("Contains ss_book_list:", html.includes("ss_book_list"));
+console.log("Contains bo3:", html.includes("bo3"));
+console.log("Contains a.bo3:", html.includes("class=\"bo3\""));
+console.log("Contains a class bo3:", html.includes("class=\"bo3"));
+console.log("Contains table:", html.includes("<table"));
+console.log("Contains div:", html.includes("<div"));

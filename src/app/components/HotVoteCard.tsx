@@ -100,25 +100,25 @@ export function HotVoteCard({
   const cleanedCardTitle = title.replace(book.title, cleanedBookTitle);
 
   return (
-    <Card className="overflow-hidden shadow-lg border-2 border-purple-100">
-      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3">
-        <div className="flex items-center justify-between text-white mb-1">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="size-5" />
-            <span className="text-xs font-semibold uppercase tracking-wide">오늘의 판본 토론</span>
+    <Card className="overflow-hidden bg-white border border-slate-200 shadow-none rounded-xl">
+      <div className="px-4 py-4.5 border-b border-slate-100 bg-slate-50/40">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5 text-purple-600">
+            <TrendingUp className="size-4.5" />
+            <span className="text-[11px] font-bold uppercase tracking-wider">오늘의 판본 토론</span>
           </div>
-          <span className="text-[10px] text-purple-100 bg-purple-700/40 px-2 py-0.5 rounded flex items-center gap-1 font-medium select-none">
+          <span className="text-[9px] text-gray-500 bg-slate-150 px-2 py-0.5 rounded font-medium select-none">
             ⏰ 매일 자정 변경
           </span>
         </div>
-        <h3 className="font-bold text-white text-base leading-tight mt-1">{cleanedCardTitle}</h3>
+        <h3 className="font-bold text-gray-900 text-base leading-snug mt-1">{cleanedCardTitle}</h3>
       </div>
 
       <div className="p-4">
         {/* 책 표지 및 정보 */}
         <div 
           onClick={onBookClick}
-          className="flex items-start gap-3 mb-4 p-3 bg-purple-50 hover:bg-purple-100/80 rounded-xl cursor-pointer transition-colors"
+          className="flex items-start gap-3.5 mb-4 p-3 bg-slate-50/60 hover:bg-slate-50 border border-slate-150 rounded-xl cursor-pointer transition-colors"
         >
           <div className="w-16 h-24 flex-shrink-0">
             <BookCover 
@@ -126,12 +126,12 @@ export function HotVoteCard({
               author={book.author} 
               publisherName={topPublisher?.name}
               coverUrl={book.coverUrl} 
-              className="w-full h-full object-cover rounded-lg shadow-md"
+              className="w-full h-full object-cover rounded-md shadow-xs border border-slate-200/50"
             />
           </div>
-          <div className="flex-1">
-            <h4 className="font-bold text-sm mb-1">{cleanedBookTitle}</h4>
-            <p className="text-xs text-gray-600">{book.author}</p>
+          <div className="flex-1 flex flex-col justify-center min-h-[96px]">
+            <h4 className="font-bold text-sm text-gray-900 leading-tight mb-1">{cleanedBookTitle}</h4>
+            <p className="text-xs text-gray-500">{book.author}</p>
           </div>
         </div>
 
@@ -147,31 +147,31 @@ export function HotVoteCard({
                 key={publisher.name}
                 onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
                 disabled={hasVoted}
-                className={`w-full text-left p-3 rounded-xl border-2 transition-all relative ${
+                className={`w-full text-left p-3 rounded-xl border transition-all relative ${
                   isSelected
-                    ? "border-purple-500 bg-purple-50 shadow-md"
-                    : "border-gray-200 hover:border-purple-300 hover:bg-gray-50"
+                    ? "border-purple-600 bg-purple-50/20"
+                    : "border-slate-200 hover:border-purple-300 hover:bg-slate-50/50 bg-white"
                 } ${hasVoted ? "cursor-not-allowed" : "cursor-pointer"}`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-purple-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`font-bold text-sm ${isSelected ? "text-purple-600" : "text-gray-800"}`}>
                       {publisher.name}
                     </span>
                     {isTop && hasVoted && (
-                      <span className="text-[10px] bg-purple-500 text-white px-2 py-0.5 rounded-full font-semibold">
+                      <span className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold">
                         1위
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-bold text-purple-600">{percentage}%</span>
-                    <span className="text-[10px] text-gray-500 font-medium">{publisher.votes}표</span>
+                    <span className="text-sm font-bold text-purple-600">{percentage}%</span>
+                    <span className="text-[10px] text-gray-400 font-medium">{publisher.votes}표</span>
                   </div>
                 </div>
-                <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500"
+                    className="absolute left-0 top-0 h-full bg-purple-600 transition-all duration-500 rounded-full"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -184,23 +184,23 @@ export function HotVoteCard({
         <div className="flex gap-2">
           <Button 
             onClick={handleVote}
-            className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md"
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-none"
             disabled={!selectedPublisher || hasVoted}
           >
             {hasVoted ? '투표 완료' : '투표하기'}
           </Button>
           <Button 
             variant="outline" 
-            className="flex items-center gap-1.5 border-purple-200 text-purple-600 hover:bg-purple-50"
+            className="flex items-center gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 rounded-lg shadow-none"
             onClick={onCommentClick}
           >
-            <MessageCircle className="size-4" />
-            <span className="text-sm">{comments}</span>
+            <MessageCircle className="size-4 text-slate-400" />
+            <span className="text-sm font-medium">{comments}</span>
           </Button>
         </div>
 
         {/* Total Votes */}
-        <p className="text-center text-xs text-gray-500 mt-3">
+        <p className="text-center text-xs text-gray-400 mt-3">
           총 <span className="font-semibold text-purple-600">{totalVotes.toLocaleString()}</span>명 참여
         </p>
       </div>

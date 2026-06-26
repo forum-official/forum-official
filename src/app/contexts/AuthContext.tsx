@@ -442,31 +442,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (isSupabaseConfigured) {
       try {
-        // 1. Auth 메타데이터 갱신 (무거운 배열/객체는 제외하여 Auth 세션 락 방지)
-        const updateAuthPromise = supabase.auth.updateUser({
-          data: {
-            nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
-            bio: updates.bio !== undefined ? updates.bio : user.bio,
-            profileImage: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
-            isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
-            nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
-            pushEnabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
-          }
-        });
+        const hasAuthUpdates = 
+          updates.nickname !== undefined ||
+          updates.bio !== undefined ||
+          updates.profileImage !== undefined ||
+          updates.isPrivate !== undefined ||
+          updates.nicknameSet !== undefined ||
+          updates.pushEnabled !== undefined;
 
-        // 10초 타임아웃 경주 적용하여 네트워크 먹통 시 무한대기 차단
-        const authResponse = await Promise.race([
-          updateAuthPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase Auth 메타데이터 업데이트 타임아웃 (10초)")), 10000))
-        ]);
-        
-        const { data: updateData, error: authError } = authResponse;
-        if (authError) throw authError;
+        let sessionUserId: string | null = null;
 
-        // 2. Profiles DB 테이블 갱신 완료 대기 (SSOT)
-        const sessionUser = updateData?.user;
-        if (sessionUser) {
-          const updateDbPromise = supabase.from("profiles").update({
+        if (hasAuthUpdates) {
+          // 1. Auth 메타데이터 갱신
+          const updateAuthPromise = supabase.auth.updateUser({
+            data: {
+              nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
+              bio: updates.bio !== undefined ? updates.bio : user.bio,
+              profileImage: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
+              isPrivate: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
+              nickname_set: updates.nicknameSet !== undefined ? updates.nicknameSet : user.nicknameSet,
+              pushEnabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
+            }
+          });
+
+          const authResponse = await Promise.race([
+            updateAuthPromise,
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Supabase Auth 메타데이터 업데이트 타임아웃 (10초)")), 10000))
+          ]);
+          
+          const { data: updateData, error: authError } = authResponse;
+          if (authError) throw authError;
+          sessionUserId = updateData?.user?.id || null;
+        }
+
+        if (!sessionUserId) {
+          const { data: { user: currentSessionUser }, error: sessionError } = await supabase.auth.getUser();
+          if (sessionError) throw sessionError;
+          sessionUserId = currentSessionUser?.id || null;
+        }
+
+        // 2. Profiles DB 테이블 갱신 (SSOT - Upsert 활용)
+        if (sessionUserId) {
+          const updateDbPromise = supabase.from("profiles").upsert({
+            id: sessionUserId,
             nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
             bio: updates.bio !== undefined ? updates.bio : user.bio,
             profile_image: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
@@ -476,7 +494,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             life_books: updates.lifeBooks !== undefined ? updates.lifeBooks : (user.lifeBooks || []),
             push_enabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
             updated_at: new Date().toISOString()
-          }).eq("id", sessionUser.id);
+          });
 
           const dbResponse = await Promise.race([
             updateDbPromise,
@@ -489,11 +507,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (e: any) {
         console.error("Failed to update profile to Supabase server:", e);
         toast.error(e.message || "서버 프로필 변경 사항 저장에 실패했습니다. 다시 시도해주세요.");
-        throw e; // 에러를 호출부로 버블링하여 모달 등의 로딩 상태 취소를 도움
+        throw e;
       }
     }
 
-    // 서버 업데이트 성공 직후(또는 로컬 모드인 경우)에만 로컬 데이터와 React 상태 업데이트
     if (newNickname && oldNickname !== newNickname) {
       updateUserNicknameInDb(oldNickname, newNickname);
     }

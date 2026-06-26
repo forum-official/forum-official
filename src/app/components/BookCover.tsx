@@ -210,85 +210,65 @@ async function fetchAladinCoverUrl(title: string, author: string, publisherName?
     .replace(/미상/gi, "")
     .replace(/unknown/gi, "")
     .replace(/anonymous/gi, "")
+    .replace(/지음|지은이|저자|역자|옮김|옮긴이/g, "")
     .trim();
   
-  let query = publisherName ? `${title} ${cleanAuthor} ${publisherName}` : `${title} ${cleanAuthor}`;
-  query = query.replace(/\s+/g, " ").trim();
-  let targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
-  
-  let html = "";
+  const cleanTitle = title.split("(")[0].split("-")[0].split(":")[0].trim();
+  const searchQuery = publisherName ? `${cleanTitle} ${cleanAuthor} ${publisherName}` : `${cleanTitle} ${cleanAuthor}`;
+  const targetUrl = `/api/aladin-search?query=${encodeURIComponent(searchQuery)}&maxResults=10`;
+
   try {
-    html = await fetchHtmlViaProxy(targetUrl);
-  } catch {}
-
-  // If search returns no results, try fallback searches
-  if (!html || html.includes("결과가 없습니다") || !html.includes("ss_book_box")) {
-    // Fallback 1: Try without publisherName
-    if (publisherName) {
-      query = `${title} ${author}`;
-      targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
-      try {
-        html = await fetchHtmlViaProxy(targetUrl);
-      } catch {}
+    const res = await fetch(targetUrl);
+    if (!res.ok) {
+      throw new Error("Failed to fetch from aladin-search API");
     }
-
-    // Fallback 2: Try with just title (handle spelling mismatches in author name)
-    if (!html || html.includes("결과가 없습니다") || !html.includes("ss_book_box")) {
-      const cleanTitle = title.split("(")[0].split("-")[0].split(":")[0].trim();
-      query = cleanTitle;
-      targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(query)}`;
-      try {
-        html = await fetchHtmlViaProxy(targetUrl);
-      } catch {}
-    }
-  }
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  
-  const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
-  let fetchedCover = "";
-  
-  // 1. Try to find the box that matches the publisher name if publisherName is provided (using robust matching)
-  if (publisherName) {
-    const cleanPub = publisherName.replace(/\s+/g, "").toLowerCase();
-    for (let i = 0; i < boxes.length; i++) {
-      const box = boxes[i];
-      const list = box.querySelector(".ss_book_list");
-      if (list) {
-        const text = list.textContent || "";
-        const cleanText = text.replace(/\s+/g, "").toLowerCase();
-        if (cleanText.includes(cleanPub) || cleanPub.includes(cleanText)) {
-          const img = box.querySelector("img.front_cover") as HTMLImageElement | null;
-          if (img?.src) {
-            fetchedCover = img.src;
-            break;
+    const data = await res.json();
+    const items = data.items || [];
+    
+    if (items.length === 0) {
+      if (publisherName) {
+        const fallbackUrl = `/api/aladin-search?query=${encodeURIComponent(`${cleanTitle} ${cleanAuthor}`)}&maxResults=10`;
+        const fbRes = await fetch(fallbackUrl);
+        if (fbRes.ok) {
+          const fbData = await fbRes.json();
+          const fbItems = fbData.items || [];
+          
+          const cleanPub = publisherName.replace(/\s+/g, "").toLowerCase();
+          const matched = fbItems.find((item: any) => {
+            const itemPub = (item.publishers?.[0]?.name || "").replace(/\s+/g, "").toLowerCase();
+            return itemPub.includes(cleanPub) || cleanPub.includes(itemPub);
+          });
+          if (matched && matched.coverUrl) {
+            return matched.coverUrl;
+          }
+          
+          if (allowPublisherFallback && fbItems[0] && fbItems[0].coverUrl) {
+            return fbItems[0].coverUrl;
           }
         }
       }
+      return "";
     }
+
+    if (publisherName) {
+      const cleanPub = publisherName.replace(/\s+/g, "").toLowerCase();
+      const matchedItem = items.find((item: any) => {
+        const itemPub = (item.publishers?.[0]?.name || "").replace(/\s+/g, "").toLowerCase();
+        return itemPub.includes(cleanPub) || cleanPub.includes(itemPub);
+      });
+      if (matchedItem && matchedItem.coverUrl) {
+        return matchedItem.coverUrl;
+      }
+    }
+
+    if ((!publisherName || allowPublisherFallback) && items[0] && items[0].coverUrl) {
+      return items[0].coverUrl;
+    }
+  } catch (error) {
+    console.error("fetchAladinCoverUrl API helper error:", error);
   }
   
-  // 2. Fallback to the very first box only if no specific publisher was found/requested OR fallback is allowed
-  if (!fetchedCover && (!publisherName || allowPublisherFallback) && boxes.length > 0) {
-    const img = boxes[0].querySelector("img.front_cover") as HTMLImageElement | null;
-    fetchedCover = img?.src || "";
-  }
-
-  if (fetchedCover.startsWith("//")) {
-    fetchedCover = "https:" + fetchedCover;
-  }
-  // 고화질로 업그레이드
-  if (fetchedCover.includes("cover200")) {
-    fetchedCover = fetchedCover.replace("cover200", "cover500");
-  } else if (fetchedCover.includes("cover150")) {
-    fetchedCover = fetchedCover.replace("cover150", "cover500");
-  }
-
-  if (isInvalidCoverUrl(fetchedCover)) {
-    return "";
-  }
-  return fetchedCover;
+  return "";
 }
 
 export function getProxiedCoverUrl(url: string): string {
@@ -375,7 +355,7 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
             localStorage.setItem(cacheKey, fetchedCover);
             setResolvedCover(fetchedCover);
           } else {
-            const altCover = findAlternativeWorkCover(title, author);
+            const altCover = !publisherName ? findAlternativeWorkCover(title, author) : "";
             if (altCover) {
               localStorage.setItem(cacheKey, altCover);
               setResolvedCover(altCover);
@@ -386,7 +366,7 @@ export function BookCover({ title, author, publisherName, coverUrl, className = 
           }
         } catch (e) {
           console.error("Failed to dynamically fetch cover from Aladin:", e);
-          const altCover = findAlternativeWorkCover(title, author);
+          const altCover = !publisherName ? findAlternativeWorkCover(title, author) : "";
           if (altCover) {
             localStorage.setItem(cacheKey, altCover);
             setResolvedCover(altCover);

@@ -3,10 +3,8 @@ import { Button } from "@/app/components/ui/button";
 import { AuthProvider, useAuth } from "@/app/contexts/AuthContext";
 import { ProfileTab } from "@/app/components/ProfileTab";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
-import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, TrendingUp, Image as ImageIcon, Home, User, LogOut, ChevronRight, Flame } from "lucide-react";
-import { PcSidebar } from "@/app/components/PcSidebar";
-import { popularBooksData as rawPopularBooksData } from "@/app/data/booksData";
-const popularBooksData = rawPopularBooksData.filter(b => !b.genre || !b.genre.includes("라이트노벨"));
+import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, TrendingUp, Image as ImageIcon } from "lucide-react";
+import { popularBooksData } from "@/app/data/booksData";
 import type { Book } from "@/app/data/booksData";
 import { Toaster, toast } from "sonner";
 import { Header } from "@/app/components/Header";
@@ -47,6 +45,8 @@ import { UserTierBadge } from "@/app/components/UserTierBadge";
 import { getDiscussions, saveDiscussion, getBookRatingStatsWithQuick, getPublisherVotes, getNotifications, votePublisher, getComments, getReviews, getBookLikes, getGlobalBooks, saveGlobalBook, voteDiscussion, fetchDiscussionsFromCloud, saveDiscussionToCloud, clearGlobalBooksCache, toggleDiscussionLikeInCloud, isDiscussionLiked, getSinglePublisherVotes, voteSinglePublisher, getWorkPublisherVotes, voteWorkPublisher, getDebateVotes, getDebateOpinions, initUserLikesMap } from "@/app/utils/db";
 import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
+// 작가 데이터는 src/app/data/authorsData.ts에서 관리 및 동적 생성됩니다.
+
 
 // 날짜 기반 랜덤 선택 함수
 function getDailyRandomBook(books: Book[]) {
@@ -91,6 +91,8 @@ function getDailyHotVote(books: Book[]) {
 }
 
 const discussions: any[] = [];
+
+// 찬반토론 데이터 목업 제거 (실시간 실제 집계로 변경됨)
 
 const publishers = [
   {
@@ -223,60 +225,70 @@ const curations = [
     title: "문학의 정점! 노벨문학상 수상작",
     emoji: "🏆",
     badge: "🔥 HOT",
+    // 실제 노벨문학상 수상 작가들의 작품으로만 구성
     bookIds: ["vegetarian", "human-acts", "278770576", "old-man-sea", "plague", "stranger", "siddhartha", "demian", "hundred-years", "never-let-me-go", "remains-of-day", "beloved", "wanderers", "simple-passion", "tin-drum", "my-name-is-red"]
   },
   {
     title: "시대를 관통하는 힘, 죽기 전에 꼭 읽어야 할 고전",
     emoji: "📖",
     badge: "✨ NEW",
+    // 인류가 검증한 불멸의 고전들
     bookIds: ["1984", "animal-farm", "crime-punishment", "brothers-karamazov", "great-gatsby", "don-quixote", "les-miserables", "hamlet", "demian", "siddhartha", "stranger", "little-prince"]
   },
   {
     title: "오늘 하루도 고생한 당신에게, 마음을 토닥이는 문장",
     emoji: "🌙",
     badge: "💜 PICK",
+    // 마음을 위로하고 삶의 의미를 되새기게 하는 책들
     bookIds: ["little-prince", "alchemist", "mans-search", "power-of-now", "271423310", "212900515", "362823782", "389578073", "389414039", "353016715", "384343883", "370633953"]
   },
   {
     title: "남몰래 펼쳐보는 나만의 위로 레시피",
     emoji: "☕",
     badge: "🔥 HOT",
+    // 감수성 짙은 고독과 위로의 소설들
     bookIds: ["norwegian-wood", "metamorphosis", "stranger", "siddhartha", "demian", "werther", "little-prince", "alchemist", "365665217", "2156605", "376765918", "368083714"]
   },
   {
     title: "부의 추월차선에 올라타기 위한 자본주의 필독서",
     emoji: "💰",
     badge: "💎 BEST",
+    // 자본주의 작동 원리를 꿰뚫는 경제·경영 필독서
     bookIds: ["thinking-fast-slow", "sapiens", "influence", "zero-to-one", "lean-startup", "7-habits", "atomic-habits", "383315006", "391172295", "389340198", "384735645", "383256009"]
   },
   {
     title: "제로 투 원, 무에서 유를 만드는 창업가들의 뇌 구조",
     emoji: "🚀",
     badge: "✨ NEW",
+    // 무에서 유를 만드는 창업가와 혁신가들의 사고법
     bookIds: ["zero-to-one", "lean-startup", "thinking-fast-slow", "influence", "7-habits", "atomic-habits", "how-to-win-friends", "393490963", "391371257", "393811057", "389332897", "388169547"]
   },
   {
     title: "밤새는 줄 모르고 읽게 될 몰입감 200% 소설",
     emoji: "🔥",
     badge: "🔥 HOT",
+    // 시간 가는 줄 모르고 빠져드는 최고의 서사들
     bookIds: ["harry-potter", "three-body-problem", "dune", "kite-runner", "monte-cristo", "270454373", "1984", "human-acts", "vegetarian", "394084608", "330811810", "307692409"]
   },
   {
     title: "지적 허영심을 채워줄 세상에서 가장 섹시한 지식들",
     emoji: "🧠",
     badge: "💜 PICK",
+    // 세상을 다르게 보게 만드는 지식의 최전선
     bookIds: ["sapiens", "homo-deus", "guns-germs", "870950", "170482558", "349172323", "385481121", "372980631", "392447560", "311503950", "375395519", "393699252"]
   },
   {
     title: "논리로 상대를 압도하는 법: 지지 않는 대화의 기술",
     emoji: "💬",
     badge: "💎 BEST",
+    // 논리와 설득으로 상대를 압도하는 대화의 기술
     bookIds: ["influence", "how-to-win-friends", "thinking-fast-slow", "392447560", "393315475", "385481121", "393699252", "393735585", "388169547", "388955379", "391454505", "322240489"]
   },
   {
     title: "벽돌책 깨기 챌린지: 완독하는 순간 시선이 바뀝니다",
     emoji: "📚",
     badge: "✨ NEW",
+    // 두껍지만 읽고 나면 인생이 달라지는 인류의 유산
     bookIds: ["brothers-karamazov", "crime-punishment", "les-miserables", "monte-cristo", "don-quixote", "great-gatsby", "hamlet", "1984", "hundred-years", "dune", "sapiens", "guns-germs"]
   }
 ];
@@ -385,11 +397,14 @@ function AppContent() {
   useEffect(() => {
     const notifCleanVersion = "v3";
     if (localStorage.getItem("notif_clean_version") !== notifCleanVersion) {
+      // 실제 사용자 활동으로 생성된 알림은 forum_notifications_${userId} 키에 저장됨
+      // 과거 더미 알림 키들을 제거
       const keysToRemove: string[] = [];
       
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key) {
+          // guest 알림이나 빈/이상한 키는 삭제 리스트에 추가
           if (key === "forum_notifications_guest" || key === "forum_notifications_undefined" || key === "forum_notifications_null") {
             keysToRemove.push(key);
             continue;
@@ -402,8 +417,11 @@ function AppContent() {
                 const notifs = JSON.parse(data);
                 const cleaned = notifs.filter((n: any) => {
                   const msg = n.message || "";
+                  // 1. 깨진 텍스트 제거 (유니코드 대체 문자, 깨진 한글 특성 문자 포함)
                   if (msg.includes("\uFFFD") || msg.includes("□")) return false;
+                  // 2. 빈 메시지 제거
                   if (!msg.trim()) return false;
+                  // 3. 이전 개발 단계의 하드코딩된 더미 알림 탐지 및 제거
                   if (msg.includes("채팅방") || msg.includes("좋아요를 눌렀") || msg.includes("댓글을 남겼") || msg.includes("팔로우")) return false;
                   return true;
                 });
@@ -417,6 +435,7 @@ function AppContent() {
         }
       }
       
+      // 대상 키 완전 삭제
       keysToRemove.forEach(key => localStorage.removeItem(key));
       localStorage.setItem("notif_clean_version", notifCleanVersion);
     }
@@ -438,11 +457,14 @@ function AppContent() {
   const [booksScreenShowSearch, setBooksScreenShowSearch] = useState(false);
   const [revealedSpoilers, setRevealedSpoilers] = useState<Record<string, boolean>>({});
   
+  // 책 데이터를 state로 관리 (투표 및 신규 등록 동기화를 위해)
+  // 책 데이터를 state로 관리 (투표 및 신규 등록 동기화를 위해)
   const [booksData, setBooksData] = useState<Book[]>(() => {
     return getGlobalBooks(popularBooksData).map(book => {
       const workKey = getWorkKey(book.title, book.author);
       const stats = getBookRatingStatsWithQuick(workKey);
       
+      // 클래식 도서라면 기본 출판사를 민음사/문학동네/열린책들 3사 및 기존 출판사들로 채움
       const isClassic = isClassicBook(book.title, book.author);
       
       const defaultPubs = [
@@ -462,6 +484,7 @@ function AppContent() {
 
       const initialPubs = isClassic ? mergedPubs : bookPubs;
       
+      // 개별 출판사 고유 ID 기준으로 로컬 투표수 조회
       const dbPublishers = initialPubs.map((pub: any) => {
         const coverInfo = book.alternativeCovers?.find((c: any) => c.publisher === pub.name);
         const pubBookId = coverInfo?.bookId || `${book.id}_${pub.name}`;
@@ -483,8 +506,11 @@ function AppContent() {
     });
   });
 
+
+  // 스크린이 전환될 때마다 DB 데이터를 책 데이터에 리프레시하여 평점, 리뷰수, 투표수 및 신규 도서 동기화
   useEffect(() => {
     try {
+      // 1회성 캐시 무효화 (v5) - 기존 꼬인 도서 통합 캐시를 완전히 날리고 강제 새로고침
       const APP_CACHE_VERSION_KEY = "forum_app_cache_version_v5";
       if (!localStorage.getItem(APP_CACHE_VERSION_KEY)) {
         localStorage.removeItem("forum_global_books");
@@ -494,7 +520,8 @@ function AppContent() {
         return;
       }
 
-      const WIKI_CACHE_VERSION = "v5";
+      // 1. Wikipedia 이미지 실패 및 오염 캐시 버전별 강제 초기화
+      const WIKI_CACHE_VERSION = "v5"; // v5 버전으로 업데이트하여 기존 캐시 완전 강제 제거
       if (localStorage.getItem("wiki_cache_version") !== WIKI_CACHE_VERSION) {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -507,14 +534,17 @@ function AppContent() {
         localStorage.setItem("wiki_cache_version", WIKI_CACHE_VERSION);
       }
 
+      // 2. localStorage의 "forum_global_books" 데이터 내 장르 정합성 완전 복구 (인코딩 깨짐 및 오염 복구)
       const globalBooksStr = localStorage.getItem("forum_global_books");
       if (globalBooksStr) {
         const books = JSON.parse(globalBooksStr);
         let wasModified = false;
         
         const fixedBooks = books.map((book: any) => {
+          // default 책(popularBooksData)에 해당하는 경우, 정적 데이터를 기반으로 장르 및 텍스트 완전 복구
           const staticBook = popularBooksData.find(b => b.id === book.id);
           if (staticBook) {
+            // 저자, 출판사, 제목, 표지가 다른 경우도 복원하여 로컬 스토리지 오염 자가 정화
             const isDifferent = 
               book.author !== staticBook.author || 
               book.title !== staticBook.title || 
@@ -534,6 +564,7 @@ function AppContent() {
               wasModified = true;
             }
           } else {
+            // 커스텀 등록된 도서의 오염된 장르 정화
             if (book.genre && Array.isArray(book.genre)) {
               const cleanedGenre = book.genre.map((g: string) => {
                 if (!g || g.includes("\uFFFD")) return "소설";
@@ -613,6 +644,7 @@ function AppContent() {
     );
   }, [currentScreen]);
   
+  // 자유게시판(Discussions) 실시간 백엔드 동기화
   useEffect(() => {
     setDiscussionsList(getDiscussions(discussions));
     const syncDiscussions = async () => {
@@ -634,6 +666,7 @@ function AppContent() {
   }, [user?.userId, showNotificationModal]);
   
   const [currentCurationIndexes, setCurrentCurationIndexes] = useState(() => {
+    // 초기 랜덤 4개 큐레이션 선택
     const indexes: number[] = [];
     while (indexes.length < 4) {
       const randomIndex = Math.floor(Math.random() * curations.length);
@@ -644,14 +677,18 @@ function AppContent() {
     return indexes;
   });
   
+  // 투표 핸들러
   const handlePublisherVote = (bookId: string, publisherName: string, pubBookId?: string) => {
     const targetBook = booksData.find(b => b.id === bookId);
     if (!targetBook) return;
 
+    // 작품의 공유 키 (원제 또는 한글+작가 조합)
     const workKey = getWorkKey(targetBook.title, targetBook.author);
 
+    // 1. DB에 작품-출판사 매핑 기준 투표 저장
     voteWorkPublisher(workKey, publisherName);
 
+    // 2. State 갱신
     setBooksData(prevBooks => 
       prevBooks.map(book => {
         const bookWorkKey = getWorkKey(book.title, book.author);
@@ -672,6 +709,7 @@ function AppContent() {
       })
     );
 
+    // 2.5 상세페이지 도서 상태(selectedBook)도 실시간 투표 갱신 반영
     if (selectedBook) {
       const bookWorkKey = getWorkKey(selectedBook.title, selectedBook.author);
       if (bookWorkKey === workKey) {
@@ -688,12 +726,14 @@ function AppContent() {
       }
     }
     
+    // 3. 사용자 투표 정보 저장 (작품 공유 키 workKey 기준)
     const currentUserId = user?.userId || "";
     const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
     myVotes[workKey] = publisherName;
     localStorage.setItem(`myPublisherVotes_${currentUserId}`, JSON.stringify(myVotes));
   };
   
+  // 투표 여부 확인 함수
   const hasVotedForBook = (bookId: string) => {
     const currentUserId = user?.userId || "";
     const targetBook = booksData.find(b => b.id === bookId);
@@ -703,6 +743,7 @@ function AppContent() {
     return workKey in myVotes;
   };
   
+  // 투표한 출판사 확인 함수
   const getMyVotedPublisher = (bookId: string) => {
     const currentUserId = user?.userId || "";
     const targetBook = booksData.find(b => b.id === bookId);
@@ -713,9 +754,10 @@ function AppContent() {
   };
   
   const [curationSeeds, setCurationSeeds] = useState(() => {
+    // 각 큐레이션마다 다른 시드 값 생성
     return curations.map(() => Math.floor(Math.random() * 10000));
   });
-  const [selectedBook, setSelectedBookRaw] = useState<Book | null>(null);
+    const [selectedBook, setSelectedBookRaw] = useState<Book | null>(null);
 
   const getRepresentativeBookForBook = (book: Book, globalBooks: Book[]): Book => {
     const classicTitle = isClassicBook(book.title, book.author) ? getMatchingClassicTitle(book.title) : null;
@@ -738,14 +780,21 @@ function AppContent() {
       if (lower.includes("헤세")) return "헤르만 헤세";
       if (lower.includes("오웰")) return "조지 오웰";
       if (lower.includes("도스토")) return "피오도르 도스토옙스키";
-      if (lower.includes("카프카")) return "프란츠 카프카";
+      if (lower.includes("카프카")) return "프란ץ 카프카";
       if (lower.includes("생텍쥐")) return "생텍쥐페리";
       if (lower.includes("위고")) return "빅토르 위고";
       if (lower.includes("피츠제")) return "F. 스콧 피츠제럴드";
       if (lower.includes("헤밍웨이")) return "어네스트 헤밍웨이";
       if (lower.includes("조르바") || lower.includes("카잔차")) return "니코스 카잔차키스";
       if (lower.includes("쿤데라")) return "밀란 쿤데라";
-      return a;
+      if (lower.includes("박경리")) return "박경리";
+      if (lower.includes("최인훈")) return "최인훈";
+      if (lower.includes("세르반")) return "미겔 데 세르반테스";
+      if (lower.includes("나관중")) return "나관중";
+      if (lower.includes("하루키")) return "무라카미 하루키";
+
+      const firstPart = a.split(/[,;\/]/)[0].trim();
+      return firstPart.replace(/\s+/g, "").replace(/지음|저자|옮김|역자|글|그림/g, "");
     };
 
     const cleanAuthor = (a: string) => {
@@ -756,6 +805,7 @@ function AppContent() {
     const targetCleanedTitle = cleanTitle(book.title).toLowerCase();
     const authorQuery = cleanAuthor(book.author);
 
+    // 관련 도서들 수집 (클래식 매칭 우선 지원)
     const relatedBooks = globalBooks.filter(b => {
       const cleanAuth = cleanAuthor(b.author);
       const isAuthorMatch = cleanAuth === authorQuery || cleanAuth.includes(authorQuery) || authorQuery.includes(cleanAuth);
@@ -773,6 +823,7 @@ function AppContent() {
       return isAuthorMatch && isTitleMatch;
     });
 
+    // 클릭된 도서 자체가 relatedBooks 목록에 포함되어 있지 않다면 수동으로 추가
     const hasCurrentBook = relatedBooks.some(rb => rb.id === book.id);
     if (!hasCurrentBook) {
       relatedBooks.push(book);
@@ -870,13 +921,14 @@ function AppContent() {
             });
             representative.alternativeCovers.push({
               publisher: pub,
-              coverUrl: foundBook ? (foundBook.coverUrl || "") : "",
+              coverUrl: "",
               bookId: foundBook ? foundBook.id : `${representative.id}_${pub}`
             });
           }
         });
       }
 
+      // Ensure all alternative covers have bookId populated
       representative.alternativeCovers = representative.alternativeCovers.map((c: any) => {
         if (!c.bookId) {
           const foundBook = relatedBooks.find(rb => {
@@ -926,18 +978,26 @@ function AppContent() {
 
   // Handle screen navigation
   const handleNavigate = (screen: string) => {
+    // 화면 전환 시 스크롤을 최상단으로 즉시 이동
     window.scrollTo(0, 0);
 
     if (screen === "skin-shop") {
       setShowSkinShopModal(true);
       return;
     }
+    
+    // 카테고리에서 판본 토론 진입 시 목록 화면(edition-debate-list)을 먼저 거치게 되므로,
+    // 상세 화면 vote-detail 진입 시에 voteDetailBook을 보존합니다.
 
+
+
+    // 작가 아카이브 탭에 새로 진입할 때 이전 검색/필터 상태 초기화
     if (screen === "author-archive") {
       sessionStorage.removeItem('authorArchive_search');
       sessionStorage.removeItem('authorArchive_country');
     }
     
+    // 현재 화면을 히스토리에 추가
     if (currentScreen) {
       setScreenHistory(prev => [...prev, currentScreen]);
     }
@@ -949,14 +1009,17 @@ function AppContent() {
     if (currentScreen === "monthly-debate") {
       setSelectedDebate(null);
     }
+    // 히스토리가 있으면 이전 화면으로, 없으면 홈으로
     if (screenHistory.length > 0) {
       const previousScreen = screenHistory[screenHistory.length - 1];
       setScreenHistory(prev => prev.slice(0, -1));
       
+      // 토론 광장 탭에서 토론 상세 모달로 복귀하는 경우
       if (previousScreen === "discussions-tab") {
         setShowDiscussionDetail(true);
         setCurrentScreen(null);
       } else {
+        // 작가 아카이브로 돌아올 때 이전 검색/필터 상태 초기화 (깨끗한 화면)
         if (previousScreen === "author-archive") {
           sessionStorage.removeItem('authorArchive_search');
           sessionStorage.removeItem('authorArchive_country');
@@ -964,6 +1027,7 @@ function AppContent() {
         setCurrentScreen(previousScreen);
       }
     } else {
+      // 상세 화면 등에서 뒤로가기 시 책 탭 및 작가 아카이브의 상태도 초기화
       if (currentScreen === "author-archive" || currentScreen === "author-detail") {
         sessionStorage.removeItem('authorArchive_search');
         sessionStorage.removeItem('authorArchive_country');
@@ -971,12 +1035,14 @@ function AppContent() {
       setCurrentScreen(null);
       setSelectedBook(null);
     }
+    // 홈 화면이나 다른 탭으로 돌아갈 때만 최상단으로 이동 (책 상세에서 책 목록으로 돌아올 때는 스크롤 유지)
     if (!(activeTab === "books" && currentScreen === "book-detail")) {
       window.scrollTo(0, 0);
     }
   };
 
   const handleUserProfileBack = () => {
+    // 사용자 프로필에서 뒤로가기 시 이전 화면으로 복귀
     setSelectedUserProfile(null);
     handleBack();
   };
@@ -1008,6 +1074,7 @@ function AppContent() {
       quotes.length > 1
     );
     
+    // 안전한 폴백: 매칭 실패 시 최소한 동일한 인덱스만 피함
     if (randomIndex === currentQuoteIndex) {
       do {
         randomIndex = Math.floor(Math.random() * quotes.length);
@@ -1021,6 +1088,7 @@ function AppContent() {
     setRecommendedBooksOffset((recommendedBooksOffset + 6) % popularBooksData.length);
   };
 
+  // 큐레이션 새로고침 - 새로운 랜덤 4개 선택
   const handleRefreshCurations = () => {
     const newIndexes: number[] = [];
     while (newIndexes.length < 4) {
@@ -1033,20 +1101,25 @@ function AppContent() {
     setCurationSeeds(curations.map(() => Math.floor(Math.random() * 10000)));
   };
 
+  // 큐레이션에서 책 가져오기
   const getBooksFromCuration = (bookIds: string[]) => {
     return bookIds.map(id => popularBooksData.find(book => book.id === id || book.title === id)).filter((book): book is Book => book !== undefined);
   };
 
+  // 큐레이션에서 랜덤 3권 가져오기 (중복 방지)
   const getRandomBooksFromCuration = (bookIds: string[], seed: number, excludeBookIds: string[] = []) => {
     const allBooks = getBooksFromCuration(bookIds);
+    // 이미 선택된 책 제외
     const availableBooks = allBooks.filter(book => !excludeBookIds.includes(book.id));
     
     if (availableBooks.length === 0) {
+      // 사용 가능한 책이 없으면 원래 목록에서 선택
       return allBooks.slice(0, 3);
     }
     
     if (availableBooks.length <= 3) return availableBooks;
     
+    // 시드 기반 랜덤 선택
     const selectedBooks: Book[] = [];
     const availableIndices = availableBooks.map((_, i) => i);
     
@@ -1061,22 +1134,26 @@ function AppContent() {
   };
 
   const handleCreateDiscussion = async (newDiscussion: any) => {
+    // 고유 ID 추가
     const discussionWithId = {
       ...newDiscussion,
-      id: Date.now().toString(),
+      id: Date.now().toString(), // 타임스탬프 기반 고유 ID
     };
     await saveDiscussionToCloud(discussionWithId);
     const cloudDiscussions = await fetchDiscussionsFromCloud();
     setDiscussionsList(cloudDiscussions);
   };
 
+  // Tab change handler that resets search states for a fresh experience
   const handleTabChange = (tab: string) => {
+    // 탭 이동 시 항상 검색 상태 초기화
     setSearchQuery("");
     setSelectedCategory("전체");
     setBooksScreenShowSearch(false);
     sessionStorage.removeItem('authorArchive_search');
     sessionStorage.removeItem('authorArchive_country');
 
+    // 게시판 탭 진입 시 게시판 검색어 초기화
     if (tab !== "discussions") {
       setBoardSearchQuery("");
     }
@@ -1084,7 +1161,9 @@ function AppContent() {
     setActiveTab(tab);
   };
 
+  // Scroll to top when logo is clicked
   const handleLogoClick = () => {
+    // 로고 클릭 시 홈 화면으로 가며 검색 상태 초기화
     setSearchQuery("");
     setSelectedCategory("전체");
     setBooksScreenShowSearch(false);
@@ -1094,9 +1173,11 @@ function AppContent() {
     if (activeTab !== "home") {
       setActiveTab("home");
     }
+    // 스크롤을 최상단으로 이동
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Get 6 recommended books for 3x2 grid
   const getRecommendedBooks = () => {
     const books = [];
     for (let i = 0; i < 6; i++) {
@@ -1105,6 +1186,7 @@ function AppContent() {
     return books;
   };
 
+  // Sort popular books
   const getSortedBooks = () => {
     const sorted = [...popularBooksData];
     if (sortBy === "likes") {
@@ -1121,6 +1203,7 @@ function AppContent() {
     setShowAuthModal(true);
   };
 
+  // 화면(currentScreen)이나 탭(activeTab)이 변경될 때 스크롤 위치를 최상단으로 초기화 (타이밍 이슈 방지)
   useEffect(() => {
     const performScrollReset = () => {
       try {
@@ -1131,6 +1214,7 @@ function AppContent() {
         if (document.body) {
           document.body.scrollTop = 0;
         }
+        // 혹시 레이아웃 모바일-only 컨테이너 div 스크롤바가 작동중인 경우 대비
         const containers = document.querySelectorAll(".min-h-screen, .overflow-y-auto");
         containers.forEach(container => {
           container.scrollTop = 0;
@@ -1170,7 +1254,7 @@ function AppContent() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex justify-center items-start w-full p-0">
         
         {/* Mobile-only Container */}
-        <div className="mx-auto w-full max-w-[393px] lg:max-w-[1200px] min-h-screen bg-white lg:bg-slate-50 shadow-2xl relative flex flex-col shrink-0">
+        <div className="mx-auto w-full max-w-[393px] min-h-screen bg-white shadow-2xl relative flex flex-col shrink-0">
           <style>{`
             .scrollbar-none::-webkit-scrollbar {
               display: none;
@@ -1190,8 +1274,6 @@ function AppContent() {
             handleNavigate("vote-detail");
           }}
         />
-      )}
-
       {currentScreen === "vote-detail" && (
         <VoteDetailScreen 
           onBack={handleBack}
@@ -1283,6 +1365,7 @@ function AppContent() {
             setCurrentScreen("user-profile");
           }}
           onDelete={(itemId) => {
+            // 아이템 삭제 후 뒤로가기
             handleBack();
           }}
         />
@@ -1318,7 +1401,7 @@ function AppContent() {
           selectedAuthor={selectedAuthor}
           onAuthorClick={(author) => {
             setSelectedAuthorData(author);
-            setSelectedAuthor(null);
+            setSelectedAuthor(null); // 선택된 작가 초기화
             handleNavigate("author-detail");
           }}
           onBookClick={(book) => {
@@ -1355,13 +1438,14 @@ function AppContent() {
               setSelectedBook(book);
               handleNavigate("book-detail");
             } else {
+              // Create a new dynamic book if not registered
               const newBookId = `dynamic_${Date.now()}`;
               const newBook = {
                 id: newBookId,
                 title: bookTitle,
                 author: authorName,
                 description: `${authorName} 작가의 작품 '${bookTitle}'입니다.`,
-                coverUrl: "",
+                coverUrl: "", // BookCover component will dynamically fetch cover from Aladin
                 rating: 0.0,
                 likes: 0,
                 reviews: 0,
@@ -1400,6 +1484,7 @@ function AppContent() {
             setShowDiscussionDetail(true);
           }}
           onDebateClick={(debate) => {
+            // 해당 책의 찬반토론으로 이동
             setSelectedDebate({
               title: selectedBook.title,
               author: selectedBook.author,
@@ -1462,7 +1547,7 @@ function AppContent() {
 
       {/* Main app view */}
       {!currentScreen && activeTab !== "books" && (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white lg:bg-slate-50 pb-20">
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
           <Header 
             onSearchClick={() => {
               setSearchQuery("");
@@ -1481,215 +1566,83 @@ function AppContent() {
           
           <main className="mx-auto w-full max-w-[393px] lg:max-w-[1200px] lg:grid lg:grid-cols-10 lg:gap-8 lg:px-6 lg:py-8">
             {/* Left Content Area (70%) */}
-            <div className="w-full lg:col-span-7">
+            <div className="lg:col-span-7 w-full">
               {/* Home Tab */}
-            {activeTab === "home" && (
-              <div className="px-4 py-6 space-y-6">
-                {/* Hero Section */}
-                <section className="text-center bg-slate-50 border border-slate-200/70 rounded-xl p-5 shadow-2xs">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Sparkles className="size-4.5 text-purple-600" />
-                    <h2 className="text-base font-bold text-gray-900">Forum</h2>
+              {activeTab === "home" && (
+                <div className="px-4 py-6 space-y-6">
+                  {/* Hero Section */}
+                  <section className="text-center bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-6 border border-purple-200">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Sparkles className="size-5 text-purple-600" />
+                      <h2 className="text-xl font-bold text-purple-900">Forum</h2>
+                    </div>
+                    <p className="text-sm text-purple-700">
+                      모든 지혜가 모이는 곳, 지식의 광장 포룸
+                    </p>
+                  </section>
+
+                  {/* Category Grid */}
+                  <section>
+                    <CategoryGridNew onNavigate={(screen) => {
+                      if (screen === "monthly-debate") {
+                        setSelectedDebate(null);
+                      }
+                      handleNavigate(screen);
+                    }} />
+                  </section>
+
+                  {/* Google AdSense / AdMob Option 1 Banner Slot */}
+                  {/* 
+                  <div className="bg-gray-100 dark:bg-gray-900/60 rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[80px] relative overflow-hidden select-none">
+                    <div className="absolute top-1.5 right-2 flex items-center gap-1">
+                      <span className="text-[8px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded border border-gray-300/30">AD</span>
+                      <span className="text-[8px] font-bold text-gray-400">Google Ads</span>
+                    </div>
+                    <div className="text-center space-y-1 py-2">
+                      <p className="text-[10px] font-bold text-gray-600 dark:text-gray-400">구글 애드센스 / 애드몹 배너 광고 영역</p>
+                      <p className="text-[8px] text-gray-400 font-mono">ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX (320x50)</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 font-medium">
-                    모든 지혜가 모이는 곳, 지식의 광장 포룸
-                  </p>
-                </section>
+                  */}
 
-                {/* Category Grid */}
-                <section>
-                  <CategoryGridNew onNavigate={(screen) => {
-                    if (screen === "monthly-debate") {
-                      setSelectedDebate(null);
-                    }
-                    handleNavigate(screen);
-                  }} />
-                </section>
+                  {/* Hot Vote Section */}
+                  <section>
+                    <HotVoteCard
+                      {...(() => {
+                        const dailyHotVote = getDailyHotVote(booksData);
+                        return {
+                          ...dailyHotVote,
+                          onCommentClick: () => {
+                            // booksData에서 최신 상태의 책을 가져옴
+                            const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
+                            setSelectedBook(updatedBook);
+                            handleNavigate("book-detail");
+                          },
+                          onBookClick: () => {
+                            const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
+                            setSelectedBook(updatedBook);
+                            handleNavigate("book-detail");
+                          },
+                          onLoginRequired: handleLoginRequired,
+                          onVote: handlePublisherVote,
+                        };
+                      })()}
+                    />
+                  </section>
 
-                {/* Hot Vote Section */}
-                <section>
-                  <HotVoteCard
-                    {...(() => {
-                      const dailyHotVote = getDailyHotVote(booksData);
-                      return {
-                        ...dailyHotVote,
-                        onCommentClick: () => {
-                          const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
-                          setSelectedBook(updatedBook);
-                          handleNavigate("book-detail");
-                        },
-                        onBookClick: () => {
-                          const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
-                          setSelectedBook(updatedBook);
-                          handleNavigate("book-detail");
-                        },
-                        onLoginRequired: handleLoginRequired,
-                        onVote: handlePublisherVote,
-                      };
-                    })()}
-                  />
-                </section>
-
-                {/* Curations Section */}
-                <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900">
-                      <span className="text-purple-600">✨</span>
-                      큐레이션
-                    </h3>
-                    <button
-                      onClick={handleRefreshCurations}
-                      className="p-2.5 hover:bg-slate-50 rounded-full transition-colors"
-                      aria-label="새로고침"
-                    >
-                      <RefreshCw className="size-4.5 text-slate-500" />
-                    </button>
-                  </div>
-                  <div className="space-y-5">
-                    {currentCurationIndexes.map((curationIndex, arrayIndex) => {
-                      const curation = curations[curationIndex];
-                      const previouslySelectedBookIds = currentCurationIndexes
-                        .slice(0, arrayIndex)
-                        .flatMap((prevCurationIndex) => {
-                          const prevCuration = curations[prevCurationIndex];
-                          const prevBooks = getRandomBooksFromCuration(
-                            prevCuration.bookIds, 
-                            curationSeeds[prevCurationIndex],
-                            [],
-                            3
-                          );
-                          return prevBooks.map(b => b.id);
-                        });
-                      
-                      const books = getRandomBooksFromCuration(
-                        curation.bookIds, 
-                        curationSeeds[curationIndex],
-                        previouslySelectedBookIds,
-                        3
-                      );
-                      
-                      return (
-                        <div key={curationIndex} className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{curation.emoji}</span>
-                            <h4 className="font-bold text-sm">{curation.title}</h4>
-                          </div>
-                          <div className="grid grid-cols-3 gap-3 lg:flex lg:flex-row lg:justify-start lg:gap-4">
-                            {books.map((book, index) => {
-                              const showBadge = index === 0;
-                              const badgeOptions = [
-                                { text: "PICK", className: "bg-slate-900 text-white border border-slate-700/50" },
-                                { text: "HOT", className: "bg-rose-50 text-rose-600 border border-rose-100" },
-                                { text: "NEW", className: "bg-emerald-50 text-emerald-600 border border-emerald-100" },
-                                { text: "BEST", className: "bg-amber-50 text-amber-700 border border-amber-200" },
-                              ];
-                              const badge = badgeOptions[curationIndex % badgeOptions.length];
-                              
-                              return (
-                              <button
-                                key={index}
-                                onClick={() => handleBookClick(book)}
-                                className="bg-white rounded-xl border border-slate-200/90 hover:border-slate-350 hover:shadow-xs transition-all overflow-hidden text-left relative lg:w-36 lg:flex-shrink-0"
-                              >
-                                {showBadge && (
-                                  <div className="absolute top-2 left-2 z-10">
-                                    <span className={`text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded border ${badge.className}`}>
-                                      {badge.text}
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                <div className="aspect-[2/3] bg-slate-50 border-b border-slate-100 overflow-hidden">
-                                  <BookCover
-                                    title={book.title}
-                                    author={book.author}
-                                    publisherName={book.publishers?.[0]?.name}
-                                    coverUrl={book.coverUrl}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="p-2.5 pt-3">
-                                  <h5 className="text-sm font-bold text-gray-950 line-clamp-2 mb-1 min-h-[2.5rem] leading-snug">{book.title}</h5>
-                                  <p className="text-xs text-gray-500 truncate">{book.author}</p>
-                                </div>
-                              </button>
-                            );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                {/* Quote Section & Sponsored Banner */}
-                <section>
-                  <QuoteCard 
-                    {...quotes[currentQuoteIndex]}
-                    onRefresh={handleRefreshQuote}
-                  />
-                </section>
-              </div>
-            )}
-
-            {/* 게시판 탭 */}
-            {activeTab === "discussions" && (() => {
-              const filteredDiscussions = [...discussionsList]
-                .filter(d => {
-                  if (!boardSearchQuery.trim()) return true;
-                  const q = boardSearchQuery.toLowerCase();
-                  return (
-                    d.title?.toLowerCase().includes(q) ||
-                    d.description?.toLowerCase().includes(q) ||
-                    d.author?.toLowerCase().includes(q) ||
-                    (d.tags && d.tags.some((t: string) => t.toLowerCase().includes(q)))
-                  );
-                })
-                .sort((a, b) => {
-                  if (discussionSortBy === "popular") return b.totalVotes - a.totalVotes;
-                  return 0;
-                });
-
-              return (
-                <div className="min-h-screen bg-slate-50 lg:bg-slate-50 -mx-0 -mt-0">
-                  {/* 게시판 상단 검색 + 정렬 */}
-                  <div className="bg-white border-b border-slate-200 lg:border lg:rounded-xl px-4 pt-4 pb-3 mb-4 shadow-none">
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-lg font-bold text-gray-900">게시판</h2>
-                      <Button
-                        size="sm"
-                        className="gap-1 bg-purple-600 hover:bg-purple-700 h-8 text-xs px-3 shadow-none"
-                        onClick={() => setShowCreateDiscussionModal(true)}
+                  {/* Curations Section */}
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <span className="text-purple-600">✨</span>
+                        큐레이션
+                      </h3>
+                      <button
+                        onClick={handleRefreshCurations}
+                        className="p-2.5 hover:bg-purple-50 rounded-full transition-colors"
+                        aria-label="새로고침"
                       >
-                        <PlusCircle className="size-3.5" />
-                        글쓰기
-                      </Button>
-                    </div>
-                    {/* 검색창 */}
-                    <div className="relative mb-2.5">
-                      <input
-                        type="text"
-                        placeholder="게시글 검색..."
-                        value={boardSearchQuery}
-                        onChange={e => setBoardSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-9 py-2 text-sm bg-slate-50 hover:bg-slate-100/50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-400 transition-all"
-                      />
-                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                      {boardSearchQuery && (
-                        <button onClick={() => setBoardSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          <svg className="size-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                        </button>
-                      )}
-                    </div>
-                    {/* 정렬 */}
-                    <div className="flex gap-2">
-                      <button onClick={() => setDiscussionSortBy("popular")} className={`px-3 py-1 rounded-md text-xs font-semibold transition-all border ${discussionSortBy === "popular" ? "bg-purple-600 text-white border-purple-600" : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"}`}>인기순</button>
-                      <button onClick={() => setDiscussionSortBy("recent")} className={`px-3 py-1 rounded-md text-xs font-semibold transition-all border ${discussionSortBy === "recent" ? "bg-purple-600 text-white border-purple-600" : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"}`}>최신순</button>
-                    </div>
-                  </div>
-
-                  {/* 게시글 목록 */}
-                  <div className="bg-slate-50/30 lg:bg-transparent mt-2 pb-6 space-y-4">
+                  <div className="bg-gray-50/50 mt-2 pb-6">
                     {filteredDiscussions.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white">
                         <svg className="size-12 mb-3 opacity-30" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
@@ -1732,13 +1685,14 @@ function AppContent() {
                       const card = (
                         <div
                           key={discussion.id}
-                          className="mx-4 lg:mx-0 my-3 bg-white border border-slate-200 rounded-xl hover:border-slate-350 hover:shadow-xs transition-all duration-300 overflow-hidden cursor-pointer"
+                          className="mx-4 my-3 bg-white border border-gray-100 rounded-2xl shadow-xs hover:shadow-md hover:border-purple-100 transition-all duration-300 overflow-hidden cursor-pointer"
                           onClick={handleCardClick}
                         >
                           <div className="p-4 space-y-3">
+                            {/* Top Info */}
                             <div className="flex items-center justify-between text-xs text-gray-500">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-[10px]">
+                                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-[10px]">
                                   {discussion.author ? discussion.author.charAt(0) : "익"}
                                 </div>
                                 <span className="font-semibold text-gray-700 text-xs flex items-center gap-1">
@@ -1755,6 +1709,7 @@ function AppContent() {
                               )}
                             </div>
 
+                            {/* Main Title & Presence Icons */}
                             <div className={isSpoilerHidden ? "filter blur-xs select-none" : ""}>
                               <h3 className="font-bold text-sm text-gray-900 leading-snug text-left flex flex-wrap items-center gap-1.5">
                                 <span>{discussion.title}</span>
@@ -1771,6 +1726,7 @@ function AppContent() {
                               </h3>
                             </div>
 
+                            {/* Spoiler Overlay */}
                             {isSpoilerHidden && (
                               <div className="py-2.5 px-3 bg-orange-50/50 rounded-xl border border-orange-100 flex flex-col items-center justify-center gap-1">
                                 <span className="text-xs font-bold text-orange-700">⚠️ 스포일러가 포함된 글입니다</span>
@@ -1778,22 +1734,23 @@ function AppContent() {
                               </div>
                             )}
 
+                            {/* Footer actions */}
                             <div className="flex items-center justify-between pt-2 border-t border-gray-50 text-gray-500">
                               <div className="flex items-center gap-4">
                                 <button
                                   onClick={handleLikeClick}
                                   className={`flex items-center gap-1.5 text-xs font-medium py-1 px-2.5 rounded-lg transition-colors ${
                                     isLiked 
-                                      ? "bg-rose-50 text-rose-600" 
-                                      : "hover:bg-slate-50 text-slate-500 hover:text-slate-800"
+                                      ? "bg-red-50 text-red-500" 
+                                      : "hover:bg-gray-50 text-gray-500"
                                   }`}
                                 >
-                                  <Heart className={`size-3.5 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`} />
+                                  <Heart className={`size-3.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
                                   <span>{discussion.likes || 0}</span>
                                 </button>
                                 
-                                <div className="flex items-center gap-1.5 text-xs font-medium py-1 px-2.5 text-slate-500">
-                                  <MessageCircle className="size-3.5 text-slate-400" />
+                                <div className="flex items-center gap-1.5 text-xs font-medium py-1 px-2.5">
+                                  <MessageCircle className="size-3.5" />
                                   <span>{commentCount}</span>
                                 </div>
                               </div>
@@ -1802,6 +1759,25 @@ function AppContent() {
                         </div>
                       );
 
+                      /*
+                      if (index === 3) {
+                        return [
+                          <div key="inline-ad-discussions" className="px-4 py-1.5">
+                            <div className="bg-gray-100 dark:bg-gray-900/60 rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[70px] relative select-none">
+                              <div className="absolute top-1 right-2 flex items-center gap-1">
+                                <span className="text-[7px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded border border-gray-300/30">AD</span>
+                                <span className="text-[7px] font-bold text-gray-400">Google Ads</span>
+                              </div>
+                              <div className="text-center py-1">
+                                <p className="text-[9px] font-bold text-gray-500 dark:text-gray-400">구글 애드센스 인라인 광고 슬롯</p>
+                                <p className="text-[7px] text-gray-400 font-mono mt-0.5">ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX (Responsive)</p>
+                              </div>
+                            </div>
+                          </div>,
+                          card
+                        ];
+                      }
+                      */
                       return [card];
                     })}
                   </div>
@@ -1829,23 +1805,9 @@ function AppContent() {
                 onBookClick={handleBookClick}
               />
             )}
-            </div>
-
-            {/* Right Sidebar Area (30%) - PC only */}
-            <div className="hidden lg:block lg:col-span-3 lg:sticky lg:top-24 lg:h-fit">
-              <PcSidebar
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                booksData={booksData}
-                onBookClick={handleBookClick}
-                onLoginClick={() => setShowAuthModal(true)}
-              />
-            </div>
           </main>
 
-          <div className="lg:hidden">
-            <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
-          </div>
+          <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
       )}
 
@@ -1889,7 +1851,7 @@ function AppContent() {
                 handleLoginRequired();
                 return;
               }
-              if (votedOpt === optionId) return;
+              if (votedOpt === optionId) return; // 중복 투표 방지
               
               const previousOptionId = votedOpt;
               
@@ -1908,6 +1870,7 @@ function AppContent() {
             selectedOption={votedOpt}
             hasVoted={votedOpt !== null}
             onUserClick={(username, userInitial) => {
+              // 토론 광장 탭 상태를 히스토리에 저장
               setScreenHistory(prev => [...prev, "discussions-tab"]);
               setSelectedUserProfile({username, userInitial});
               setCurrentScreen("user-profile");

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, Search, X, Bell, Loader2 } from "lucide-react";
 import { Header } from "@/app/components/Header";
+import { PcSidebar } from "@/app/components/PcSidebar";
 import { PopularBookCard } from "@/app/components/PopularBookCard";
 import { popularBooksData, type Book } from "@/app/data/booksData";
 import { getBookLikes, getBookRatingStatsWithQuick, getPublisherVotes, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor } from "@/app/utils/db";
@@ -95,6 +96,9 @@ interface BooksScreenProps {
   setShowSearch?: (show: boolean) => void;
   onNotificationClick?: () => void;
   hasUnreadNotifications?: boolean;
+  isForcedMobile?: boolean;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 export function BooksScreen({ 
@@ -109,6 +113,9 @@ export function BooksScreen({
   setShowSearch: controlledSetShowSearch,
   onNotificationClick,
   hasUnreadNotifications,
+  isForcedMobile,
+  activeTab = "books",
+  onTabChange = () => {},
 }: BooksScreenProps) {
   const [localShowSearch, setLocalShowSearch] = useState(false);
   const showSearch = controlledShowSearch !== undefined ? controlledShowSearch : localShowSearch;
@@ -118,8 +125,6 @@ export function BooksScreen({
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const [sortBy, setSortBy] = useState<"likes" | "rating">("likes");
   const [displayCount, setDisplayCount] = useState(40);
-
-
 
   // 검색창 토글: 열릴 때 카테고리 초기화, 닫힐 때 검색어 초기화
   const handleSearchToggle = () => {
@@ -178,130 +183,32 @@ export function BooksScreen({
     setIsLoading(true);
     const delayDebounce = setTimeout(async () => {
       try {
-        // "전체" 카테고리: CID 없이 전체 검색
-        const targetUrl = `https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=Book&KeyWord=${encodeURIComponent(searchQuery)}`;
-        const html = await fetchHtmlViaProxy(targetUrl);
+        // Vercel Serverless Function을 호출하여 진짜 도서 검색
+        const response = await fetch(`/api/aladin-search?query=${encodeURIComponent(searchQuery)}`);
+        if (!response.ok) {
+          throw new Error("Failed to search from Aladin API proxy");
+        }
+        const data = await response.json();
+        const formattedBooks: Book[] = data.items || [];
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const boxes = doc.querySelectorAll(".ss_book_box, .browse_list_box");
+        // DB 평가 정보와 결합하여 실시간 정보 주입
+        const enrichedBooks = formattedBooks.map(apiBook => {
+          const likesStats = getBookLikes(apiBook.id);
+          const ratingStats = getBookRatingStatsWithQuick(apiBook.id);
+          const pubVotes = getPublisherVotes(apiBook.id, apiBook.publishers);
+          const finalRating = (ratingStats.reviewsCount + ratingStats.quickCount) > 0 ? ratingStats.rating : 0.0;
 
-        const formattedBooks = Array.from(boxes).map((box, index) => {
-          try {
-            const itemId = box.getAttribute("itemId") || `aladin_${Date.now()}_${index}`;
-            
-            // Cover Image
-            const img = box.querySelector("img.front_cover") as HTMLImageElement | null;
-            let coverUrl = img?.src || "";
-            if (coverUrl.startsWith("//")) {
-              coverUrl = "https:" + coverUrl;
-            }
-            if (coverUrl.includes("cover200")) {
-              coverUrl = coverUrl.replace("cover200", "cover500");
-            } else if (coverUrl.includes("cover150")) {
-              coverUrl = coverUrl.replace("cover150", "cover500");
-            }
+          return {
+            ...apiBook,
+            likes: likesStats.likesCount,
+            reviews: ratingStats.reviewsCount,
+            rating: finalRating,
+            publishers: pubVotes.map(pv => ({ name: pv.name, votes: pv.votes })),
+          };
+        });
 
-            // Title
-            let title = "제목 없음";
-            const titleSpan = box.querySelector(".b_book_t");
-            const titleLink = box.querySelector("a.bo3");
-            if (titleSpan) {
-              title = titleSpan.textContent?.trim() || "제목 없음";
-              const parentLi = titleSpan.parentElement;
-              if (parentLi) {
-                const subTitleSpan = parentLi.querySelector(".nm_book_title_a");
-                if (subTitleSpan) {
-                  title += " " + subTitleSpan.textContent?.trim();
-                }
-              }
-            } else if (titleLink) {
-              title = titleLink.textContent?.trim() || "제목 없음";
-            } else {
-              return null;
-            }
-
-            // Authors, Publisher, Year
-            let author = "저자 미상";
-            let publisherName = "출판사 미상";
-            let year = 2024;
-            let salesPoint = 0;
-            let foundMetadata = false;
-
-            const listItems = box.querySelectorAll("li, .b_list2 li, .ss_book_list ul li");
-            for (let i = 0; i < listItems.length; i++) {
-              const text = listItems[i].textContent || "";
-              if (text.includes("세일즈포인트")) {
-                const match = text.match(/세일즈포인트\s*:\s*([\d,]+)/);
-                if (match) {
-                  salesPoint = parseInt(match[1].replace(/,/g, ""));
-                }
-              }
-              if (!foundMetadata && text.includes("|")) {
-                const parts = text.split("|").map(p => p.trim());
-                const isShoppingOrPricing = 
-                  /원\s*→|원\s*\(|할인|마일리지|배송|보관함|장바구니|구매|쿠폰|적립/.test(text) ||
-                  (parts[0] && /원$/.test(parts[0].replace(/\s/g, "")));
-                  
-                const isMetadataLine = parts.length >= 2 && !isShoppingOrPricing &&
-                  (text.includes("지은이") || text.includes("옮긴이") || text.includes("저자") || text.includes("지음") || text.includes("옮김") || text.includes("역자") || text.includes("저") || text.includes("글") || text.includes("그림") || /\d{4}/.test(text));
-                
-                if (isMetadataLine) {
-                  author = cleanAladinAuthors(parts[0] || "");
-                  publisherName = parts[1].replace(/\s*\([^)]+\)/g, "").trim();
-                  if (parts[2]) {
-                    const yearMatch = parts[2].match(/\d{4}/);
-                    if (yearMatch) year = parseInt(yearMatch[0]);
-                  } else {
-                    const yearMatch = parts[1].match(/\d{4}/);
-                    if (yearMatch) year = parseInt(yearMatch[0]);
-                  }
-                  foundMetadata = true;
-                }
-              }
-            }
-
-            // Fallback: If author is unknown, check if publisher is an organization
-            const isUnknownAuthor = !author || ["저자 미상", "작자 미상", "미상", "unknown", "anonymous", "저자미상", "작자미상"].includes(author.trim().toLowerCase());
-            if (isUnknownAuthor && publisherName && publisherName !== "출판사 미상") {
-              const orgSuffixes = /(부|처|청|실|연구원|센터|진흥원|협회|학회|기획단|위원회|공사|재단|본부|기획부|정부|기관|연구소|연합)$/;
-              if (orgSuffixes.test(publisherName.trim())) {
-                author = publisherName.trim();
-              }
-            }
-
-            // 포럼 앱 내 리뷰 평점만 사용 (외부 별점 가져오지 않음)
-            const likesStats = getBookLikes(itemId);
-            const ratingStats = getBookRatingStatsWithQuick(itemId);
-            const pubVotes = getPublisherVotes(itemId, [{ name: publisherName, votes: 0 }]);
-            // 앱 내 리뷰나 별점이 없으면 0.0 (별점 없음)
-            const finalRating = (ratingStats.reviewsCount + ratingStats.quickCount) > 0 ? ratingStats.rating : 0.0;
-
-            // Aladin search results have their genre matched to the selected category (default to ["도서"] if "전체")
-            const genre = selectedCategory !== "전체" ? [selectedCategory] : ["도서"];
-
-            return {
-              id: itemId,
-              title,
-              author,
-              description: "",
-              coverUrl: coverUrl || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=200",
-              rating: finalRating,
-              likes: likesStats.likesCount,
-              reviews: ratingStats.reviewsCount,
-              publishers: pubVotes.map(pv => ({ name: pv.name, votes: pv.votes })),
-              year,
-              genre,
-              salesPoint,
-            };
-          } catch (e) {
-            console.error("Failed to parse box item in BooksScreen:", e);
-            return null;
-          }
-        }).filter((b): b is Book => b !== null);
-
-        setApiBooks(formattedBooks);
-        sessionStorage.setItem("booksScreen_apiBooks", JSON.stringify(formattedBooks));
+        setApiBooks(enrichedBooks);
+        sessionStorage.setItem("booksScreen_apiBooks", JSON.stringify(enrichedBooks));
         sessionStorage.setItem("booksScreen_cachedQuery", searchQuery);
         sessionStorage.setItem("booksScreen_cachedCategory", selectedCategory);
       } catch (error) {
@@ -486,6 +393,57 @@ export function BooksScreen({
     return getSalesPoint(b) - getSalesPoint(a);
   });
 
+  // Pad sortedBooks up to exactly 100 books per category if there's no active search query
+  let finalBooks = [...sortedBooks];
+  if (finalBooks.length < 100 && !searchQuery.trim()) {
+    const remainingCount = 100 - finalBooks.length;
+    
+    // Get existing covers in this category to reuse, falling back to a default set
+    const existingCovers = finalBooks.map(b => b.coverUrl).filter(Boolean);
+    const fallbackCovers = [
+      "https://image.aladin.co.kr/product/2098/6/cover500/8926332519_1.jpg",
+      "https://image.aladin.co.kr/product/9894/83/cover500/k862535655_2.jpg",
+      "https://image.aladin.co.kr/product/31893/32/cover500/k212833749_2.jpg",
+      "https://image.aladin.co.kr/product/1616/63/cover500/8954427170_3.jpg",
+      "https://image.aladin.co.kr/product/18958/95/cover500/893645689x_1.jpg",
+      "https://image.aladin.co.kr/product/33010/92/cover500/8917239498_2.jpg"
+    ];
+    const coverPool = existingCovers.length > 0 ? existingCovers : fallbackCovers;
+    
+    const mockPublishers = ["민음사", "문학동네", "열린책들", "창비", "을유문화사", "현대문학"];
+    
+    const generatedBooks = Array.from({ length: remainingCount }, (_, i) => {
+      const mockIndex = finalBooks.length + i + 1;
+      const randomCover = coverPool[i % coverPool.length];
+      const categoryLabel = selectedCategory === "전체" ? "인기" : selectedCategory;
+      
+      const pub1 = mockPublishers[i % mockPublishers.length];
+      const pub2 = mockPublishers[(i + 1) % mockPublishers.length];
+      const randomLikes = Math.floor(20 + (i * 7) % 250);
+      const randomReviews = Math.floor(5 + (i * 3) % 45);
+      const randomRating = parseFloat((4.0 + (i * 0.1) % 1.0).toFixed(1));
+      
+      return {
+        id: `mock-${selectedCategory}-${mockIndex}`,
+        title: `${categoryLabel} 부문 명작 도서 ${mockIndex}`,
+        author: `작가 ${mockIndex}`,
+        coverUrl: randomCover,
+        rating: randomRating,
+        likes: randomLikes,
+        reviews: randomReviews,
+        publishers: [
+          { name: pub1, votes: Math.floor(randomLikes / 3) },
+          { name: pub2, votes: Math.floor(randomLikes / 5) }
+        ],
+        year: 2010 + (i % 15),
+        genre: [selectedCategory],
+        salesPoint: 100000 - mockIndex * 800
+      };
+    });
+    
+    finalBooks = [...finalBooks, ...generatedBooks];
+  }
+
   // Reset display count when category, search query, or sorting changes
   useEffect(() => {
     setDisplayCount(40);
@@ -498,7 +456,7 @@ export function BooksScreen({
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        setDisplayCount(prev => Math.min(prev + 40, sortedBooks.length));
+        setDisplayCount(prev => Math.min(prev + 40, finalBooks.length));
       }
     }, {
       rootMargin: "300px",
@@ -506,13 +464,13 @@ export function BooksScreen({
 
     observer.observe(trigger);
     return () => observer.disconnect();
-  }, [sortedBooks.length, displayCount]);
+  }, [finalBooks.length, displayCount]);
 
-  const filteredBooks = sortedBooks;
+  const filteredBooks = finalBooks;
   const displayedBooks = filteredBooks.slice(0, displayCount);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-6 lg:bg-slate-50 lg:bg-none">
       {/* Header */}
       <Header
         onSearchClick={handleSearchToggle}
@@ -548,8 +506,10 @@ export function BooksScreen({
         )}
       </Header>
 
-      <div className="max-w-md mx-auto px-4 py-4">
-        {/* Category Filter - 검색창 열리면 숨김 */}
+      <div className="max-w-md lg:max-w-[1200px] mx-auto px-4 py-4 lg:grid lg:grid-cols-10 lg:gap-8 lg:px-6">
+        {/* Left Column (70%) */}
+        <div className="lg:col-span-7">
+          {/* Category Filter - 검색창 열리면 숨김 */}
         {!showSearch && (
           <div className="mb-4">
             <div className="flex gap-2 flex-wrap">
@@ -557,10 +517,10 @@ export function BooksScreen({
                 <button
                   key={category}
                   onClick={() => handleCategoryClick(category)}
-                  className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-semibold transition-all border ${
                     selectedCategory === category
-                      ? "bg-purple-600 text-white"
-                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                      ? "bg-purple-600 text-white border-purple-600 shadow-none lg:bg-slate-800 lg:text-white lg:border-slate-800"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-800"
                   }`}
                 >
                   {category}
@@ -577,8 +537,8 @@ export function BooksScreen({
               onClick={() => setSortBy("likes")}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
                 sortBy === "likes"
-                  ? "bg-purple-100 text-purple-700 border-purple-200 shadow-xs"
-                  : "text-gray-500 hover:text-gray-700 bg-white border-gray-200"
+                  ? "bg-purple-600 text-white border-purple-600 shadow-none lg:bg-slate-800 lg:text-white lg:border-slate-800"
+                  : "text-slate-500 hover:text-slate-800 bg-white border-slate-200 hover:bg-slate-50"
               }`}
             >
               👍 좋아요 많은순
@@ -587,8 +547,8 @@ export function BooksScreen({
               onClick={() => setSortBy("rating")}
               className={`px-3 py-1.5 rounded-lg font-semibold transition-all border ${
                 sortBy === "rating"
-                  ? "bg-purple-100 text-purple-700 border-purple-200 shadow-xs"
-                  : "text-gray-500 hover:text-gray-700 bg-white border-gray-200"
+                  ? "bg-purple-600 text-white border-purple-600 shadow-none lg:bg-slate-800 lg:text-white lg:border-slate-800"
+                  : "text-slate-500 hover:text-slate-800 bg-white border-slate-200 hover:bg-slate-50"
               }`}
             >
               ⭐ 리뷰 좋은순
@@ -603,7 +563,7 @@ export function BooksScreen({
             <p className="text-sm text-gray-500">책을 검색하고 있습니다...</p>
           </div>
         ) : filteredBooks.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-4 lg:gap-4">
             {isLoading && (
               <div className="flex items-center justify-center py-2 text-purple-600 gap-1.5 border-b border-gray-150 pb-2 mb-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -619,26 +579,15 @@ export function BooksScreen({
                   onClick={() => onBookClick(book)}
                 />
               ];
-              // 8번째 책 카드마다 피드 중간에 자연스러운 광고 컴포넌트 삽입
-              /*
-              if ((index + 1) % 8 === 0) {
-                items.push(
-                  <AdMobNativeMockCard key={`ad-${index}`} />
-                );
-              }
-              */
               return items;
             })}
             {/* 무한 스크롤 감지 센서 */}
             {filteredBooks.length > displayCount && (
-              <div id="infinite-scroll-trigger" className="h-12 w-full flex items-center justify-center text-purple-600 gap-2 mt-4">
+              <div id="infinite-scroll-trigger" className="h-12 w-full flex items-center justify-center text-purple-600 gap-2 mt-4 lg:col-span-4">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-xs text-gray-400">도서를 더 불러오고 있습니다...</span>
               </div>
             )}
-            
-            {/* 하단 AdMob 배너 광고 슬롯 */}
-            {/* <AdMobBanner /> */}
           </div>
         ) : (
           <div className="text-center py-12">
@@ -648,6 +597,18 @@ export function BooksScreen({
             </p>
           </div>
         )}
+        </div>
+
+        {/* Right Sidebar Area (30%) - PC only */}
+        <div className="hidden lg:block lg:col-span-3 lg:sticky lg:top-24 lg:h-fit">
+          <PcSidebar
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            booksData={popularBooksData}
+            onBookClick={onBookClick}
+            onLoginClick={() => onTabChange("profile")}
+          />
+        </div>
       </div>
     </div>
   );

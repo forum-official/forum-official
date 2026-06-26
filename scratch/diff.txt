@@ -1,0 +1,333 @@
+diff --git a/src/app/App.tsx b/src/app/App.tsx
+index d8df954..a0fc30a 100644
+--- a/src/app/App.tsx
++++ b/src/app/App.tsx
+@@ -1274,8 +1274,6 @@ function AppContent() {
+             handleNavigate("vote-detail");
+           }}
+         />
+-      )}
+-
+       {currentScreen === "vote-detail" && (
+         <VoteDetailScreen 
+           onBack={handleBack}
+@@ -1541,7 +1539,9 @@ function AppContent() {
+             activeTab={activeTab}
+             onTabChange={handleTabChange}
+           />
+-          <BottomNav activeTab={activeTab} onTabChange={handleTabChange} isForcedMobile={isForcedMobile} />
++          <div className="lg:hidden">
++            <BottomNav activeTab={activeTab} onTabChange={handleTabChange} isForcedMobile={isForcedMobile} />
++          </div>
+         </div>
+       )}
+ 
+@@ -1564,234 +1564,84 @@ function AppContent() {
+             isForcedMobile={isForcedMobile}
+           />
+           
+-          <main className="mx-auto w-full max-w-[393px]">
+-            {/* Home Tab */}
+-            {activeTab === "home" && (
+-              <div className="px-4 py-6 space-y-6">
+-                {/* Hero Section */}
+-                <section className="text-center bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-6 border border-purple-200">
+-                  <div className="flex items-center justify-center gap-2 mb-2">
+-                    <Sparkles className="size-5 text-purple-600" />
+-                    <h2 className="text-xl font-bold text-purple-900">Forum</h2>
+-                  </div>
+-                  <p className="text-sm text-purple-700">
+-                    모든 지혜가 모이는 곳, 지식의 광장 포룸
+-                  </p>
+-                </section>
+-
+-                {/* Category Grid */}
+-                <section>
+-                  <CategoryGridNew onNavigate={(screen) => {
+-                    if (screen === "monthly-debate") {
+-                      setSelectedDebate(null);
+-                    }
+-                    handleNavigate(screen);
+-                  }} />
+-                </section>
+-
+-                {/* Google AdSense / AdMob Option 1 Banner Slot */}
+-                {/* 
+-                <div className="bg-gray-100 dark:bg-gray-900/60 rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[80px] relative overflow-hidden select-none">
+-                  <div className="absolute top-1.5 right-2 flex items-center gap-1">
+-                    <span className="text-[8px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded border border-gray-300/30">AD</span>
+-                    <span className="text-[8px] font-bold text-gray-400">Google Ads</span>
+-                  </div>
+-                  <div className="text-center space-y-1 py-2">
+-                    <p className="text-[10px] font-bold text-gray-600 dark:text-gray-400">구글 애드센스 / 애드몹 배너 광고 영역</p>
+-                    <p className="text-[8px] text-gray-400 font-mono">ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX (320x50)</p>
+-                  </div>
+-                </div>
+-                */}
+-
+-                {/* Hot Vote Section */}
+-                <section>
+-                  <HotVoteCard
+-                    {...(() => {
+-                      const dailyHotVote = getDailyHotVote(booksData);
+-                      return {
+-                        ...dailyHotVote,
+-                        onCommentClick: () => {
+-                          // booksData에서 최신 상태의 책을 가져옴
+-                          const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
+-                          setSelectedBook(updatedBook);
+-                          handleNavigate("book-detail");
+-                        },
+-                        onBookClick: () => {
+-                          const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
+-                          setSelectedBook(updatedBook);
+-                          handleNavigate("book-detail");
+-                        },
+-                        onLoginRequired: handleLoginRequired,
+-                        onVote: handlePublisherVote,
+-                      };
+-                    })()}
+-                  />
+-                </section>
+-
+-                {/* Curations Section */}
+-                <section>
+-                  <div className="flex items-center justify-between mb-4">
+-                    <h3 className="font-bold text-lg flex items-center gap-2">
+-                      <span className="text-purple-600">✨</span>
+-                      큐레이션
+-                    </h3>
+-                    <button
+-                      onClick={handleRefreshCurations}
+-                      className="p-2.5 hover:bg-purple-50 rounded-full transition-colors"
+-                      aria-label="새로고침"
+-                    >
+-                      <RefreshCw className="size-5 text-purple-600" />
+-                    </button>
+-                  </div>
+-                  <div className="space-y-5">
+-                    {currentCurationIndexes.map((curationIndex, arrayIndex) => {
+-                      const curation = curations[curationIndex];
+-                      // 이전 큐레이션에서 선택된 책 ID들 수집
+-                      const previouslySelectedBookIds = currentCurationIndexes
+-                        .slice(0, arrayIndex)
+-                        .flatMap((prevCurationIndex) => {
+-                          const prevCuration = curations[prevCurationIndex];
+-                          const prevBooks = getRandomBooksFromCuration(
+-                            prevCuration.bookIds, 
+-                            curationSeeds[prevCurationIndex],
+-                            [], // 첫 번째 큐레이션은 제외할 책이 없음
+-                            3
+-                          );
+-                          return prevBooks.map(b => b.id);
+-                        });
+-                      
+-                      const books = getRandomBooksFromCuration(
+-                        curation.bookIds, 
+-                        curationSeeds[curationIndex],
+-                        previouslySelectedBookIds,
+-                        3
+-                      );
+-                      
+-                      return (
+-                        <div key={curationIndex} className="space-y-3">
+-                          <div className="flex items-center gap-2">
+-                            <span className="text-2xl">{curation.emoji}</span>
+-                            <h4 className="font-bold text-sm">{curation.title}</h4>
+-                          </div>
+-                          <div className="grid grid-cols-3 gap-3">
+-                            {books.map((book, index) => {
+-                              // 첫 번째 책에만 배지 표시
+-                              const showBadge = index === 0;
+-                              const badgeOptions = [
+-                                { text: "PICK", className: "bg-black/70 text-white border border-purple-400" },
+-                                { text: "HOT", className: "bg-black/70 text-white border border-red-500" },
+-                                { text: "NEW", className: "bg-black/70 text-white border border-teal-400" },
+-                                { text: "BEST", className: "bg-black/70 text-white border border-yellow-500" },
+-                              ];
+-                              // 큐레이션 인덱스로 배지 선택
+-                              const badge = badgeOptions[curationIndex % badgeOptions.length];
+-                              
+-                              return (
+-                              <button
+-                                key={index}
+-                                onClick={() => handleBookClick(book)}
+-                                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden text-left relative"
+-                              >
+-                                {/* 첫 번째 책에만 배지 표시 */}
+-                                {showBadge && (
+-                                  <div className="absolute top-1.5 left-1.5 z-10">
+-                                    <span className={`text-[9px] font-bold tracking-wide px-2 py-0.5 rounded ${badge.className}`}>
+-                                      {badge.text}
+-                                    </span>
+-                                  </div>
+-                                )}
+-                                
+-                                <div className="aspect-[2/3] bg-gray-100">
+-                                  <BookCover
+-                                    title={book.title}
+-                                    author={book.author}
+-                                    publisherName={book.publishers?.[0]?.name}
+-                                    coverUrl={book.coverUrl}
+-                                    className="w-full h-full object-cover"
+-                                  />
+-                                </div>
+-                                <div className="p-2.5 pt-3">
+-                                  <h5 className="text-sm font-bold line-clamp-2 mb-1 min-h-[2.5rem]">{book.title}</h5>
+-                                  <p className="text-xs text-gray-600 line-clamp-1">{book.author}</p>
+-                                </div>
+-                              </button>
+-                            );
+-                            })}
+-                          </div>
+-                        </div>
+-                      );
+-                    })}
+-                  </div>
+-                </section>
+-
+-                {/* Quote Section & Sponsored Banner */}
+-                <section>
+-                  <QuoteCard 
+-                    {...quotes[currentQuoteIndex]}
+-                    onRefresh={handleRefreshQuote}
+-                  />
+-                  {/* <AdMobBanner /> */}
+-                </section>
+-              </div>
+-            )}
+-
+-            {/* 게시판 탭 */}
+-            {activeTab === "discussions" && (() => {
+-              const filteredDiscussions = [...discussionsList]
+-                .filter(d => {
+-                  if (!boardSearchQuery.trim()) return true;
+-                  const q = boardSearchQuery.toLowerCase();
+-                  return (
+-                    d.title?.toLowerCase().includes(q) ||
+-                    d.description?.toLowerCase().includes(q) ||
+-                    d.author?.toLowerCase().includes(q) ||
+-                    (d.tags && d.tags.some((t: string) => t.toLowerCase().includes(q)))
+-                  );
+-                })
+-                .sort((a, b) => {
+-                  if (discussionSortBy === "popular") return b.totalVotes - a.totalVotes;
+-                  return 0;
+-                });
+-
+-              return (
+-                <div className="min-h-screen bg-gray-50 -mx-0 -mt-0">
+-                  {/* 게시판 상단 검색 + 정렬 */}
+-                  <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
+-                    <div className="flex items-center justify-between mb-3">
+-                      <h2 className="text-lg font-bold">게시판</h2>
+-                      <Button
+-                        size="sm"
+-                        className="gap-1 bg-purple-600 hover:bg-purple-700 h-8 text-xs px-3"
+-                        onClick={() => setShowCreateDiscussionModal(true)}
+-                      >
+-                        <PlusCircle className="size-3.5" />
+-                        글쓰기
+-                      </Button>
++          <main className="mx-auto w-full max-w-[393px] lg:max-w-[1200px] lg:grid lg:grid-cols-10 lg:gap-8 lg:px-6 lg:py-8">
++            {/* Left Content Area (70%) */}
++            <div className="lg:col-span-7 w-full">
++              {/* Home Tab */}
++              {activeTab === "home" && (
++                <div className="px-4 py-6 space-y-6">
++                  {/* Hero Section */}
++                  <section className="text-center bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-6 border border-purple-200">
++                    <div className="flex items-center justify-center gap-2 mb-2">
++                      <Sparkles className="size-5 text-purple-600" />
++                      <h2 className="text-xl font-bold text-purple-900">Forum</h2>
+                     </div>
+-                    {/* 검색창 */}
+-                    <div className="relative mb-2.5">
+-                      <input
+-                        type="text"
+-                        placeholder="게시글 검색..."
+-                        value={boardSearchQuery}
+-                        onChange={e => setBoardSearchQuery(e.target.value)}
+-                        className="w-full pl-9 pr-9 py-2 text-sm bg-gray-100 rounded-xl border-none outline-none focus:ring-2 focus:ring-purple-300"
+-                      />
+-                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+-                      {boardSearchQuery && (
+-                        <button onClick={() => setBoardSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+-                          <svg className="size-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+-                        </button>
+-                      )}
++                    <p className="text-sm text-purple-700">
++                      모든 지혜가 모이는 곳, 지식의 광장 포룸
++                    </p>
++                  </section>
++
++                  {/* Category Grid */}
++                  <section>
++                    <CategoryGridNew onNavigate={(screen) => {
++                      if (screen === "monthly-debate") {
++                        setSelectedDebate(null);
++                      }
++                      handleNavigate(screen);
++                    }} />
++                  </section>
++
++                  {/* Google AdSense / AdMob Option 1 Banner Slot */}
++                  {/* 
++                  <div className="bg-gray-100 dark:bg-gray-900/60 rounded-xl p-3 border border-gray-200/50 dark:border-gray-800/80 shadow-inner flex flex-col items-center justify-center min-h-[80px] relative overflow-hidden select-none">
++                    <div className="absolute top-1.5 right-2 flex items-center gap-1">
++                      <span className="text-[8px] font-bold text-gray-400 bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded border border-gray-300/30">AD</span>
++                      <span className="text-[8px] font-bold text-gray-400">Google Ads</span>
+                     </div>
+-                    {/* 정렬 */}
+-                    <div className="flex gap-2">
+-                      <button onClick={() => setDiscussionSortBy("popular")} className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${discussionSortBy === "popular" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600"}`}>인기순</button>
+-                      <button onClick={() => setDiscussionSortBy("recent")} className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${discussionSortBy === "recent" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600"}`}>최신순</button>
++                    <div className="text-center space-y-1 py-2">
++                      <p className="text-[10px] font-bold text-gray-600 dark:text-gray-400">구글 애드센스 / 애드몹 배너 광고 영역</p>
++                      <p className="text-[8px] text-gray-400 font-mono">ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX (320x50)</p>
+                     </div>
+                   </div>
+-
+-                  {/* 게시글 목록 */}
++                  */}
++
++                  {/* Hot Vote Section */}
++                  <section>
++                    <HotVoteCard
++                      {...(() => {
++                        const dailyHotVote = getDailyHotVote(booksData);
++                        return {
++                          ...dailyHotVote,
++                          onCommentClick: () => {
++                            // booksData에서 최신 상태의 책을 가져옴
++                            const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
++                            setSelectedBook(updatedBook);
++                            handleNavigate("book-detail");
++                          },
++                          onBookClick: () => {
++                            const updatedBook = booksData.find(b => b.id === dailyHotVote.book.id) || dailyHotVote.book;
++                            setSelectedBook(updatedBook);
++                            handleNavigate("book-detail");
++                          },
++                          onLoginRequired: handleLoginRequired,
++                          onVote: handlePublisherVote,
++                        };
++                      })()}
++                    />
++                  </section>
++
++                  {/* Curations Section */}
++                  <section>
++                    <div className="flex items-center justify-between mb-4">
++                      <h3 className="font-bold text-lg flex items-center gap-2">
++                        <span className="text-purple-600">✨</span>
++                        큐레이션
++                      </h3>
++                      <button
++                        onClick={handleRefreshCurations}
++                        className="p-2.5 hover:bg-purple-50 rounded-full transition-colors"
++                        aria-label="새로고침"
++                      >
+                   <div className="bg-gray-50/50 mt-2 pb-6">
+                     {filteredDiscussions.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white">

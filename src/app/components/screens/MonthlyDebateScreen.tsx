@@ -532,7 +532,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                             <p className="text-[10px] text-gray-500 leading-relaxed">
                               지금 독자들이 가장 많이 찾는 알라딘 실시간 인기 베스트셀러들을 특별 제휴 혜택으로 만나보세요.
                             </p>
-                            <a href="https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&BestType=Bestseller&partner=ttbforum.official.dev0549001" target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-purple-700 hover:underline mt-1.5 block">
+                            <a href="https://www.aladin.co.kr/shop/common/wbest.aspx?BranchType=1&BestType=Bestseller&partner=ttbforum.official.dev0549002" target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-purple-700 hover:underline mt-1.5 block">
                               베스트셀러 확인하기 →
                             </a>
                           </div>

@@ -1,4 +1,5 @@
-import { Book, popularBooksData } from "@/app/data/booksData";
+import { Book, popularBooksData as rawPopularBooksData } from "@/app/data/booksData";
+const popularBooksData = rawPopularBooksData.filter(b => !b.genre || !b.genre.includes("라이트노벨"));
 import { cleanAladinAuthors } from "@/app/utils/authorUtils";
 import { debateTopics } from "@/app/data/debateTopics";
 import { supabase, isSupabaseConfigured } from "@/app/utils/supabaseClient";
@@ -2683,15 +2684,18 @@ export function getGlobalBooks(initialBooks: Book[]): Book[] {
       return true;
     });
 
+    const filteredFinalBooks = finalBooks.filter(book => !book.genre || !book.genre.includes("라이트노벨"));
+
     if (hasCorrupted) {
-      localStorage.setItem("forum_global_books", JSON.stringify(finalBooks));
+      localStorage.setItem("forum_global_books", JSON.stringify(filteredFinalBooks));
     }
     
-    cachedGlobalBooks = finalBooks;
-    return finalBooks;
+    cachedGlobalBooks = filteredFinalBooks;
+    return filteredFinalBooks;
   } catch {
-    cachedGlobalBooks = initialBooks;
-    return initialBooks;
+    const filteredInit = initialBooks.filter(book => !book.genre || !book.genre.includes("라이트노벨"));
+    cachedGlobalBooks = filteredInit;
+    return filteredInit;
   }
 }
 
