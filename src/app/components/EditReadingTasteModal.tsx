@@ -11,6 +11,7 @@ import { getGlobalBooks, getPublisherStats } from "@/app/utils/db";
 import { getAuthorsList, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { cleanAladinAuthors, isOrganization } from "@/app/utils/authorUtils";
+import { supabase } from "@/app/utils/supabaseClient";
 
 interface EditReadingTasteModalProps {
   onClose: () => void;
@@ -441,19 +442,42 @@ export function EditReadingTasteModal({ onClose, initialTab = "author" }: EditRe
 
   // --- Save handler (방탄 try-catch-finally + alert 적용) ---
   const handleSave = async () => {
-    setIsSaving(true);
+    setIsSaving(true); // 로딩 시작
     try {
-      await updateProfile({
-        favAuthors: selectedAuthors,
-        favPublishers: selectedPublishers
-      });
-      toast.success("독서 취향이 성공적으로 저장되었습니다!");
-      onClose();
-    } catch (err: any) {
-      console.error("Failed to save reading taste:", err);
-      alert(err.message || "저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      // 1. 유저 확인
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('로그인 정보가 없습니다.');
+
+      // 2. Profiles 테이블에 Upsert (사용자 테이블 구조인 favorite_authors, favorite_publishers 컬럼 활용)
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ 
+          id: currentUser.id, 
+          favorite_authors: selectedAuthors, // 관리하는 state 변수명 사용
+          favorite_publishers: selectedPublishers, 
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      // 3. 성공 시 모달 닫기 로직 및 로컬 상태 동기화
+      alert('성공적으로 저장되었습니다!');
+      
+      try {
+        await updateProfile({
+          favAuthors: selectedAuthors,
+          favPublishers: selectedPublishers
+        });
+      } catch (syncErr) {
+        console.warn("Context sync warning:", syncErr);
+      }
+
+      onClose(); 
+    } catch (error: any) {
+      console.error('저장 에러:', error);
+      alert(`저장 중 오류가 발생했습니다: ${error.message}`);
     } finally {
-      setIsSaving(false);
+      setIsSaving(false); // ★무슨 일이 있어도 무조건 로딩 해제★
     }
   };
 
