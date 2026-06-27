@@ -46,9 +46,11 @@ export function NicknameSetupModal() {
       });
       
       toast.success("닉네임 설정이 완료되었습니다!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("오류가 발생했습니다. 다시 시도해주세요.");
+      if (!error.alerted) {
+        toast.error("오류가 발생했습니다. 다시 시도해주세요.");
+      }
     } finally {
       setIsSubmitting(false);
     }

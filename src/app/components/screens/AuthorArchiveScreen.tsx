@@ -356,7 +356,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
     <div className="h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="max-w-md mx-auto px-4 py-3">
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3 mb-3">
             <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full">
               <ArrowLeft className="size-5" />
@@ -412,7 +412,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
           }
         }}
       >
-        <div className="max-w-md mx-auto px-4 py-4">
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-4">
           {isSearchingApi ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-sm text-gray-500">
               <Loader2 className="size-8 animate-spin text-purple-500" />
@@ -423,7 +423,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
               <p className="text-gray-500 font-bold">검색 결과가 없습니다</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredAuthorsList.slice(0, displayCount).map((author) => (
                 <Card
                   key={author.id}

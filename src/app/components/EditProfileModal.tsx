@@ -85,7 +85,9 @@ export function EditProfileModal({ onClose }: EditProfileModalProps) {
       onClose();
     } catch (e: any) {
       console.error(e);
-      alert(e.message || "프로필 저장 중 오류가 발생했습니다.");
+      if (!e.alerted) {
+        alert(e.message || "프로필 저장 중 오류가 발생했습니다.");
+      }
     } finally {
       setIsSaving(false);
     }

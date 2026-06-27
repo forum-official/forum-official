@@ -308,7 +308,9 @@ export function EditLifeBooksModal({ onClose }: EditLifeBooksModalProps) {
       onClose();
     } catch (error: any) {
       console.error(error);
-      alert(error.message || "저장 중 오류가 발생했습니다.");
+      if (!error.alerted) {
+        alert(error.message || "저장 중 오류가 발생했습니다.");
+      }
     } finally {
       setIsSaving(false);
     }

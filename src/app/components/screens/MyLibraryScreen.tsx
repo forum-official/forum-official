@@ -25,6 +25,16 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
   const [finishedBooks, setFinishedBooks] = useState<any[]>([]);
   const [wishlistBooks, setWishlistBooks] = useState<any[]>([]);
 
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated && userId) {
       const library = getUserLibrary(userId);
@@ -140,7 +150,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-6">
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-md mx-auto px-4 py-3">
+          <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
               <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full">
                 <ArrowLeft className="size-5" />
@@ -150,7 +160,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
           </div>
         </div>
 
-        <div className="max-w-md mx-auto px-4">
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4">
           <div className="text-center py-24">
             <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full mx-auto mb-6 flex items-center justify-center">
               <BookOpen className="size-12 text-purple-600" />
@@ -197,7 +207,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-6">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-3">
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full">
               <ArrowLeft className="size-5" />
@@ -230,7 +240,7 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 py-4">
+      <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-4">
         {/* Add Book Button */}
         <Button
           className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 gap-2"
@@ -257,8 +267,9 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
         ) : (() => {
           const currentBooks = getCurrentBooks();
           const chunkedBooks: any[][] = [];
-          for (let i = 0; i < currentBooks.length; i += 3) {
-            chunkedBooks.push(currentBooks.slice(i, i + 3));
+          const booksPerShelf = isDesktop ? 6 : 3;
+          for (let i = 0; i < currentBooks.length; i += booksPerShelf) {
+            chunkedBooks.push(currentBooks.slice(i, i + booksPerShelf));
           }
 
           return (
@@ -266,8 +277,8 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
               {chunkedBooks.map((shelf, shelfIndex) => (
                 <div key={shelfIndex} className="relative pt-4 px-2.5 bg-gradient-to-b from-transparent to-black/5 rounded-xl">
                   {/* 도서 진열 공간 */}
-                  <div className="grid grid-cols-3 gap-5 pb-1 relative z-10 justify-items-center">
-                    {Array.from({ length: 3 }).map((_, index) => {
+                  <div className={`grid ${isDesktop ? 'grid-cols-6' : 'grid-cols-3'} gap-5 pb-1 relative z-10 justify-items-center`}>
+                    {Array.from({ length: booksPerShelf }).map((_, index) => {
                       const book = shelf[index];
                       if (!book) {
                         return <div key={`empty-${index}`} className="w-[85px] aspect-[2/3] invisible" />;

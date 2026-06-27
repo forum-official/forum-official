@@ -442,49 +442,54 @@ export function EditReadingTasteModal({ onClose, initialTab = "author" }: EditRe
 
   // --- Save handler (방탄 try-catch-finally + alert 적용) ---
   const handleSave = async () => {
-    setIsSaving(true); // 로딩 시작
     try {
-      // 1. 유저 확인
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error('로그인 정보가 없습니다.');
+      // 1. 네가 쓰는 실제 로딩 상태 변수명을 켜라 (ex: setIsSaving, setLoading 등)
+      setIsSaving(true); 
 
-      // 2. Profiles 테이블에 Upsert (사용자 테이블 구조인 favorite_authors, favorite_publishers 컬럼 활용)
-      const { error } = await supabase
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("로그인 유저 정보를 찾을 수 없습니다.");
+
+      // 2. 400/500 에러 원인 차단: 무조건 순수 배열(Array)로 강제 변환
+      const safeAuthors = Array.isArray(selectedAuthors) ? selectedAuthors : [];
+      const safePublishers = Array.isArray(selectedPublishers) ? selectedPublishers : [];
+
+      const payload = {
+        id: user.id,
+        favorite_authors: safeAuthors,
+        favorite_publishers: safePublishers,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log("🚀 [Supabase 전송 직전 데이터]:", payload);
+
+      const { error: dbError } = await supabase
         .from('profiles')
-        .upsert({ 
-          id: currentUser.id, 
-          favorite_authors: selectedAuthors, // 관리하는 state 변수명 사용
-          favorite_publishers: selectedPublishers, 
-          updated_at: new Date().toISOString()
-        });
+        .upsert(payload);
 
-      if (error) {
-        console.error("Supabase 전체 에러:", error);
-        alert(`[저장 실패]\n메시지: ${error.message}\n상세(details): ${error.details || '없음'}\n힌트(hint): ${error.hint || '없음'}`);
-        throw error;
+      if (dbError) {
+        console.error("🔥 [DB 에러 상세]:", dbError);
+        throw dbError; // catch 블록으로 에러 던지기
       }
 
-      // 3. 성공 시 모달 닫기 로직 및 로컬 상태 동기화
-      alert('성공적으로 저장되었습니다!');
-      
+      // 성공 시 모달 닫기 로직 및 로컬 상태 동기화
       try {
         await updateProfile({
-          favAuthors: selectedAuthors,
-          favPublishers: selectedPublishers
+          favAuthors: safeAuthors,
+          favPublishers: safePublishers
         });
       } catch (syncErr) {
         console.warn("Context sync warning:", syncErr);
       }
 
-      onClose(); 
-    } catch (error: any) {
-      console.error('저장 에러:', error);
-      // 이미 위에서 에러 alert을 띄웠으므로, 여기서 이중 alert 방지
-      if (!error.details) {
-        alert(`저장 중 오류가 발생했습니다: ${error.message}`);
-      }
+      alert("성공적으로 저장되었습니다!");
+      onClose(); // 모달 닫기
+
+    } catch (err: any) {
+      console.error("🚨 [Catch 에러 발생]:", err);
+      alert(`저장 실패: ${err.message || '알 수 없는 에러가 발생했습니다.'}\n(F12를 눌러 콘솔의 상세 에러를 확인하세요)`);
     } finally {
-      setIsSaving(false); // ★무슨 일이 있어도 무조건 로딩 해제★
+      // 3. 무슨 일이 있어도 여기서 로딩 스피너를 꺼라
+      setIsSaving(false); 
     }
   };
 

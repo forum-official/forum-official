@@ -341,7 +341,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
         className="flex-1 overflow-y-auto"
       >
         {viewMode === "list" ? (
-          <div className="max-w-md mx-auto px-4 py-4 space-y-4">
+          <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-4 space-y-4">
             {/* Search Bar & Write Button */}
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -399,7 +399,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
             )}
             
             {/* Debate Topics List */}
-            <div className="space-y-3.5 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
               {filteredTopics.length === 0 ? (
                 <div className="text-center py-20 text-gray-400">
                   <BookOpen className="size-12 mx-auto mb-2 text-gray-300" />
@@ -547,9 +547,9 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
             </div>
           </div>
         ) : (
-          <div className="max-w-md mx-auto px-4 py-4 space-y-4 pb-20">
+          <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-4 lg:grid lg:grid-cols-10 lg:gap-8 space-y-4 lg:space-y-0 pb-20">
             {/* Left Column (Desktop) / Top Section (Mobile) */}
-            <div className="space-y-4">
+            <div className="space-y-4 lg:col-span-4">
                 {/* Book Card */}
                 <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex gap-4 mb-4">
@@ -703,7 +703,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
           </div>
 
               {/* Right Column (Desktop) / Bottom Section (Mobile) */}
-              <div className="space-y-4">
+              <div className="space-y-4 lg:col-span-6">
                 {/* Opinions */}
                 <div className="space-y-3">
               <div className="flex items-center justify-between">

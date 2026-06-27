@@ -68,7 +68,7 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={onBack} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft className="size-6" />
           </button>
@@ -76,7 +76,7 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-4 space-y-4">
         {/* Search Input */}
         <div className="relative">
           <input
@@ -90,7 +90,7 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
         </div>
 
         {/* List Grid */}
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredBooks.length > 0 ? (
             filteredBooks.map((book) => {
               const cleanTitle = (t: string) => {

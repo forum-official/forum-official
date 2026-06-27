@@ -151,7 +151,7 @@ export function PublisherRatingScreen({ onBack, onUserClick, onBookClick, onLogi
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={handleMainBack} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft className="size-6" />
           </button>
@@ -159,7 +159,7 @@ export function PublisherRatingScreen({ onBack, onUserClick, onBookClick, onLogi
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-6 space-y-4">
         {/* Top Info */}
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl p-4 text-white">
           <div className="flex items-center gap-2 mb-2">
@@ -172,104 +172,106 @@ export function PublisherRatingScreen({ onBack, onUserClick, onBookClick, onLogi
         </div>
 
         {/* Publishers List */}
-        {dynamicPublishers.map((publisher, index) => (
-          <Card 
-            key={publisher.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => handlePublisherClick(publisher)}
-          >
-            <div className="p-4">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-2xl">
-                    {publisher.logo}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">{publisher.name}</h3>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-bold text-purple-600">{publisher.rating}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {dynamicPublishers.map((publisher, index) => (
+            <Card 
+              key={publisher.id}
+              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handlePublisherClick(publisher)}
+            >
+              <div className="p-4">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-2xl">
+                      {publisher.logo}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{publisher.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-bold text-purple-600">{publisher.rating}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">({publisher.totalReviews.toLocaleString()})</span>
                       </div>
-                      <span className="text-xs text-gray-500">({publisher.totalReviews.toLocaleString()})</span>
                     </div>
                   </div>
+                  {index === 0 && (
+                    <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                      <Award className="size-3 mr-1" />
+                      1위
+                    </Badge>
+                  )}
                 </div>
-                {index === 0 && (
-                  <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">
-                    <Award className="size-3 mr-1" />
-                    1위
-                  </Badge>
-                )}
-              </div>
 
-              {/* Rating Details */}
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">번역 품질</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-purple-400 to-purple-500"
-                        style={{ width: `${(publisher.translationQuality / 5) * 100}%` }}
-                      />
+                {/* Rating Details */}
+                <div className="space-y-2 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">번역 품질</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-purple-400 to-purple-500"
+                          style={{ width: `${(publisher.translationQuality / 5) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-purple-600 w-8">{publisher.translationQuality}</span>
                     </div>
-                    <span className="text-xs font-semibold text-purple-600 w-8">{publisher.translationQuality}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">편집 품질</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-400 to-blue-500"
+                          style={{ width: `${(publisher.editingQuality / 5) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-blue-600 w-8">{publisher.editingQuality}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">가격 만족도</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-400 to-green-500"
+                          style={{ width: `${(publisher.priceValue / 5) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-green-600 w-8">{publisher.priceValue}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">편집 품질</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-blue-400 to-blue-500"
-                        style={{ width: `${(publisher.editingQuality / 5) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-semibold text-blue-600 w-8">{publisher.editingQuality}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">가격 만족도</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-400 to-green-500"
-                        style={{ width: `${(publisher.priceValue / 5) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-semibold text-green-600 w-8">{publisher.priceValue}</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {publisher.tags.map((tag, idx) => (
-                  <Badge 
-                    key={idx} 
-                    variant="secondary" 
-                    className="text-xs bg-purple-50 text-purple-700 border-purple-200"
-                  >
-                    <CheckCircle className="size-3 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {publisher.tags.map((tag, idx) => (
+                    <Badge 
+                      key={idx} 
+                      variant="secondary" 
+                      className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                    >
+                      <CheckCircle className="size-3 mr-1" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
 
-              {/* Footer */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500">
-                  최근 {publisher.recentBooks}권 출간
-                </span>
-                <button className="text-xs font-semibold text-purple-600 hover:text-purple-700">
-                  상세보기 →
-                </button>
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">
+                    최근 {publisher.recentBooks}권 출간
+                  </span>
+                  <button className="text-xs font-semibold text-purple-600 hover:text-purple-700">
+                    상세보기 →
+                  </button>
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
       </main>
     </div>
   );

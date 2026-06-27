@@ -96,11 +96,8 @@ const fetchLatestProfile = async (sessionUser: any): Promise<User | null> => {
     if (profile && !error) {
       baseUser.nickname = profile.nickname || baseUser.nickname;
       baseUser.bio = profile.bio || baseUser.bio;
-      baseUser.profileImage = profile.profile_image || baseUser.profileImage;
-      baseUser.isPrivate = profile.is_private !== undefined ? profile.is_private : baseUser.isPrivate;
-      baseUser.favAuthors = profile.fav_authors || baseUser.favAuthors;
-      baseUser.favPublishers = profile.fav_publishers || baseUser.favPublishers;
-      baseUser.pushEnabled = profile.push_enabled !== undefined ? profile.push_enabled : baseUser.pushEnabled;
+      baseUser.favAuthors = profile.favorite_authors || baseUser.favAuthors;
+      baseUser.favPublishers = profile.favorite_publishers || baseUser.favPublishers;
       baseUser.lifeBooks = profile.life_books || baseUser.lifeBooks;
       baseUser.nicknameSet = true; // DB 프로필이 복구된 경우 닉네임 기설정 처리
     }
@@ -471,7 +468,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ]);
           
           const { data: updateData, error: authError } = authResponse;
-          if (authError) throw authError;
+          if (authError) {
+            console.error("Supabase 전체 에러:", authError);
+            alert(`[저장 실패]\n메시지: ${authError.message}\n상세(details): ${authError.details || '없음'}\n힌트(hint): ${authError.hint || '없음'}`);
+            (authError as any).alerted = true;
+            throw authError;
+          }
           sessionUserId = updateData?.user?.id || null;
         }
 
@@ -481,20 +483,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionUserId = currentSessionUser?.id || null;
         }
 
-        // 2. Profiles DB 테이블 갱신 (SSOT - Upsert 활용)
+        // 2. Profiles DB 테이블 갱신 (SSOT - Upsert 활용 - 실제 존재하는 컬럼만 전달)
         if (sessionUserId) {
-          const updateDbPromise = supabase.from("profiles").upsert({
+          const payload = {
             id: sessionUserId,
             nickname: updates.nickname !== undefined ? updates.nickname : user.nickname,
             bio: updates.bio !== undefined ? updates.bio : user.bio,
-            profile_image: updates.profileImage !== undefined ? updates.profileImage : user.profileImage,
-            is_private: updates.isPrivate !== undefined ? updates.isPrivate : user.isPrivate,
-            fav_authors: updates.favAuthors !== undefined ? updates.favAuthors : (user.favAuthors || []),
-            fav_publishers: updates.favPublishers !== undefined ? updates.favPublishers : (user.favPublishers || []),
+            favorite_authors: updates.favAuthors !== undefined ? updates.favAuthors : (user.favAuthors || []),
+            favorite_publishers: updates.favPublishers !== undefined ? updates.favPublishers : (user.favPublishers || []),
             life_books: updates.lifeBooks !== undefined ? updates.lifeBooks : (user.lifeBooks || []),
-            push_enabled: updates.pushEnabled !== undefined ? updates.pushEnabled : user.pushEnabled,
             updated_at: new Date().toISOString()
-          });
+          };
+          console.log("🚀 [디버깅] Supabase로 보내는 Profiles Payload:", payload);
+
+          const updateDbPromise = supabase.from("profiles").upsert(payload);
 
           const dbResponse = await Promise.race([
             updateDbPromise,
@@ -502,11 +504,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ]);
 
           const { error: dbError } = dbResponse;
-          if (dbError) throw dbError;
+          if (dbError) {
+            console.error("Supabase 전체 에러:", dbError);
+            alert(`[저장 실패]\n메시지: ${dbError.message}\n상세(details): ${dbError.details || '없음'}\n힌트(hint): ${dbError.hint || '없음'}`);
+            (dbError as any).alerted = true;
+            throw dbError;
+          }
         }
       } catch (e: any) {
         console.error("Failed to update profile to Supabase server:", e);
-        toast.error(e.message || "서버 프로필 변경 사항 저장에 실패했습니다. 다시 시도해주세요.");
+        if (!e.alerted) {
+          toast.error(e.message || "서버 프로필 변경 사항 저장에 실패했습니다. 다시 시도해주세요.");
+        }
         throw e;
       }
     }
