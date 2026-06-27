@@ -28,7 +28,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="max-w-md mx-auto px-4 py-3">
+      <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3">
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack} 
