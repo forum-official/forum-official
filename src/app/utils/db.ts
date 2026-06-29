@@ -2684,16 +2684,53 @@ export function getGlobalBooks(initialBooks: Book[]): Book[] {
       return true;
     });
 
-    const filteredFinalBooks = finalBooks.filter(book => !book.genre || !book.genre.includes("라이트노벨"));
+    // 책이라고 부르기 애매한 도서(잡지, 달력, 다이어리, 도록 등) 및 특정 영화잡지 스크린 데이터 강제 제거
+    const isAmbiguousBook = (title: string, author: string): boolean => {
+      const lowerTitle = (title || "").toLowerCase();
+      const lowerAuthor = (author || "").toLowerCase();
+      const ambiguousKeywords = [
+        "잡지", "학회지", "정기간행물", "다이어리", "캘린더", "달력", 
+        "도록", "화보집", "수첩", "플래너", "컬러링북", "스케치북", "스크랩"
+      ];
+      
+      if (lowerTitle.includes("영화잡지") || lowerTitle.includes("스크린 1984") || lowerAuthor.includes("한국영상자료원")) {
+        return true;
+      }
+      
+      return ambiguousKeywords.some(keyword => lowerTitle.includes(keyword));
+    };
 
-    if (hasCorrupted) {
+    const filteredFinalBooks = finalBooks.filter(book => {
+      const isLn = book.genre && book.genre.includes("라이트노벨");
+      const isAmbiguous = isAmbiguousBook(book.title, book.author || "");
+      return !isLn && !isAmbiguous;
+    });
+
+    const initialStoredCount = storedBooks.length;
+    const needsSave = hasCorrupted || filteredFinalBooks.length !== initialStoredCount;
+
+    if (needsSave) {
       localStorage.setItem("forum_global_books", JSON.stringify(filteredFinalBooks));
     }
     
     cachedGlobalBooks = filteredFinalBooks;
     return filteredFinalBooks;
   } catch {
-    const filteredInit = initialBooks.filter(book => !book.genre || !book.genre.includes("라이트노벨"));
+    const isAmbiguousBook = (title: string, author: string): boolean => {
+      const lowerTitle = (title || "").toLowerCase();
+      const lowerAuthor = (author || "").toLowerCase();
+      const ambiguousKeywords = [
+        "잡지", "학회지", "정기간행물", "다이어리", "캘린더", "달력", 
+        "도록", "화보집", "수첩", "플래너", "컬러링북", "스케치북", "스크랩"
+      ];
+      if (lowerTitle.includes("영화잡지") || lowerTitle.includes("스크린 1984") || lowerAuthor.includes("한국영상자료원")) return true;
+      return ambiguousKeywords.some(keyword => lowerTitle.includes(keyword));
+    };
+    const filteredInit = initialBooks.filter(book => {
+      const isLn = book.genre && book.genre.includes("라이트노벨");
+      const isAmbiguous = isAmbiguousBook(book.title, book.author || "");
+      return !isLn && !isAmbiguous;
+    });
     cachedGlobalBooks = filteredInit;
     return filteredInit;
   }

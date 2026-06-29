@@ -218,7 +218,21 @@ export function SearchModal({ onClose, onBookClick }: SearchModalProps) {
             console.error("Failed to parse box item:", e);
             return null;
           }
-        }).filter(Boolean);
+        }).filter(Boolean).filter(book => {
+          if (!book) return false;
+          const lowerTitle = (book.title || "").toLowerCase();
+          const lowerAuthor = (book.author || "").toLowerCase();
+          const ambiguousKeywords = [
+            "잡지", "학회지", "정기간행물", "다이어리", "캘린더", "달력", 
+            "도록", "화보집", "수첩", "플래너", "컬러링북", "스케치북", "스크랩"
+          ];
+          
+          if (lowerTitle.includes("영화잡지") || lowerTitle.includes("스크린 1984") || lowerAuthor.includes("한국영상자료원")) {
+            return false;
+          }
+          
+          return !ambiguousKeywords.some(keyword => lowerTitle.includes(keyword));
+        });
       } catch (error) {
         console.error("Failed to fetch from Aladin API, using local fallback:", error);
       }

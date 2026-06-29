@@ -75,8 +75,24 @@ export default async function handler(req, res) {
         isbn13: item.isbn13 || item.isbn || "",
       };
     });
+    const isAmbiguousBook = (title, author) => {
+      const lowerTitle = (title || "").toLowerCase();
+      const lowerAuthor = (author || "").toLowerCase();
+      const ambiguousKeywords = [
+        "잡지", "학회지", "정기간행물", "다이어리", "캘린더", "달력", 
+        "도록", "화보집", "수첩", "플래너", "컬러링북", "스케치북", "스크랩"
+      ];
+      
+      if (lowerTitle.includes("영화잡지") || lowerTitle.includes("스크린 1984") || lowerAuthor.includes("한국영상자료원")) {
+        return true;
+      }
+      
+      return ambiguousKeywords.some(keyword => lowerTitle.includes(keyword));
+    };
 
-    return res.status(200).json({ items: mappedItems });
+    const filteredItems = mappedItems.filter(item => !isAmbiguousBook(item.title, item.author));
+
+    return res.status(200).json({ items: filteredItems });
   } catch (error) {
     console.error("Aladin API proxy handler error:", error);
     return res.status(500).json({ error: error.message });
