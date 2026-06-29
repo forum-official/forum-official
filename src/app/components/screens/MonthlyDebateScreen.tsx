@@ -31,6 +31,34 @@ import {
 } from "@/app/utils/db";
 import { UserTierBadge } from "@/app/components/UserTierBadge";
 
+const DEBATE_TOPICS_ISBN_MAP: Record<string, string[]> = {
+  "1984": ["9788937460777", "9788954625296", "9788932910048", "9788998055271", "9788932473956"],
+  "호밀밭의 파수꾼": ["9788937460470", "9788937437540", "9788937420474"],
+  "이방인": ["9788937460876", "9788954617482", "9788932916491"],
+  "동물농장": ["9788937460050", "9788954625289", "9788932910055"],
+  "멋진 신세계": ["9788931003666", "9788932473215"],
+  "죄와 벌": ["9788937460296", "9788937460302", "9788954637954"],
+  "데미안": ["9788937460449", "9788954622080", "9788932909981"],
+  "변신": ["9788932910017", "9788937460364"],
+  "페스트": ["9788937461804", "9788932916897"],
+};
+
+const getBookIsbn13 = (b: any) => {
+  if (b.isbn13) return b.isbn13;
+  const localIsbns: Record<string, string> = {
+    "1984": "9788937460777",
+    "이방인": "9788937460876",
+    "호밀밭의 파수꾼": "9788937460470",
+    "동물농장": "9788937460050",
+    "멋진 신세계": "9788931003666",
+    "죄와 벌": "9788937460296",
+    "데미안": "9788937460449",
+    "변신": "9788932910017",
+    "페스트": "9788937461804",
+  };
+  return localIsbns[b.title] || localIsbns[b.id] || "";
+};
+
 interface MonthlyDebateScreenProps {
   onBack: () => void;
   onUserClick?: (username: string, userInitial: string) => void;
@@ -42,6 +70,7 @@ interface MonthlyDebateScreenProps {
     debate: string;
     agreeCount?: number;
     disagreeCount?: number;
+    isbn13?: string;
   };
   isForcedMobile?: boolean;
 }
@@ -75,7 +104,13 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
   const [topicSortBy, setTopicSortBy] = useState<"recent" | "popular">("recent");
   
-  const [currentBook, setCurrentBook] = useState(() => {
+  const [currentBook, setCurrentBook] = useState<{
+    title: string;
+    author: string;
+    coverUrl: string;
+    debate: string;
+    isbn13?: string;
+  }>(() => {
     if (initialBook) {
       return initialBook;
     }
@@ -83,7 +118,8 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
       title: "",
       author: "",
       coverUrl: "",
-      debate: ""
+      debate: "",
+      isbn13: ""
     };
   });
   
@@ -121,7 +157,8 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
         title: "",
         author: "",
         coverUrl: "",
-        debate: ""
+        debate: "",
+        isbn13: ""
       });
       setViewMode("list");
     }
@@ -168,7 +205,8 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
       title: topic.bookTitle,
       author: topic.bookAuthor,
       coverUrl: topic.coverUrl,
-      debate: topic.topic
+      debate: topic.topic,
+      isbn13: topic.isbn13
     });
     setViewMode("detail");
   };
@@ -267,7 +305,8 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
       coverUrl: newDebateBook.coverUrl,
       topic: newDebateTopic,
       creator: user?.nickname || "익명 유저",
-      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16)
+      createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      isbn13: newDebateBook.isbn13 || getBookIsbn13(newDebateBook)
     };
     
     // Update local map instantly for O(1) performance of new topic card
@@ -283,7 +322,8 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
       title: newTopicObj.bookTitle,
       author: newTopicObj.bookAuthor,
       coverUrl: newTopicObj.coverUrl,
-      debate: newTopicObj.topic
+      debate: newTopicObj.topic,
+      isbn13: newTopicObj.isbn13
     });
     setViewMode("detail");
     setShowCreateModal(false);
@@ -325,6 +365,21 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
     current.likes > best.likes ? current : best
   , opinionsList[0]);
   
+  const currentIsbn = currentBook.isbn13 || getBookIsbn13(currentBook);
+  const matchedTopic = topics.find(t => {
+    if (currentIsbn) {
+      if (t.isbn13 && t.isbn13 === currentIsbn) return true;
+      const allowedIsbns = DEBATE_TOPICS_ISBN_MAP[t.bookTitle];
+      if (allowedIsbns && allowedIsbns.includes(currentIsbn)) return true;
+    }
+    const cleanT = t.bookTitle.replace(/\s+/g, "").toLowerCase();
+    const cleanB = currentBook.title.replace(/\s+/g, "").toLowerCase();
+    return cleanT.length >= 2 && cleanB.length >= 2 && cleanT === cleanB;
+  });
+  
+  const debateText = matchedTopic ? matchedTopic.topic : currentBook.debate;
+  const debateExists = !!debateText;
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-b from-gray-50 to-white overflow-hidden">
       {/* Header */}
@@ -546,6 +601,40 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
               )}
             </div>
           </div>
+        ) : !debateExists ? (
+          <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-4 py-12 text-center pb-20">
+            <Card className="p-10 text-center bg-white border border-slate-200 rounded-2xl shadow-md">
+              <BookOpen className="size-16 text-purple-300 mx-auto mb-6" />
+              <h3 className="text-xl font-bold text-slate-800 mb-2">아직 등록된 찬반토론이 없습니다</h3>
+              <p className="text-sm text-slate-600 mb-8 max-w-sm mx-auto leading-relaxed">
+                &lt;{currentBook.title}&gt; 도서에 대한 새로운 찬반 토론 주제를 제안해보세요. 
+                공동체 독자들과 함께 뜨거운 의견을 나눌 수 있습니다!
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={handleBack}
+                  variant="outline"
+                  className="rounded-xl px-5 border-gray-300 text-gray-700 font-semibold shadow-sm"
+                >
+                  뒤로가기
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      onLoginRequired?.();
+                      return;
+                    }
+                    setNewDebateBook(currentBook);
+                    setNewDebateTopic(currentBook.title + "의 핵심 메시지에 대해 여러분은 어떻게 생각하십니까? 찬성 혹은 반대 의견을 남겨주세요.");
+                    setShowCreateModal(true);
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold px-5 shadow-md"
+                >
+                  새 논점 제안하기
+                </Button>
+              </div>
+            </Card>
+          </div>
         ) : (
           <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-4 lg:grid lg:grid-cols-10 lg:gap-8 space-y-4 lg:space-y-0 pb-20">
             {/* Left Column (Desktop) / Top Section (Mobile) */}
@@ -576,7 +665,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
 
               <div className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-purple-100">
                 <h3 className="font-bold text-base mb-2 text-center text-purple-950">논쟁 주제</h3>
-                <p className="text-sm text-gray-700 text-center leading-relaxed font-semibold">{currentBook.debate}</p>
+                <p className="text-sm text-gray-700 text-center leading-relaxed font-semibold">{debateText}</p>
               </div>
 
               {/* Vote Stats */}

@@ -1423,6 +1423,7 @@ export interface DbDebateTopic {
   topic: string;
   creator: string;
   createdAt: string;
+  isbn13?: string;
 }
 
 let cachedDebateTopics: DbDebateTopic[] | null = null;

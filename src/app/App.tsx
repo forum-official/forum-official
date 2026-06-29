@@ -1186,6 +1186,14 @@ function AppContent() {
         <EditionDebateListScreen 
           onBack={handleBack}
           onBookSelect={(book) => {
+            if (book) {
+              const globalBooks = getGlobalBooks(popularBooksData);
+              const exists = globalBooks.some(b => b.id === book.id || (b.title === book.title && b.author === book.author));
+              if (!exists) {
+                saveGlobalBook(book);
+                setBooksData(prev => [...prev, book]);
+              }
+            }
             setVoteDetailBook(book);
             handleNavigate("vote-detail");
           }}
@@ -1407,6 +1415,20 @@ function AppContent() {
               debate: debate.topic,
               agreeCount: debate.agreeCount,
               disagreeCount: debate.disagreeCount,
+              isbn13: debate.isbn13 || selectedBook.isbn13 || (() => {
+                const localIsbns: Record<string, string> = {
+                  "1984": "9788937460777",
+                  "이방인": "9788937460876",
+                  "호밀밭의 파수꾼": "9788937460470",
+                  "동물농장": "9788937460050",
+                  "멋진 신세계": "9788931003666",
+                  "죄와 벌": "9788937460296",
+                  "데미안": "9788937460449",
+                  "변신": "9788932910017",
+                  "페스트": "9788937461804",
+                };
+                return localIsbns[selectedBook.title] || localIsbns[selectedBook.id] || "";
+              })()
             });
             handleNavigate("monthly-debate");
           }}

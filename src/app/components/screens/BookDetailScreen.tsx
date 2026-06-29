@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud, fetchBookDetailAggregateFromCloud, getWorkPublisherVotes, voteWorkPublisher } from "@/app/utils/db";
+import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud, fetchBookDetailAggregateFromCloud, getWorkPublisherVotes, voteWorkPublisher, getDebateTopics } from "@/app/utils/db";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
@@ -69,6 +69,15 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
 
   const [reviews, setReviews] = useState(() => getReviews(workKey));
   const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(workKey, userId));
+  const [allDebateTopics, setAllDebateTopics] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadTopics() {
+      const topics = await getDebateTopics();
+      setAllDebateTopics(topics);
+    }
+    loadTopics();
+  }, []);
   
   const [activeCoverUrl, setActiveCoverUrl] = useState(() => {
     if (book.coverUrl && !book.coverUrl.includes("unsplash.com") && !book.coverUrl.includes("openlibrary.org")) {
@@ -879,19 +888,29 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
   }) || [];
 
   // 찬반토론 필터링 (isbn13 기준 1:1 일치 강화)
-  const relatedDebates = (debateTopics?.filter((debate) => {
+  const relatedDebates = (allDebateTopics.filter((debate) => {
+    // 1. ISBN이 있고 allowedIsbns가 지정된 경우 (주요 고전)
     const allowedIsbns = DEBATE_TOPICS_ISBN_MAP[debate.bookTitle];
     if (allowedIsbns && currentIsbn) {
       return allowedIsbns.includes(currentIsbn);
     }
-    if (debate.bookTitle === "1984") return false; // 1984는 무조건 ISBN이 일치해야 함
     
+    // 2. 개별 토론 객체에 isbn13이 매핑되어 있는 경우 (동적 추가 도서)
+    if (debate.isbn13 && currentIsbn) {
+      return debate.isbn13 === currentIsbn;
+    }
+    
+    // 3. 1984 등 주요 고전의 오작동 방지
+    if (debate.bookTitle === "1984") return false;
+    
+    // 4. 타이틀 기준 엄격 일치 (2자 이상일 때만 부분/전체 비교)
     const cleanBook = book.title.replace(/\s+/g, "").toLowerCase();
-    const cleanWork = workKey.replace(/\s+/g, "").toLowerCase();
     const cleanDebate = debate.bookTitle.replace(/\s+/g, "").toLowerCase();
-    return cleanDebate.includes(cleanBook) || cleanBook.includes(cleanDebate) ||
-           cleanDebate.includes(cleanWork) || cleanWork.includes(cleanDebate);
-  }) || []).map(debate => {
+    
+    if (cleanBook.length < 2 || cleanDebate.length < 2) return false;
+    
+    return cleanBook === cleanDebate || cleanBook.includes(cleanDebate) || cleanDebate.includes(cleanBook);
+  })).map(debate => {
     const votes = getDebateVotes(debate.bookTitle);
     const opinions = getDebateOpinions(debate.bookTitle);
     return {
