@@ -399,7 +399,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
             )}
             
             {/* Debate Topics List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
               {filteredTopics.length === 0 ? (
                 <div className="text-center py-20 text-gray-400">
                   <BookOpen className="size-12 mx-auto mb-2 text-gray-300" />
@@ -435,7 +435,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                     >
                       <Card 
                         onClick={() => handleSelectTopic(topic)}
-                        className="p-3.5 bg-white border border-gray-100 hover:border-purple-200 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex gap-3.5"
+                        className="p-5.5 bg-white border border-slate-200 hover:border-purple-300 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all flex gap-5"
                       >
                         {/* Book Cover */}
                         <div className="w-16 flex-shrink-0">
@@ -551,7 +551,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
             {/* Left Column (Desktop) / Top Section (Mobile) */}
             <div className="space-y-4 lg:col-span-4">
                 {/* Book Card */}
-                <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <div className="flex gap-4 mb-4">
                 <div className="w-24 flex-shrink-0">
                   <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden shadow-md">
@@ -580,7 +580,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
               </div>
 
               {/* Vote Stats */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100 mb-4">
+              <div className="bg-white rounded-2xl p-7 shadow-sm border border-purple-100 mb-4">
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <button
                     onClick={() => !hasVoted && setSelectedStance("agree")}
@@ -736,7 +736,7 @@ export function MonthlyDebateScreen({ onBack, onUserClick, onLoginRequired, init
                 const isBest = bestOpinion && opinion.id === bestOpinion.id && opinion.likes >= 20;
                 
                 return (
-                  <Card key={opinion.id} className={`p-4 rounded-2xl ${isBest ? 'border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-amber-50 shadow-md' : 'border-gray-100 shadow-sm'}`}>
+                  <Card key={opinion.id} className={`p-6 rounded-2xl ${isBest ? 'border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-amber-50 shadow-md' : 'border-slate-200 shadow-sm bg-white'}`}>
                     {isBest && (
                       <div className="flex items-center gap-1 mb-2 text-xs font-bold text-amber-700">
                         <span className="text-lg">👑</span>

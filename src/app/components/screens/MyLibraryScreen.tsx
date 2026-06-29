@@ -273,11 +273,11 @@ export function MyLibraryScreen({ onBack, onLoginClick }: MyLibraryScreenProps) 
           }
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {chunkedBooks.map((shelf, shelfIndex) => (
-                <div key={shelfIndex} className="relative pt-4 px-2.5 bg-gradient-to-b from-transparent to-black/5 rounded-xl">
+                <div key={shelfIndex} className="relative pt-6 px-4 bg-gradient-to-b from-transparent to-black/5 rounded-xl">
                   {/* 도서 진열 공간 */}
-                  <div className={`grid ${isDesktop ? 'grid-cols-6' : 'grid-cols-3'} gap-5 pb-1 relative z-10 justify-items-center`}>
+                  <div className={`grid ${isDesktop ? 'grid-cols-6' : 'grid-cols-3'} gap-7 pb-1 relative z-10 justify-items-center`}>
                     {Array.from({ length: booksPerShelf }).map((_, index) => {
                       const book = shelf[index];
                       if (!book) {

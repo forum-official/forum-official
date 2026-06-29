@@ -1,25 +1,22 @@
-import { toast } from "sonner";
+import { Scale, Star, User, Library, ThumbsUp } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface CategoryItemProps {
-  imageSrc: string;
+  icon: LucideIcon;
   label: string;
   onClick?: () => void;
 }
 
-function CategoryItem({ imageSrc, label, onClick }: CategoryItemProps) {
+function CategoryItem({ icon: Icon, label, onClick }: CategoryItemProps) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl active:scale-95 transition-all w-full hover:bg-slate-50"
+      className="flex flex-col items-center gap-2 py-3 px-1 rounded-xl active:scale-95 transition-all w-full hover:bg-purple-50/50 group"
     >
-      <div className="w-16 h-16 overflow-hidden flex items-center justify-center bg-transparent">
-        <img 
-          src={imageSrc} 
-          alt={label} 
-          className="w-full h-full object-contain transform hover:scale-105 transition-transform duration-200" 
-        />
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600 group-hover:bg-purple-100 group-hover:text-purple-700 transition-colors">
+        <Icon className="size-5.5" />
       </div>
-      <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5 break-keep">
+      <span className="text-[11px] font-bold text-gray-700 text-center leading-tight px-0.5 break-keep group-hover:text-purple-950">
         {label}
       </span>
     </button>
@@ -32,29 +29,22 @@ interface CategoryGridNewProps {
 
 export function CategoryGridNew({ onNavigate }: CategoryGridNewProps) {
   const categories = [
-    { imageSrc: "/assets/icons/discussion_icon.png", label: "판본토론", screen: "edition-debate-list" },
-    { imageSrc: "/assets/icons/publisher_rating_icon.png", label: "출판사별 평점", screen: "publisher-rating" },
-    { imageSrc: "/assets/icons/author_info_icon.png", label: "작가정보", screen: "author-archive" },
-    { imageSrc: "/assets/icons/my_library_icon.png", label: "나의서재", screen: "my-library" },
-    { imageSrc: "/assets/icons/debate_icon.png", label: "찬반토론", screen: "monthly-debate" },
-    { imageSrc: "/assets/icons/in_progress_clock.png", label: "준비중", screen: "coming-soon" },
-    { imageSrc: "/assets/icons/in_progress_gift.png", label: "준비중", screen: "coming-soon" },
-    { imageSrc: "/assets/icons/in_progress_scaffold.png", label: "준비중", screen: "coming-soon" },
+    { icon: Scale, label: "판본토론", screen: "edition-debate-list" },
+    { icon: Star, label: "출판사별 평점", screen: "publisher-rating" },
+    { icon: User, label: "작가정보", screen: "author-archive" },
+    { icon: Library, label: "나의서재", screen: "my-library" },
+    { icon: ThumbsUp, label: "찬반토론", screen: "monthly-debate" },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-x-1 gap-y-2 bg-white rounded-xl p-3 shadow-none border border-slate-200">
+    <div className="grid grid-cols-5 gap-1 bg-white rounded-xl p-3 shadow-none border border-slate-200">
       {categories.map((category, index) => (
         <CategoryItem 
           key={index} 
-          imageSrc={category.imageSrc}
+          icon={category.icon}
           label={category.label}
           onClick={() => {
-            if (category.screen === "coming-soon") {
-              toast.info("준비중인 서비스입니다.");
-            } else {
-              onNavigate?.(category.screen);
-            }
+            onNavigate?.(category.screen);
           }}
         />
       ))}

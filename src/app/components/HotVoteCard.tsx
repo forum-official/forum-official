@@ -101,20 +101,20 @@ export function HotVoteCard({
 
   return (
     <Card className="overflow-hidden bg-white border border-slate-200 shadow-none rounded-xl">
-      <div className="px-4 py-4.5 border-b border-slate-100 bg-slate-50/40">
+      <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/40">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5 text-purple-600">
             <TrendingUp className="size-4.5" />
             <span className="text-[11px] font-bold uppercase tracking-wider">오늘의 판본 토론</span>
           </div>
-          <span className="text-[9px] text-gray-500 bg-slate-150 px-2 py-0.5 rounded font-medium select-none">
+          <span className="text-[9px] text-gray-700 bg-slate-150 px-2 py-0.5 rounded font-bold select-none">
             ⏰ 매일 자정 변경
           </span>
         </div>
         <h3 className="font-bold text-gray-900 text-base leading-snug mt-1">{cleanedCardTitle}</h3>
       </div>
 
-      <div className="p-4">
+      <div className="p-6">
         {/* 책 표지 및 정보 */}
         <div 
           onClick={onBookClick}
@@ -131,12 +131,12 @@ export function HotVoteCard({
           </div>
           <div className="flex-1 flex flex-col justify-center min-h-[96px]">
             <h4 className="font-bold text-sm text-gray-900 leading-tight mb-1">{cleanedBookTitle}</h4>
-            <p className="text-xs text-gray-500">{book.author}</p>
+            <p className="text-xs text-slate-700 font-medium">{book.author}</p>
           </div>
         </div>
 
         {/* 투표 옵션 - 모든 출판사 리스트업 */}
-        <div className="space-y-2.5 mb-4">
+        <div className="space-y-3 mb-4">
           {sortedPublishers.map((publisher, index) => {
             const percentage = totalVotes > 0 ? ((publisher.votes / totalVotes) * 100).toFixed(1) : "0.0";
             const isSelected = selectedPublisher === publisher.name;
@@ -147,14 +147,26 @@ export function HotVoteCard({
                 key={publisher.name}
                 onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
                 disabled={hasVoted}
-                className={`w-full text-left p-3 rounded-xl border transition-all relative ${
-                  isSelected
+                className={`w-full text-left p-3.5 rounded-xl border-2 transition-all relative ${
+                  isSelected && !hasVoted
                     ? "border-purple-600 bg-purple-50/20"
+                    : hasVoted && isSelected
+                    ? "border-purple-600 bg-purple-50/30"
+                    : hasVoted
+                    ? "border-slate-200 bg-slate-50/50"
                     : "border-slate-200 hover:border-purple-300 hover:bg-slate-50/50 bg-white"
                 } ${hasVoted ? "cursor-not-allowed" : "cursor-pointer"}`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {/* Radio Button (only show when not voted) */}
+                    {!hasVoted && (
+                      <div className={`size-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isSelected ? "border-purple-600 bg-white" : "border-slate-300 bg-white"
+                      }`}>
+                        {isSelected && <div className="size-2 rounded-full bg-purple-600" />}
+                      </div>
+                    )}
                     <span className={`font-bold text-sm ${isSelected ? "text-purple-600" : "text-gray-800"}`}>
                       {publisher.name}
                     </span>
@@ -164,17 +176,22 @@ export function HotVoteCard({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-purple-600">{percentage}%</span>
-                    <span className="text-[10px] text-gray-400 font-medium">{publisher.votes}표</span>
+                  {hasVoted && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-purple-600">{percentage}%</span>
+                      <span className="text-[10px] text-slate-700 font-bold">{publisher.votes}표</span>
+                    </div>
+                  )}
+                </div>
+                {/* Progress Bar (only show when voted) */}
+                {hasVoted && (
+                  <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2.5">
+                    <div
+                      className="absolute left-0 top-0 h-full bg-purple-600 transition-all duration-500 rounded-full"
+                      style={{ width: `${percentage}%` }}
+                    />
                   </div>
-                </div>
-                <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="absolute left-0 top-0 h-full bg-purple-600 transition-all duration-500 rounded-full"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
+                )}
               </button>
             );
           })}
@@ -184,24 +201,24 @@ export function HotVoteCard({
         <div className="flex gap-2">
           <Button 
             onClick={handleVote}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-none"
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-none py-5"
             disabled={!selectedPublisher || hasVoted}
           >
             {hasVoted ? '투표 완료' : '투표하기'}
           </Button>
           <Button 
             variant="outline" 
-            className="flex items-center gap-1.5 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 rounded-lg shadow-none"
+            className="flex items-center gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-800 rounded-lg shadow-none py-5"
             onClick={onCommentClick}
           >
-            <MessageCircle className="size-4 text-slate-400" />
-            <span className="text-sm font-medium">{comments}</span>
+            <MessageCircle className="size-4 text-slate-500" />
+            <span className="text-sm font-bold">{comments}</span>
           </Button>
         </div>
 
         {/* Total Votes */}
-        <p className="text-center text-xs text-gray-400 mt-3">
-          총 <span className="font-semibold text-purple-600">{totalVotes.toLocaleString()}</span>명 참여
+        <p className="text-center text-xs text-slate-700 mt-3 font-semibold">
+          총 <span className="font-bold text-purple-600">{totalVotes.toLocaleString()}</span>명 참여
         </p>
       </div>
     </Card>

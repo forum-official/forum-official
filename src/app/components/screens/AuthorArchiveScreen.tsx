@@ -423,11 +423,11 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
               <p className="text-gray-500 font-bold">검색 결과가 없습니다</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredAuthorsList.slice(0, displayCount).map((author) => (
                 <Card
                   key={author.id}
-                  className="p-4 hover:shadow-lg transition-all duration-300 cursor-pointer group bg-white border border-gray-100/60 rounded-2xl"
+                  className="p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group bg-white border border-slate-200 rounded-2xl"
                   onClick={() => {
                     if (onAuthorClick) {
                       onAuthorClick(author);
@@ -444,7 +444,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-base mb-1">{author.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm text-slate-700 font-medium mb-2">
                         {author.nameEn} · {author.nationality}
                       </p>
                       <div className="flex flex-wrap gap-1 mb-2">
@@ -454,7 +454,7 @@ export function AuthorArchiveScreen({ onBack, onUserClick, onLoginRequired, sele
                           </Badge>
                         ))}
                       </div>
-                      <p className="text-xs text-gray-600 line-clamp-2">{author.description}</p>
+                      <p className="text-xs text-slate-800 font-medium line-clamp-2">{author.description}</p>
                     </div>
                   </div>
                 </Card>

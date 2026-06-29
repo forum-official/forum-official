@@ -159,46 +159,46 @@ export function PublisherRatingScreen({ onBack, onUserClick, onBookClick, onLogi
         </div>
       </header>
 
-      <main className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Top Info */}
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl p-4 text-white">
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xs">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="size-5" />
             <h2 className="font-bold">출판사 품질 평가</h2>
           </div>
-          <p className="text-sm text-purple-100">
+          <p className="text-sm text-purple-100 font-medium">
             독자들이 직접 평가한 출판사별 번역 품질, 편집, 가격 만족도를 확인하세요.
           </p>
         </div>
 
         {/* Publishers List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {dynamicPublishers.map((publisher, index) => (
             <Card 
               key={publisher.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer bg-white border border-slate-200"
               onClick={() => handlePublisherClick(publisher)}
             >
-              <div className="p-4">
+              <div className="p-6">
                 {/* Header */}
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-3.5">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center text-2xl">
                       {publisher.logo}
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg">{publisher.name}</h3>
+                      <h3 className="font-bold text-lg text-slate-900">{publisher.name}</h3>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-bold text-purple-600">{publisher.rating}</span>
+                          <span className="font-black text-purple-600">{publisher.rating}</span>
                         </div>
-                        <span className="text-xs text-gray-500">({publisher.totalReviews.toLocaleString()})</span>
+                        <span className="text-xs text-slate-700 font-semibold">({publisher.totalReviews.toLocaleString()}명 평가)</span>
                       </div>
                     </div>
                   </div>
                   {index === 0 && (
-                    <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 font-bold">
                       <Award className="size-3 mr-1" />
                       1위
                     </Badge>
@@ -206,52 +206,52 @@ export function PublisherRatingScreen({ onBack, onUserClick, onBookClick, onLogi
                 </div>
 
                 {/* Rating Details */}
-                <div className="space-y-2 mb-3">
+                <div className="space-y-2.5 mb-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">번역 품질</span>
+                    <span className="text-xs text-slate-800 font-bold">번역 품질</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-gray-250 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-purple-400 to-purple-500"
                           style={{ width: `${(publisher.translationQuality / 5) * 100}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-purple-600 w-8">{publisher.translationQuality}</span>
+                      <span className="text-xs font-bold text-purple-600 w-8">{publisher.translationQuality}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">편집 품질</span>
+                    <span className="text-xs text-slate-800 font-bold">편집 품질</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-gray-250 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-blue-400 to-blue-500"
                           style={{ width: `${(publisher.editingQuality / 5) * 100}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-blue-600 w-8">{publisher.editingQuality}</span>
+                      <span className="text-xs font-bold text-blue-600 w-8">{publisher.editingQuality}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">가격 만족도</span>
+                    <span className="text-xs text-slate-800 font-bold">가격 만족도</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-gray-250 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-green-400 to-green-500"
                           style={{ width: `${(publisher.priceValue / 5) * 100}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-green-600 w-8">{publisher.priceValue}</span>
+                      <span className="text-xs font-bold text-green-600 w-8">{publisher.priceValue}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="flex flex-wrap gap-1.5 mb-4">
                   {publisher.tags.map((tag, idx) => (
                     <Badge 
                       key={idx} 
                       variant="secondary" 
-                      className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                      className="text-xs bg-purple-50 text-purple-700 border-purple-200 font-semibold"
                     >
                       <CheckCircle className="size-3 mr-1" />
                       {tag}
@@ -260,11 +260,11 @@ export function PublisherRatingScreen({ onBack, onUserClick, onBookClick, onLogi
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <span className="text-xs text-gray-500">
+                <div className="flex items-center justify-between pt-3.5 border-t border-gray-150">
+                  <span className="text-xs text-slate-700 font-bold">
                     최근 {publisher.recentBooks}권 출간
                   </span>
-                  <button className="text-xs font-semibold text-purple-600 hover:text-purple-700">
+                  <button className="text-xs font-bold text-purple-600 hover:text-purple-700">
                     상세보기 →
                   </button>
                 </div>

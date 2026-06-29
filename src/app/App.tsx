@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { AuthProvider, useAuth } from "@/app/contexts/AuthContext";
 import { ProfileTab } from "@/app/components/ProfileTab";
 import { SkinShopModal } from "@/app/components/SkinShopModal";
-import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, TrendingUp, Image as ImageIcon, Home, User, LogOut, ChevronRight, Flame } from "lucide-react";
+import { PlusCircle, Sparkles, ArrowUpDown, RefreshCw, BookOpen, Heart, MessageCircle, MessageSquare, TrendingUp, Image as ImageIcon, Home, User, LogOut, ChevronRight, Flame } from "lucide-react";
 import { PcSidebar } from "@/app/components/PcSidebar";
 import { popularBooksData as rawPopularBooksData } from "@/app/data/booksData";
 const popularBooksData = rawPopularBooksData.filter(b => !b.genre || !b.genre.includes("라이트노벨"));
@@ -1504,6 +1504,53 @@ function AppContent() {
                     }
                     handleNavigate(screen);
                   }} />
+                </section>
+
+                {/* Latest Community Activity */}
+                <section className="bg-white border border-slate-200 rounded-xl p-5 shadow-none">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                      <MessageSquare className="size-4.5 text-purple-600" />
+                      최신 커뮤니티 활동
+                    </h3>
+                    <button 
+                      onClick={() => handleTabChange("discussions")} 
+                      className="text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:underline cursor-pointer"
+                    >
+                      더보기 →
+                    </button>
+                  </div>
+                  <div className="space-y-2.5">
+                    {discussionsList.length > 0 ? (
+                      [...discussionsList]
+                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                        .slice(0, 3)
+                        .map((post) => (
+                          <div 
+                            key={post.id} 
+                            onClick={() => {
+                              setSelectedDiscussion(post);
+                              setShowDiscussionDetail(true);
+                            }}
+                            className="p-3 bg-slate-50/50 hover:bg-purple-50/20 border border-slate-100 hover:border-purple-100 rounded-xl cursor-pointer transition-all flex justify-between items-center"
+                          >
+                            <div className="min-w-0 pr-3">
+                              <h4 className="text-xs font-bold text-gray-800 truncate mb-1 leading-snug">{post.title}</h4>
+                              <p className="text-[10px] text-gray-500 truncate">
+                                {post.author || "익명"} · {post.timestamp || "방금 전"}
+                              </p>
+                            </div>
+                            <div className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                              🗳️ {post.totalVotes || 0}
+                            </div>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="text-center py-6 text-xs text-gray-400 font-medium bg-slate-50/50 rounded-xl border border-slate-100/50">
+                        최근 작성된 커뮤니티 활동이 없습니다.
+                      </div>
+                    )}
+                  </div>
                 </section>
 
                 {/* Hot Vote Section */}

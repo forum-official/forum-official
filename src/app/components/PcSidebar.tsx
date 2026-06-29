@@ -58,16 +58,16 @@ export function PcSidebar({
                 <p className="text-xs text-gray-500 truncate mt-0.5">{user.email || "지식의 탐구자"}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2.5 pt-3 border-t border-gray-100">
               <button
                 onClick={() => onTabChange("profile")}
-                className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-0.5 cursor-pointer"
+                className="flex-1 text-[11px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 hover:text-purple-700 border border-purple-200/50 rounded-lg py-2 px-3 flex items-center justify-center gap-0.5 transition-all shadow-3xs cursor-pointer"
               >
                 마이페이지 <ChevronRight className="size-3" />
               </button>
               <button
                 onClick={logout}
-                className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors cursor-pointer"
+                className="flex-1 text-[11px] font-bold text-gray-500 bg-slate-50 hover:bg-red-50 hover:text-red-700 hover:border-red-200 border border-slate-200 rounded-lg py-2 px-3 flex items-center justify-center gap-1 transition-all shadow-3xs cursor-pointer"
               >
                 <LogOut className="size-3" /> 로그아웃
               </button>

@@ -1151,14 +1151,14 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
 
           {/* Publisher Vote - 판본토론 조건부 노출 */}
           {isEditionDebateTarget && sortedPublishers.length >= 2 && (
-            <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-white lg:bg-white lg:bg-none rounded-2xl p-5 shadow-lg lg:shadow-none border border-purple-100 lg:border-slate-200">
+            <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-white lg:bg-white lg:bg-none rounded-2xl p-6 shadow-lg lg:shadow-none border border-purple-100 lg:border-slate-200">
               <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
                 📚 판본 토론
-                <span className="text-sm font-normal text-gray-500">
+                <span className="text-sm font-semibold text-slate-700">
                   ({totalVotes}명 투표)
                 </span>
               </h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-slate-800 font-medium mb-4">
                 어떤 출판사의 번역이 가장 좋나요?
               </p>
 
@@ -1173,54 +1173,63 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
                       key={publisher.name}
                       onClick={() => !hasVoted && setSelectedPublisher(publisher.name)}
                       disabled={hasVoted}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                         isSelected && !hasVoted
-                          ? "border-purple-500 bg-purple-50 shadow-md lg:border-purple-600 lg:bg-purple-50/50"
+                          ? "border-purple-600 bg-purple-50/30 shadow-xs"
                           : hasVoted && isSelected
-                          ? "border-purple-600 bg-purple-50"
+                          ? "border-purple-600 bg-purple-50/50"
                           : hasVoted
-                          ? "border-gray-200 bg-gray-50 lg:border-slate-200 lg:bg-slate-50/50"
-                          : "border-gray-200 hover:border-purple-400 bg-white lg:border-slate-200 lg:hover:border-purple-300"
+                          ? "border-gray-200 bg-gray-50/70"
+                          : "border-gray-200 hover:border-purple-500 hover:bg-purple-50/10 bg-white"
                       } ${hasVoted ? "cursor-default" : "cursor-pointer"}`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-purple-700">{publisher.name}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {/* Radio Button (only show when not voted) */}
+                          {!hasVoted && (
+                            <div className={`size-4.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isSelected ? "border-purple-600 bg-white" : "border-gray-300 bg-white"
+                            }`}>
+                              {isSelected && <div className="size-2.5 rounded-full bg-purple-600" />}
+                            </div>
+                          )}
+                          <span className="font-bold text-gray-800 text-sm">{publisher.name}</span>
                           {isTop && hasVoted && (
-                            <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold">
                               1위
                             </span>
                           )}
-                          {isSelected && !hasVoted && (
-                            <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
-                              선택됨
-                          </span>
-                          )}
                           {isSelected && hasVoted && (
-                            <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold">
                               내 투표
                             </span>
                           )}
                         </div>
-                        <span className="font-bold text-purple-600">
-                          {publisher.votes}표
-                        </span>
+                        {hasVoted && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-purple-600">{percentage.toFixed(1)}%</span>
+                            <span className="text-xs text-slate-700 font-bold">{publisher.votes}표</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="w-full bg-gray-200 lg:bg-slate-100 rounded-full h-3 mb-1.5 overflow-hidden shadow-inner">
-                        <motion.div
-                          className={`h-3 rounded-full ${
-                            isTop ? "bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 lg:from-purple-500 lg:to-purple-500" : "bg-gradient-to-r from-purple-400 via-purple-300 to-purple-400 lg:from-purple-300 lg:to-purple-300"
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ 
-                            duration: 1.2, 
-                            ease: "easeOut",
-                            delay: 0.1 * index
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-purple-700">{percentage.toFixed(1)}%</span>
+
+                      {/* Progress Bar (only show when voted) */}
+                      {hasVoted && (
+                        <div className="w-full bg-gray-200 lg:bg-slate-100 rounded-full h-2.5 mt-2.5 overflow-hidden shadow-inner">
+                          <motion.div
+                            className={`h-2.5 rounded-full ${
+                              isTop ? "bg-purple-600" : "bg-purple-400"
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ 
+                              duration: 1.0, 
+                              ease: "easeOut",
+                              delay: 0.05 * index
+                            }}
+                          />
+                        </div>
+                      )}
                     </button>
                   );
                 })}

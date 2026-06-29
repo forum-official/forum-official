@@ -90,7 +90,7 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
         </div>
 
         {/* List Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredBooks.length > 0 ? (
             filteredBooks.map((book) => {
               const cleanTitle = (t: string) => {
@@ -106,7 +106,7 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
                 <div 
                   key={book.id}
                   onClick={() => onBookSelect(book)}
-                  className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex gap-4"
+                  className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex gap-4"
                 >
                   {/* Book Cover */}
                   <div className="w-20 aspect-[2/3] bg-gray-100 rounded-xl overflow-hidden shadow-inner flex-shrink-0">
@@ -124,22 +124,22 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
                       <h3 className="font-bold text-gray-900 text-sm leading-snug mb-0.5 line-clamp-2">
                         {cleanTitle(book.title)}
                       </h3>
-                      <p className="text-xs text-gray-500 line-clamp-1 mb-2">{book.author}</p>
+                      <p className="text-xs text-slate-700 font-medium line-clamp-1 mb-2">{book.author}</p>
                       
                       {/* Publishers vs */}
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                        <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
                           {book.debatePublishers[0]}
                         </span>
-                        <span className="text-[9px] text-gray-400 font-bold">VS</span>
-                        <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
+                        <span className="text-[9px] text-slate-600 font-bold">VS</span>
+                        <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
                           {book.debatePublishers[1]}
                         </span>
                       </div>
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                    <div className="flex items-center gap-3 text-xs text-slate-700 font-bold mt-2">
                       <span className="flex items-center gap-1">
                         <span>🗳️</span> 투표 {book.totalVotes}명
                       </span>
@@ -152,13 +152,13 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
 
                   {/* Arrow Icon */}
                   <div className="flex items-center">
-                    <ChevronRight className="size-5 text-gray-400" />
+                    <ChevronRight className="size-5 text-slate-600" />
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-center py-12 text-gray-400 text-sm">
+            <div className="text-center py-12 text-slate-600 font-bold text-sm">
               검색 결과와 매칭되는 판본 토론 도서가 없습니다.
             </div>
           )}
