@@ -22,6 +22,15 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  // Scroll to top on mount to avoid scroll preservation bugs from previous screens
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as any });
+    const scrollContainers = document.querySelectorAll(".overflow-y-auto, .overflow-auto, html, body");
+    scrollContainers.forEach(container => {
+      container.scrollTop = 0;
+    });
+  }, []);
+
   // Debounce search query input to avoid spamming requests
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -194,29 +203,31 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      {/* Header & Sticky Search Bar Wrapper */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={onBack} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft className="size-6 text-slate-700" />
           </button>
           <h1 className="font-bold text-lg text-slate-900">판본 토론 목록</h1>
         </div>
+        
+        {/* Search bar integrated into header */}
+        <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 pb-3">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="도서명 또는 작가 검색..."
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner transition-all text-slate-800"
+            />
+            <Search className="absolute left-3.5 top-3.5 size-4 text-gray-400" />
+          </div>
+        </div>
       </header>
 
       <main className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto px-4 py-6 space-y-6">
-        {/* Search Input */}
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="도서명 또는 작가 검색..."
-            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm transition-all text-slate-800"
-          />
-          <Search className="absolute left-3.5 top-3.5 size-4 text-gray-400" />
-        </div>
-
         {/* List Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {booksList.map((book, idx) => (
@@ -247,7 +258,7 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {book.debatePublishers.map((pub: string, pIdx: number) => (
                       <span key={pIdx} className="contents">
-                        {pIdx > 0 && <span className="text-[9px] text-slate-650 font-bold">VS</span>}
+                        {pIdx > 0 && <span className="text-[9px] text-slate-600 font-bold">VS</span>}
                         <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100">
                           {pub}
                         </span>
