@@ -1428,14 +1428,28 @@ export interface DbDebateTopic {
 
 let cachedDebateTopics: DbDebateTopic[] | null = null;
 
+// 버전을 올리면 기존 오염된 localStorage 찬반토론 캐시가 전부 초기화됩니다
+const DEBATE_TOPICS_CACHE_VERSION = "v3";
+
 export function getDebateTopics(): DbDebateTopic[] {
   if (cachedDebateTopics) {
     return cachedDebateTopics;
   }
+
+  // 버전이 다르면 오염된 캐시 전부 초기화
+  const savedVersion = localStorage.getItem("forum_debate_topics_version");
+  if (savedVersion !== DEBATE_TOPICS_CACHE_VERSION) {
+    localStorage.removeItem("forum_debate_topics");
+    localStorage.setItem("forum_debate_topics_version", DEBATE_TOPICS_CACHE_VERSION);
+    cachedDebateTopics = null;
+  }
+
   const data = localStorage.getItem("forum_debate_topics");
   if (data) {
     try {
       const list: DbDebateTopic[] = JSON.parse(data);
+      // 사용자가 직접 추가한 토론(creator !== "시스템")은 보존하되,
+      // 시스템 토론은 항상 최신 debateTopics 텍스트로 갱신
       let hasUpdates = false;
       const updatedList = list.map(topic => {
         const newTopicText = debateTopics[topic.bookTitle];
@@ -1452,7 +1466,8 @@ export function getDebateTopics(): DbDebateTopic[] {
       cachedDebateTopics = updatedList;
       return updatedList;
     } catch {
-      // fallback
+      // fallback to re-initialization below
+      localStorage.removeItem("forum_debate_topics");
     }
   }
   
