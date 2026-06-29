@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
-import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud, fetchBookDetailAggregateFromCloud, getWorkPublisherVotes, voteWorkPublisher, getDebateTopics } from "@/app/utils/db";
+import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud, fetchBookDetailAggregateFromCloud, getWorkPublisherVotes, voteWorkPublisher } from "@/app/utils/db";
+import { debateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
@@ -69,15 +70,13 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
 
   const [reviews, setReviews] = useState(() => getReviews(workKey));
   const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(workKey, userId));
-  const [allDebateTopics, setAllDebateTopics] = useState<any[]>([]);
 
-  useEffect(() => {
-    async function loadTopics() {
-      const topics = await getDebateTopics();
-      setAllDebateTopics(topics);
-    }
-    loadTopics();
-  }, []);
+  // 찬반토론: localStorage 오염 우회 — 항상 정적 debateTopics 파일에서 직접 읽기
+  const allDebateTopics = Object.entries(debateTopics).map(([bookTitle, topic]) => ({
+    bookTitle,
+    topic,
+    isbn13: undefined as string | undefined,
+  }));
   
   const [activeCoverUrl, setActiveCoverUrl] = useState(() => {
     if (book.coverUrl && !book.coverUrl.includes("unsplash.com") && !book.coverUrl.includes("openlibrary.org")) {
@@ -120,15 +119,32 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
     { name: "열린책들", votes: 0 }
   ];
   const bookPubs = book.publishers || [];
-  const mergedPubs = [...defaultPubs];
+  // 클래식 기본 출판사 (민음사, 문학동네, 열린책들) + book.publishers의 모든 출판사 병합
+  const mergedPubs = [
+    { name: "민음사", votes: 0 },
+    { name: "문학동네", votes: 0 },
+    { name: "열린책들", votes: 0 }
+  ];
   bookPubs.forEach(bp => {
-    if (!mergedPubs.some(p => p.name === bp.name)) {
+    if (bp && bp.name && bp.name !== "출판사 미상" && !mergedPubs.some(p => p.name === bp.name)) {
       mergedPubs.push({ name: bp.name, votes: bp.votes || 0 });
     }
   });
+  // 비클래식 책도 book.publishers 모두 병합 (극소수 출판사만 뜨는 버그 해결)
+  const allPubs = isClassic ? mergedPubs : (() => {
+    const seen = new Set<string>();
+    const res: { name: string; votes: number }[] = [];
+    bookPubs.forEach((bp: any) => {
+      if (bp && bp.name && bp.name !== "출판사 미상" && !seen.has(bp.name)) {
+        seen.add(bp.name);
+        res.push({ name: bp.name, votes: bp.votes || 0 });
+      }
+    });
+    return res;
+  })();
 
   const [publisherVotes, setPublisherVotes] = useState(() => {
-    const pubs = isClassic ? mergedPubs : bookPubs;
+    const pubs = allPubs;
     const seen = new Set<string>();
     const res: any[] = [];
     pubs.forEach((p: any) => {
@@ -137,15 +153,14 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         res.push(p);
       }
     });
-    const filteredPubs = res.filter((p: any) => p.name !== "출판사 미상");
-    return filteredPubs.map((pub: any) => ({
+    return res.map((pub: any) => ({
       name: pub.name,
       votes: getWorkPublisherVotes(workKey, pub.name)
     }));
   });
 
   const getPubVotesList = () => {
-    const pubs = isClassic ? mergedPubs : bookPubs;
+    const pubs = allPubs;
     const seen = new Set<string>();
     const res: any[] = [];
     pubs.forEach((p: any) => {
@@ -154,8 +169,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
         res.push(p);
       }
     });
-    const filteredPubs = res.filter((p: any) => p.name !== "출판사 미상");
-    return filteredPubs.map((pub: any) => ({
+    return res.map((pub: any) => ({
       name: pub.name,
       votes: getWorkPublisherVotes(workKey, pub.name)
     }));
