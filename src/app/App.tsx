@@ -877,6 +877,9 @@ function AppContent() {
         });
       }
 
+      if (!representative.alternativeCovers) {
+        representative.alternativeCovers = [];
+      }
       representative.alternativeCovers = representative.alternativeCovers.map((c: any) => {
         if (!c.bookId) {
           const foundBook = relatedBooks.find(rb => {
@@ -890,9 +893,24 @@ function AppContent() {
         }
         return c;
       });
+
+      // publishers 배열이 없으면 빈 배열로 초기화 (흰 화면 crash 방어)
+      if (!representative.publishers) {
+        const pubName = representative.publisher || "출판사 미상";
+        representative.publishers = pubName !== "출판사 미상" ? [{ name: pubName, votes: 0 }] : [];
+      }
+
       return representative;
     }
     
+    // 대표 책을 못 찾은 경우에도 publishers/alternativeCovers 보장 (흰 화면 방어)
+    if (!book.publishers) {
+      const pubName = (book as any).publisher || "출판사 미상";
+      (book as any).publishers = pubName !== "출판사 미상" ? [{ name: pubName, votes: 0 }] : [];
+    }
+    if (!(book as any).alternativeCovers) {
+      (book as any).alternativeCovers = [];
+    }
     return book;
   };
 
