@@ -857,19 +857,8 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
     : "0.0";
   const totalRatingCount = combinedStats.reviewsCount + combinedStats.quickCount;
 
-  const currentIsbn = getBookIsbn13(book);
-  const editionDebateIsbns = [
-    "9788937460777", "9788954625296", "9788932910048", "9788998055271", "9788932473956", // 1984
-    "9788937460876", "9788954617482", "9788932916491", // 이방인
-    "9788937460470", // 호밀밭의 파수꾼
-    "9788937460050", "9788954625289", "9788932910055", // 동물농장
-    "9788931003666", "9788932473215", // 멋진 신세계
-    "9788937460296", "9788937460302", "9788954637954", // 죄와 벌
-    "9788937460449", "9788954622080", "9788932909981", // 데미안
-    "9788932910017", "9788937460364", // 변신
-    "9788937461804", "9788932916897"  // 페스트
-  ];
-  const isEditionDebateTarget = !!(currentIsbn && editionDebateIsbns.includes(currentIsbn));
+  // 판본 투표 조건: 출판사가 2종 이상이거나 고전 클래식인 경우 → 모든 해당 책에 판본 투표 표시
+  const isEditionDebateTarget = publisherVotes.length >= 2 || isClassic;
 
   // 관련 토론 필터링 (isbn13 기준 1:1 일치 강화)
   const relatedDiscussions = discussions?.filter((discussion) => {

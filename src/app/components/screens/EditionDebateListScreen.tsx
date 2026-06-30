@@ -5,6 +5,24 @@ import { getGlobalBooks, getWorkPublisherVotes, getComments } from "@/app/utils/
 import { isClassicBook, getWorkKey } from "@/app/utils/titleHelper";
 import { BookCover } from "@/app/components/BookCover";
 
+// 문학 도서 판별: genre에 '문학' 포함이거나 클래식 고전 / 비문학 장르 제외
+const NON_LITERARY_GENRES = new Set([
+  "자기계발", "경제/경영", "경영", "경제", "과학", "사회", "자격증",
+  "라이트노벨", "만화", "어린이", "유아", "컴퓨터", "IT", "요리", "여행",
+  "건강", "스포츠", "취미", "종교", "기독교", "불교", "기타"
+]);
+
+function isLiteraryBook(book: any): boolean {
+  const genres: string[] = book.genre || [];
+  // 비문학 장르가 있으면 제외
+  if (genres.some(g => NON_LITERARY_GENRES.has(g))) return false;
+  // '문학' 장르가 있거나 클래식 고전이면 포함
+  if (genres.includes("문학") || genres.includes("인문") || genres.includes("철학") ||
+      genres.includes("역사") || genres.includes("심리") || genres.includes("청소년")) return true;
+  if (isClassicBook(book.title, book.author)) return true;
+  return false;
+}
+
 interface EditionDebateListScreenProps {
   onBack: () => void;
   onBookSelect: (book: Book) => void;
@@ -69,9 +87,9 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
       }
     });
 
-    // Filter: only books with 2+ distinct publishers
+    // Filter: only literary books with 2+ distinct publishers
     const filtered = Array.from(workMap.values())
-      .filter(item => item.publisherSet.size >= 2)
+      .filter(item => isLiteraryBook(item) && item.publisherSet.size >= 2)
       .map(item => {
         const debatePublishers = Array.from(item.publisherSet) as string[];
         const wk = getWorkKey(item.title, item.author);
