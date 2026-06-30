@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, ThumbsUp, MessageCircle, Sparkles, Crown, Flag, Search, Share2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, ThumbsUp, MessageCircle, Sparkles, Flag, Search, Share2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
 import { useAuth } from "@/app/contexts/AuthContext";
 import { toast } from "sonner";
 import { popularBooksData, type Book } from "@/app/data/booksData";
@@ -37,7 +36,7 @@ interface VoteDetailScreenProps {
 export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginRequired }: VoteDetailScreenProps) {
   const { isAuthenticated, user } = useAuth();
   
-  // 랜덤 책 선택 (selectedBook이 없을 때만)
+  // Choose random or selected book
   const [currentBook, setCurrentBook] = useState(() => {
     if (selectedBook) {
       return {
@@ -46,7 +45,6 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
         coverUrl: selectedBook.coverUrl,
       };
     }
-    // 번역 정보가 있는 도서 또는 출판사가 2개 이상인 도서만 필터링 (출판사가 하나인 책은 제외)
     const globalBooks = getGlobalBooks(popularBooksData);
     const filtered = globalBooks.filter(b => 
       isClassicBook(b.title, b.author) || 
@@ -62,86 +60,85 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
   });
 
   const getInitialPublishers = (title: string, author?: string) => {
+    // 1. If we have selectedBook with valid publishers, use them!
+    if (selectedBook && selectedBook.title === title && selectedBook.publishers && selectedBook.publishers.length > 0) {
+      const filtered = selectedBook.publishers.filter(p => p.name && p.name !== "출판사 미상");
+      if (filtered.length > 0) {
+        return filtered.map(p => ({ name: p.name, votes: 0 }));
+      }
+    }
+    
+    // 2. Fallback to classics default
     const isClassic = author ? isClassicBook(title, author) : (getMatchingClassicTitle(title) !== null);
     if (isClassic) {
       return [
         { name: "민음사", votes: 0 },
-        { name: "문학동네", votes: 0 }
+        { name: "문학동네", votes: 0 },
+        { name: "열린책들", votes: 0 }
       ];
     }
+    
+    // 3. Fallback to globalBooks match
     const globalBooks = getGlobalBooks(popularBooksData);
-    const bk = globalBooks.find(b => b.title === title);
-    if (bk && bk.publishers && bk.publishers.length >= 2) {
-      return bk.publishers.slice(0, 2);
+    const bk = globalBooks.find(b => b.title === title || getWorkKey(b.title, b.author) === getWorkKey(title, author || ""));
+    if (bk && bk.publishers && bk.publishers.length > 0) {
+      const filtered = bk.publishers.filter(p => p.name && p.name !== "출판사 미상");
+      if (filtered.length > 0) {
+        return filtered.map(p => ({ name: p.name, votes: 0 }));
+      }
     }
+    
     return [
       { name: "민음사", votes: 0 },
-      { name: "문학동네", votes: 0 }
+      { name: "문학동네", votes: 0 },
+      { name: "열린책들", votes: 0 }
     ];
   };
 
-  const initialPubs = getInitialPublishers(currentBook.title, currentBook.author);
-  
+  const [initialPubs, setInitialPubs] = useState(() => getInitialPublishers(currentBook.title, currentBook.author));
   const workKey = getWorkKey(currentBook.title, currentBook.author || "");
 
-  const [votesA, setVotesA] = useState(() => getWorkPublisherVotes(workKey, initialPubs[0].name));
-  const [votesB, setVotesB] = useState(() => getWorkPublisherVotes(workKey, initialPubs[1].name));
-  const [totalVotes, setTotalVotes] = useState(() => getWorkPublisherVotes(workKey, initialPubs[0].name) + getWorkPublisherVotes(workKey, initialPubs[1].name));
+  const [votesMap, setVotesMap] = useState<Record<string, number>>({});
+  const [totalVotes, setTotalVotes] = useState(0);
   
-  const [selectedOption, setSelectedOption] = useState<number | null>(() => {
-    const currentUserId = user?.userId || "";
-    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-    const votedPub = myVotes[workKey];
-    if (votedPub === initialPubs[0].name) return 1;
-    if (votedPub === initialPubs[1].name) return 2;
-    return null;
-  });
-  const [hasVoted, setHasVoted] = useState(() => {
-    const currentUserId = user?.userId || "";
-    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-    return workKey in myVotes;
-  });
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [hasVoted, setHasVoted] = useState(false);
   const [comment, setComment] = useState("");
-  const [showComments, setShowComments] = useState(true);
   const [showBookSearch, setShowBookSearch] = useState(false);
   const [showSkinShop, setShowSkinShop] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportingId, setReportingId] = useState<number | string | null>(null);
   
-  // 번역가 정보 state
-  const [translatorA, setTranslatorA] = useState(() => {
-    const isClassic = isClassicBook(currentBook.title, currentBook.author);
-    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
-    const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
-    return translators.minumsa;
-  });
-  const [translatorB, setTranslatorB] = useState(() => {
-    const isClassic = isClassicBook(currentBook.title, currentBook.author);
-    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
-    const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
-    return translators.moonhak;
-  });
-  
-  // 장단점 state
-  const [prosA, setProsA] = useState<string[]>([]);
-  const [consA, setConsA] = useState<string[]>([]);
-  const [prosB, setProsB] = useState<string[]>([]);
-  const [consB, setConsB] = useState<string[]>([]);
-  
-  // 댓글 state
+  // Comments state
   const [comments, setComments] = useState<any[]>(() => getComments(currentBook.title));
 
+  // Update initialPubs when currentBook changes
   useEffect(() => {
-    const pubs = getInitialPublishers(currentBook.title, currentBook.author);
-    const currentWorkKey = getWorkKey(currentBook.title, currentBook.author || "");
+    setInitialPubs(getInitialPublishers(currentBook.title, currentBook.author));
+  }, [currentBook.title, currentBook.author]);
+
+  // Load votes and user voted option whenever initialPubs or workKey changes
+  useEffect(() => {
+    const newVotes: Record<string, number> = {};
+    let total = 0;
+    initialPubs.forEach(pub => {
+      const v = getWorkPublisherVotes(workKey, pub.name);
+      newVotes[pub.name] = v;
+      total += v;
+    });
+    setVotesMap(newVotes);
+    setTotalVotes(total);
     
-    const vA = getWorkPublisherVotes(currentWorkKey, pubs[0].name);
-    const vB = getWorkPublisherVotes(currentWorkKey, pubs[1].name);
-    
-    setVotesA(vA);
-    setVotesB(vB);
-    setTotalVotes(vA + vB);
-    
+    const currentUserId = user?.userId || "";
+    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
+    const votedPub = myVotes[workKey];
+    const userHasVoted = workKey in myVotes;
+    setHasVoted(userHasVoted);
+    setSelectedOption(votedPub || null);
+  }, [initialPubs, workKey, user?.userId]);
+
+  // Load comments
+  useEffect(() => {
     const currentUserId = user?.userId || "";
     async function loadComments() {
       const dbComments = await fetchCommentsFromCloud(currentBook.title);
@@ -151,25 +148,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
       })));
     }
     loadComments();
-    
-    const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-    const votedPub = myVotes[currentWorkKey];
-    const userHasVoted = currentWorkKey in myVotes;
-    setHasVoted(userHasVoted);
-    if (userHasVoted) {
-      if (votedPub === pubs[0].name) setSelectedOption(1);
-      else if (votedPub === pubs[1].name) setSelectedOption(2);
-      else setSelectedOption(null);
-    } else {
-      setSelectedOption(null);
-    }
-
-    const isClassic = isClassicBook(currentBook.title, currentBook.author);
-    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
-    const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
-    setTranslatorA(translators.minumsa);
-    setTranslatorB(translators.moonhak);
-  }, [currentBook.title, currentBook.author, user?.userId]);
+  }, [currentBook.title, user?.userId]);
 
   const handleLikeComment = async (commentId: string) => {
     if (!isAuthenticated) {
@@ -195,76 +174,49 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
 
   const getPublisherCover = (title: string, publisher: string, defaultCover: string) => {
     const matchingTitle = getMatchingClassicTitle(title) || title;
-    
-    // 1. translationCovers 우선 매칭
     if (translationCovers[matchingTitle] && translationCovers[matchingTitle][publisher]) {
       return translationCovers[matchingTitle][publisher];
     }
     if (translationCovers[title] && translationCovers[title][publisher]) {
       return translationCovers[title][publisher];
     }
-
-    // 2. 전체 도서 데이터베이스 검색
     try {
       const globalBooks = getGlobalBooks(popularBooksData);
       const cleanTargetTitle = cleanTitle(title).toLowerCase();
-      
       const matchedBook = globalBooks.find(b => {
         const bTitle = cleanTitle(b.title).toLowerCase();
         const titleMatch = bTitle.includes(cleanTargetTitle) || cleanTargetTitle.includes(bTitle);
         if (!titleMatch) return false;
-        
         if (b.publisher && b.publisher.trim() === publisher.trim()) return true;
         if (b.publishers && b.publishers.some(p => p.name.trim() === publisher.trim())) return true;
         return false;
       });
-
       if (matchedBook && matchedBook.coverUrl) {
         return matchedBook.coverUrl;
       }
     } catch (e) {
       console.error("Failed to find cover in global books database:", e);
     }
-
-    // 3. Fallback 하드코딩 방어 (페스트)
-    const cleaned = cleanTitle(title);
-    if (cleaned === "페스트" || cleaned.includes("페스트")) {
-      if (publisher === "민음사") {
-        return "https://image.aladin.co.kr/product/115/00/cover500/8937462672_1.jpg";
-      }
-      if (publisher === "문학동네") {
-        return "https://image.aladin.co.kr/product/10582/26/cover500/8954638899_1.jpg";
-      }
-    }
-
     return defaultCover;
   };
 
-  const voteData = {
-    title: currentBook.title,
-    question: "어떤 번역본이 더 나을까요?",
-    optionA: {
-      publisher: initialPubs[0].name,
-      translator: translatorA,
-      coverUrl: getPublisherCover(currentBook.title, initialPubs[0].name, currentBook.coverUrl),
-      votes: votesA,
-      pros: prosA,
-      cons: consA,
-    },
-    optionB: {
-      publisher: initialPubs[1].name,
-      translator: translatorB,
-      coverUrl: getPublisherCover(currentBook.title, initialPubs[1].name, currentBook.coverUrl),
-      votes: votesB,
-      pros: prosB,
-      cons: consB,
-    },
-    totalVotes: totalVotes,
-    comments: comments,
+  const getTranslatorForPub = (pubName: string) => {
+    const isClassic = isClassicBook(currentBook.title, currentBook.author);
+    const matchingTitle = isClassic ? (getMatchingClassicTitle(currentBook.title) || currentBook.title) : currentBook.title;
+    const info = translatorInfo[matchingTitle] || translatorInfo[currentBook.title];
+    if (info) {
+      if (pubName.includes("민음사")) return info.minumsa || "-";
+      if (pubName.includes("문학동네")) return info.moonhak || "-";
+    }
+    return "-";
   };
 
-  const percentageA = voteData.totalVotes > 0 ? Math.round((voteData.optionA.votes / voteData.totalVotes) * 100) : 0;
-  const percentageB = voteData.totalVotes > 0 ? Math.round((voteData.optionB.votes / voteData.totalVotes) * 100) : 0;
+  const sortedPublishers = [...initialPubs].map(pub => ({
+    name: pub.name,
+    votes: votesMap[pub.name] || 0
+  })).sort((a, b) => b.votes - a.votes);
+
+  const topPublisher = sortedPublishers[0] || { name: "" };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -283,7 +235,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-6 text-white">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-1">{cleanTitle(voteData.title)}</h2>
+              <h2 className="text-2xl font-bold mb-1">{cleanTitle(currentBook.title)}</h2>
               <p className="text-sm text-purple-100 mb-1">{currentBook.author}</p>
               <button
                 onClick={() => setShowBookSearch(true)}
@@ -292,204 +244,116 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                 <Search className="size-3" />
                 다른 책으로 변경
               </button>
-              <p className="text-purple-100 text-sm">{voteData.question}</p>
+              <p className="text-purple-100 text-sm">어떤 번역본이 더 나을까요?</p>
             </div>
           </div>
         </div>
 
         {/* Voting Section */}
         <div className="px-4 py-6 space-y-4">
-          {/* Progress Bar with enhanced styling */}
+          {/* Progress Bar list */}
           <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-white rounded-2xl p-5 shadow-lg border border-purple-100">
             <div className="space-y-3 mb-4">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-purple-700 flex items-center gap-1">
-                    <span>📚</span> {voteData.optionA.publisher}
-                  </span>
-                  <span className="text-xs font-bold text-purple-700">
-                    {percentageA}%
-                  </span>
-                </div>
-                <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500 rounded-full shadow-sm"
-                    initial={{ width: 0 }}
-                    animate={{ 
-                      width: `${percentageA}%` 
-                    }}
-                    transition={{ 
-                      duration: 1.2, 
-                      ease: "easeOut",
-                      delay: 0.2
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-bold text-purple-700 flex items-center gap-1">
-                    <span>📘</span> {voteData.optionB.publisher}
-                  </span>
-                  <span className="text-xs font-bold text-purple-700">
-                    {percentageB}%
-                  </span>
-                </div>
-                <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                  <motion.div 
-                    className="h-full bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500 rounded-full shadow-sm"
-                    initial={{ width: 0 }}
-                    animate={{ 
-                      width: `${percentageB}%` 
-                    }}
-                    transition={{ 
-                      duration: 1.2, 
-                      ease: "easeOut",
-                      delay: 0.2
-                    }}
-                  />
-                </div>
-              </div>
+              {initialPubs.map((pub, idx) => {
+                const votes = votesMap[pub.name] || 0;
+                const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                const icons = ["📚", "📘", "📗", "📙", "📓"];
+                const icon = icons[idx % icons.length];
+                
+                return (
+                  <div key={pub.name}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-purple-700 flex items-center gap-1">
+                        <span>{icon}</span> {pub.name}
+                      </span>
+                      <span className="text-xs font-bold text-purple-700">
+                        {percentage}% ({votes}명)
+                      </span>
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-purple-500 via-purple-400 to-purple-500 rounded-full shadow-sm"
+                        initial={{ width: 0 }}
+                        animate={{ 
+                          width: `${percentage}%` 
+                        }}
+                        transition={{ 
+                          duration: 1.2, 
+                          ease: "easeOut",
+                          delay: 0.2
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="text-center py-2 bg-white rounded-lg shadow-sm border border-purple-100">
               <p className="text-xs text-gray-600 mb-0.5">총 투표 수</p>
               <p className="text-lg font-bold text-purple-700">
-                {voteData.totalVotes.toLocaleString()}명
+                {totalVotes.toLocaleString()}명
               </p>
             </div>
           </div>
 
-          {/* Option A */}
-          <Card 
-            className={`overflow-hidden cursor-pointer transition-all ${
-              selectedOption === 1 ? 'ring-2 ring-purple-500 shadow-lg' : 'hover:shadow-md'
-            }`}
-            onClick={() => setSelectedOption(1)}
-          >
-            <div className="flex gap-4 p-4">
-              <div className="w-24 flex-shrink-0">
-                <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden shadow-md">
-                  <BookCover 
-                    title={currentBook.title} 
-                    author={currentBook.author} 
-                    publisherName={voteData.optionA.publisher} 
-                    coverUrl={voteData.optionA.coverUrl}
-                    allowPublisherFallback={false}
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-lg text-purple-600">{voteData.optionA.publisher}</h3>
-                  {selectedOption === 1 && (
-                    <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+          {/* Publisher Cards list */}
+          {initialPubs.map((pub) => {
+            const isSelected = selectedOption === pub.name;
+            const translator = getTranslatorForPub(pub.name);
+            const coverUrl = getPublisherCover(currentBook.title, pub.name, currentBook.coverUrl);
+            const isTop = pub.name === topPublisher.name;
+            
+            return (
+              <Card 
+                key={pub.name}
+                className={`overflow-hidden cursor-pointer transition-all ${
+                  isSelected ? 'ring-2 ring-purple-500 shadow-lg' : 'hover:shadow-md'
+                } ${hasVoted ? 'pointer-events-none' : ''}`}
+                onClick={() => !hasVoted && setSelectedOption(pub.name)}
+              >
+                <div className="flex gap-4 p-4">
+                  <div className="w-24 flex-shrink-0">
+                    <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden shadow-md">
+                      <BookCover 
+                        title={currentBook.title} 
+                        author={currentBook.author} 
+                        publisherName={pub.name} 
+                        coverUrl={coverUrl}
+                        allowPublisherFallback={false}
+                        className="w-full h-full object-cover" 
+                      />
                     </div>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 mb-3">번역: {voteData.optionA.translator}</p>
-                <div className="space-y-2">
-                  {voteData.optionA.pros.length > 0 || voteData.optionA.cons.length > 0 ? (
-                    <>
-                      {voteData.optionA.pros.length > 0 && (
-                        <div>
-                          <Badge className="bg-green-100 text-green-700 text-xs mb-1">장점</Badge>
-                          <ul className="text-xs text-gray-600 space-y-0.5">
-                            {voteData.optionA.pros.map((pro, idx) => (
-                              <li key={idx}>• {pro}</li>
-                            ))}
-                          </ul>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-lg text-purple-600">{pub.name}</h3>
+                        {isTop && hasVoted && (
+                          <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold">
+                            1위
+                          </span>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
                         </div>
                       )}
-                      {voteData.optionA.cons.length > 0 && (
-                        <div>
-                          <Badge className="bg-red-100 text-red-700 text-xs mb-1">단점</Badge>
-                          <ul className="text-xs text-gray-600 space-y-0.5">
-                            {voteData.optionA.cons.map((con, idx) => (
-                              <li key={idx}>• {con}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic py-1">아직 등록된 의견/장단점이 없습니다</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Option B */}
-          <Card 
-            className={`overflow-hidden cursor-pointer transition-all ${
-              selectedOption === 2 ? 'ring-2 ring-purple-500 shadow-lg' : 'hover:shadow-md'
-            }`}
-            onClick={() => setSelectedOption(2)}
-          >
-            <div className="flex gap-4 p-4">
-              <div className="w-24 flex-shrink-0">
-                <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden shadow-md">
-                  <BookCover 
-                    title={currentBook.title} 
-                    author={currentBook.author} 
-                    publisherName={voteData.optionB.publisher} 
-                    coverUrl={voteData.optionB.coverUrl}
-                    allowPublisherFallback={false}
-                    className="w-full h-full object-cover" 
-                  />
-                </div>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-lg text-purple-600">{voteData.optionB.publisher}</h3>
-                  {selectedOption === 2 && (
-                    <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
                     </div>
-                  )}
+                    <p className="text-sm text-gray-600 mb-3">번역: {translator}</p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-400 italic py-1">아직 등록된 의견/장단점이 없습니다</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">번역: {voteData.optionB.translator}</p>
-                <div className="space-y-2">
-                  {voteData.optionB.pros.length > 0 || voteData.optionB.cons.length > 0 ? (
-                    <>
-                      {voteData.optionB.pros.length > 0 && (
-                        <div>
-                          <Badge className="bg-green-100 text-green-700 text-xs mb-1">장점</Badge>
-                          <ul className="text-xs text-gray-600 space-y-0.5">
-                            {voteData.optionB.pros.map((pro, idx) => (
-                              <li key={idx}>• {pro}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {voteData.optionB.cons.length > 0 && (
-                        <div>
-                          <Badge className="bg-red-100 text-red-700 text-xs mb-1">단점</Badge>
-                          <ul className="text-xs text-gray-600 space-y-0.5">
-                            {voteData.optionB.cons.map((con, idx) => (
-                              <li key={idx}>• {con}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic py-1">아직 등록된 의견/장단점이 없습니다</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            );
+          })}
 
-          {/* Vote Button */}
+          {/* Vote Submit Button */}
           <Button 
             className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-6 text-base font-bold shadow-lg"
             disabled={!selectedOption || hasVoted}
@@ -498,25 +362,29 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
                 onLoginRequired?.();
                 return;
               }
+              if (!selectedOption) return;
               
-              if (selectedOption === 1) {
-                setVotesA(votesA + 1);
-                voteWorkPublisher(workKey, initialPubs[0].name);
-              } else if (selectedOption === 2) {
-                setVotesB(votesB + 1);
-                voteWorkPublisher(workKey, initialPubs[1].name);
-              }
+              voteWorkPublisher(workKey, selectedOption);
+              
+              setVotesMap(prev => ({
+                ...prev,
+                [selectedOption]: (prev[selectedOption] || 0) + 1
+              }));
               setTotalVotes(totalVotes + 1);
               setHasVoted(true);
+              
               const currentUserId = user?.userId || "";
               const myVotes = JSON.parse(localStorage.getItem(`myPublisherVotes_${currentUserId}`) || '{}');
-              const votedPubName = selectedOption === 1 ? initialPubs[0].name : initialPubs[1].name;
-              myVotes[workKey] = votedPubName;
+              myVotes[workKey] = selectedOption;
               localStorage.setItem(`myPublisherVotes_${currentUserId}`, JSON.stringify(myVotes));
               toast.success("투표가 완료되었습니다!");
             }}
           >
-            {selectedOption ? `${selectedOption === 1 ? voteData.optionA.publisher : voteData.optionB.publisher} 선택하기` : '옵션을 선택해주세요'}
+            {hasVoted 
+              ? "투표 완료" 
+              : selectedOption 
+              ? `${selectedOption} 선택하기` 
+              : '옵션을 선택해주세요'}
           </Button>
 
           {/* Comments Section */}
@@ -524,7 +392,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-base flex items-center gap-2">
                 <MessageCircle className="size-5 text-purple-600" />
-                토론 ({voteData.comments.length})
+                토론 ({comments.length})
               </h3>
               <div className="flex items-center gap-2">
                 <Button 
@@ -586,7 +454,7 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
 
             {/* Comments List */}
             <div className="space-y-4">
-              {voteData.comments.map((commentData) => {
+              {comments.map((commentData) => {
                 const skin = commentSkins.find((s) => s.id === commentData.skinId) || commentSkins[0];
                 
                 return (
@@ -680,19 +548,10 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
               coverUrl: book.coverUrl,
             });
             
-            const isClassic = isClassicBook(book.title, book.author);
-            const matchingTitle = isClassic ? (getMatchingClassicTitle(book.title) || book.title) : book.title;
-            const translators = isClassic ? (translatorInfo[matchingTitle] || { minumsa: "정정희", moonhak: "장혜경" }) : { minumsa: "-", moonhak: "-" };
-            setTranslatorA(translators.minumsa);
-            setTranslatorB(translators.moonhak);
+            const newPubs = getInitialPublishers(book.title, book.author);
+            setInitialPubs(newPubs);
             
-            // 장단점 초기화
-            setProsA(["정확한 번역", "원문의 뉘앙스 살림", "깔끔한 편집"]);
-            setConsA(["다소 딱딱한 표현", "읽기 어려울 수 있음"]);
-            setProsB(["현대적 감각", "읽기 쉬운 문체", "독자 친화적"]);
-            setConsB(["의역이 많음", "원문과 차이가 있음"]);
-            
-            // 댓글 불러오기
+            // Comments load
             const currentUserId = user?.userId || "";
             async function loadNewComments() {
               const dbComments = await fetchCommentsFromCloud(book.title);
@@ -703,14 +562,17 @@ export function VoteDetailScreen({ onBack, selectedBook, onUserClick, onLoginReq
             }
             loadNewComments();
             
-            // 투표 불러오기
-            const pubVotes = getPublisherVotes(book.title, [
-              { name: "민음사", votes: 0 },
-              { name: "문학동네", votes: 0 }
-            ]);
-            setVotesA(pubVotes[0].votes);
-            setVotesB(pubVotes[1].votes);
-            setTotalVotes(pubVotes[0].votes + pubVotes[1].votes);
+            // Votes load
+            const currentWorkKey = getWorkKey(book.title, book.author || "");
+            const newVotes: Record<string, number> = {};
+            let total = 0;
+            newPubs.forEach(pub => {
+              const v = getWorkPublisherVotes(currentWorkKey, pub.name);
+              newVotes[pub.name] = v;
+              total += v;
+            });
+            setVotesMap(newVotes);
+            setTotalVotes(total);
             setSelectedOption(null);
             setHasVoted(false);
             setShowBookSearch(false);

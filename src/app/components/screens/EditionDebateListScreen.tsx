@@ -51,26 +51,36 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
   useEffect(() => {
     const globalBooks = getGlobalBooks(popularBooksData);
 
-    // Group by workKey and merge all publishers
+    // Group by workKey and merge ALL publishers (not just first)
     const workMap = new Map<string, any>();
     globalBooks.forEach(book => {
       if (!book) return;
       const wk = getWorkKey(book.title, book.author);
-      const pubName = book.publisher || book.publishers?.[0]?.name || "";
-      if (!pubName || pubName === "출판사 미상") return;
+
+      // Collect ALL publisher names from this book entry
+      const allPubNames: string[] = [];
+      if (book.publisher && book.publisher !== "출판사 미상") allPubNames.push(book.publisher);
+      (book.publishers || []).forEach((p: any) => {
+        if (p?.name && p.name !== "출판사 미상" && !allPubNames.includes(p.name)) {
+          allPubNames.push(p.name);
+        }
+      });
+      if (allPubNames.length === 0) return;
 
       if (!workMap.has(wk)) {
         workMap.set(wk, {
           ...book,
-          publisherSet: new Set<string>([pubName]),
+          publisherSet: new Set<string>(allPubNames),
         });
       } else {
         const existing = workMap.get(wk)!;
-        existing.publisherSet.add(pubName);
-        if (!existing.publishers) existing.publishers = [];
-        if (!existing.publishers.some((p: any) => p.name === pubName)) {
-          existing.publishers.push({ name: pubName, votes: 0 });
-        }
+        allPubNames.forEach(pub => {
+          existing.publisherSet.add(pub);
+          if (!existing.publishers) existing.publishers = [];
+          if (!existing.publishers.some((p: any) => p.name === pub)) {
+            existing.publishers.push({ name: pub, votes: 0 });
+          }
+        });
       }
     });
 
@@ -97,6 +107,8 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
         const votesB = getWorkPublisherVotes(wk, debatePublishers[1] || "");
         return {
           ...item,
+          // publishers 배열을 publisherSet 기반으로 완전 재구성 (detail 화면 전달용)
+          publishers: debatePublishers.map(pub => ({ name: pub, votes: 0 })),
           debatePublishers: debatePublishers.slice(0, 3),
           totalVotes: votesA + votesB,
           totalComments: getComments(item.title).length,

@@ -186,11 +186,27 @@ export function getWorkKey(title: string, author: string): string {
 }
 
 export function isClassicBook(title: string, author: string): boolean {
-  const classicTitle = getMatchingClassicTitle(title);
-  if (!classicTitle) return false;
   if (!author) return false;
   
+  // 1. 클래식/세계문학 대표 작가 목록 기준 매칭 (도서 장르가 문학인 것을 EditionDebateListScreen에서 필터링하므로 안전)
+  const literaryClassicAuthors = [
+    "헤세", "다자이", "톨스토이", "도스토", "카뮈", "오웰", "카프카", "괴테", "세르반",
+    "브론테", "피츠제", "헤밍웨이", "마르케스", "쿤데라", "카잔차", "하퍼 리", "생텍",
+    "뒤마", "위고", "플로베르", "셰익스", "오스틴", "와일드", "마크 트", "멜빌", "스위프트",
+    "디포", "코난 도일", "캐럴", "헉슬리", "단테", "토머스 모어", "호메로스", "플라톤",
+    "마키아", "존 스튜어트 밀", "루소", "니체"
+  ];
+  
   const lowerAuthor = author.toLowerCase();
+  const isClassicAuthor = literaryClassicAuthors.some(ca => lowerAuthor.includes(ca));
+  if (isClassicAuthor) {
+    return true;
+  }
+
+  // 2. 도서명 기반 클래식 매칭
+  const classicTitle = getMatchingClassicTitle(title);
+  if (!classicTitle) return false;
+  
   const lowerTitle = classicTitle.toLowerCase();
   
   if (lowerTitle.includes("오만과 편견") || lowerTitle.includes("제인 오스틴")) {

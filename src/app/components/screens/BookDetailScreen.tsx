@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/app/components/ConfirmDialog";
 import { motion } from "motion/react";
 import { BookCover, fetchHtmlViaProxy } from "@/app/components/BookCover";
 import { getReviews, saveReview, deleteReview, getPublisherVotes, getSinglePublisherVotes, getBookLikes, toggleBookLike, toggleReviewLike, isReviewLiked, getDebateVotes, getDebateOpinions, getGlobalBooks, saveGlobalBook, healLibraryBookAuthor, fetchReviewsFromCloud, saveReviewToCloud, deleteReviewFromCloud, toggleBookLikeInCloud, isGarbageDescription, getBookRatingStatsWithQuick, getQuickRating, saveQuickRating, deleteQuickRating, toggleReviewLikeInCloud, fetchBookDetailAggregateFromCloud, getWorkPublisherVotes, voteWorkPublisher } from "@/app/utils/db";
-import { debateTopics } from "@/app/data/debateTopics";
+import { debateTopics as staticDebateTopics } from "@/app/data/debateTopics";
 import { getMatchingClassicTitle, getWorkKey, isClassicBook } from "@/app/utils/titleHelper";
 import { getAuthorsList, initialAuthors, specialFallbackAuthors, getBestAuthorMatch } from "@/app/data/authorsData";
 import { splitAuthors, cleanAladinAuthors, isAuthorMatched } from "@/app/utils/authorUtils";
@@ -72,7 +72,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
   const [myQuickRating, setMyQuickRating] = useState(() => getQuickRating(workKey, userId));
 
   // 찬반토론: localStorage 오염 우회 — 항상 정적 debateTopics 파일에서 직접 읽기
-  const allDebateTopics = Object.entries(debateTopics).map(([bookTitle, topic]) => ({
+  const allDebateTopics = Object.entries(staticDebateTopics).map(([bookTitle, topic]) => ({
     bookTitle,
     topic,
     isbn13: undefined as string | undefined,

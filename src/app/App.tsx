@@ -311,6 +311,16 @@ function AppContent() {
     }
   }, []);
 
+  // Force-reset forum_global_books in localStorage to fetch full 2024 books from popularBooksData
+  useEffect(() => {
+    const globalBooksVersion = "v10";
+    if (localStorage.getItem("forum_global_books_version") !== globalBooksVersion) {
+      localStorage.removeItem("forum_global_books");
+      localStorage.setItem("forum_global_books_version", globalBooksVersion);
+      window.location.reload();
+    }
+  }, []);
+
   // 전역 유저 티어 맵 캐시 초기화
   useEffect(() => {
     initUserLikesMap().catch((err) => {
@@ -797,9 +807,17 @@ function AppContent() {
         const existing = integratedMap.get(uniqueKey);
 
         if (existing) {
+          // Merge all publishers from item.publishers
+          if (item.publishers) {
+            item.publishers.forEach((p: any) => {
+              if (p?.name && p.name !== "출판사 미상" && !existing.publishers.some((ep: any) => ep.name === p.name)) {
+                existing.publishers.push({ name: p.name, votes: p.votes || 0 });
+              }
+            });
+          }
           const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
-          if (!existing.publishers.some((p: any) => p.name === newPubName)) {
-            existing.publishers.push({ name: newPubName, votes: item.publishers?.[0]?.votes || 0 });
+          if (newPubName !== "출판사 미상" && !existing.publishers.some((p: any) => p.name === newPubName)) {
+            existing.publishers.push({ name: newPubName, votes: 0 });
           }
           
           if (!existing.alternativeCovers) {
@@ -814,10 +832,14 @@ function AppContent() {
           }
         } else {
           const newPubName = item.publisher || item.publishers?.[0]?.name || "민음사";
+          const pubsList = item.publishers ? [...item.publishers] : [];
+          if (newPubName !== "출판사 미상" && !pubsList.some((p: any) => p.name === newPubName)) {
+            pubsList.push({ name: newPubName, votes: 0 });
+          }
           const newBook = {
             ...item,
             title: classicTitle ? `${classicTitle} 세트 전3권` : item.title,
-            publishers: item.publishers || [{ name: newPubName, votes: 0 }],
+            publishers: pubsList,
             alternativeCovers: [
               {
                 publisher: newPubName,
@@ -857,6 +879,15 @@ function AppContent() {
             representative.publishers.push({ name: pub, votes: 0 });
           }
         });
+
+        // Also preserve publishers from the clicked book (e.g. 시공사 for Don Quixote)
+        if (book.publishers) {
+          book.publishers.forEach((bp: any) => {
+            if (bp && bp.name && bp.name !== "출판사 미상" && !representative.publishers.some((p: any) => p.name === bp.name)) {
+              representative.publishers.push({ name: bp.name, votes: bp.votes || 0 });
+            }
+          });
+        }
 
         if (!representative.alternativeCovers) {
           representative.alternativeCovers = [];
