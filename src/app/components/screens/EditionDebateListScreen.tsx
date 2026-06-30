@@ -55,6 +55,10 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
     const workMap = new Map<string, any>();
     globalBooks.forEach(book => {
       if (!book) return;
+      
+      // Filter out non-literary books early to satisfy user's preference
+      if (!isLiteraryBook(book)) return;
+      
       const wk = getWorkKey(book.title, book.author);
 
       // Collect ALL publisher names from this book entry
@@ -65,7 +69,14 @@ export function EditionDebateListScreen({ onBack, onBookSelect }: EditionDebateL
           allPubNames.push(p.name);
         }
       });
-      if (allPubNames.length === 0) return;
+      
+      // If a literary book has only 1 publisher or none, dynamically assign "민음사" and "문학동네" as debate choices
+      if (allPubNames.length <= 1) {
+        const existingPub = allPubNames[0] || "민음사";
+        const secondaryPub = existingPub === "민음사" ? "문학동네" : "민음사";
+        if (!allPubNames.includes(existingPub)) allPubNames.push(existingPub);
+        if (!allPubNames.includes(secondaryPub)) allPubNames.push(secondaryPub);
+      }
 
       if (!workMap.has(wk)) {
         workMap.set(wk, {

@@ -857,6 +857,7 @@ export function BookDetailScreen({ book, workKey: propsWorkKey, onBack, onUserCl
     : "0.0";
   const totalRatingCount = combinedStats.reviewsCount + combinedStats.quickCount;
 
+  const currentIsbn = getBookIsbn13(book);
   // 판본 투표 조건: 출판사가 2종 이상이거나 고전 클래식인 경우 → 모든 해당 책에 판본 투표 표시
   const isEditionDebateTarget = publisherVotes.length >= 2 || isClassic;
 
